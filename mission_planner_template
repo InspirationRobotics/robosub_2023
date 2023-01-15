@@ -1,4 +1,5 @@
 # Template for the node that will be making decisions on what mission it is/when to switch
+# Currently this file is a text file, make sure the actual mission planner file name has the correct extension like .py
 # Takes in information about mission location and current sub position. Outputs the next waypoint that the sub needs to move to.
 
 #!/usr/bin/env python
