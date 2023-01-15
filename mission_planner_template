@@ -1,0 +1,66 @@
+# Template for the node that will be making decisions on what mission it is/when to switch
+# Takes in information about mission location and current sub position. Outputs the next waypoint that the sub needs to move to.
+
+#!/usr/bin/env python
+# license removed for brevity
+
+import rospy
+from std_msgs.msg import String
+
+def current_pos_callback(data):
+    rospy.loginfo(data.data)
+
+def perception_callback(data):
+    rospy.loginfo(data.data)
+
+def hydrophone_callback(data):
+    rospy.loginfo(data.data)
+
+def sonar_callback(data):
+    rospy.loginfo(data.data)
+
+def dvl_callback(data):
+    rospy.loginfo(data.data)
+
+def state_estimator_callback(data):
+    rospy.loginfo(data.data)
+
+def mission_planner():
+    lat_target = rospy.Publisher('/wamv/position/current_latitude', String, queue_size=10)
+    lon_target = rospy.Publisher('/wamv/position/current_longitude', String, queue_size=10)
+    heading_target=rospy.Publisher('/wamv/position/current_heading', String, queue_size=10)
+    rospy.init_node('mission_planner', anonymous=True)
+    rospy.Subscriber("/wamv/position/current_latitude", String, current_pos_callback)
+    rospy.Subscriber("/wamv/position/current_longitude", String, current_pos_callback)
+    rospy.Subscriber("/wamv/position/current_heading", String, current_pos_callback)
+    rospy.Subscriber("/wamv/sensors/perception/gate", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/perception/buoy", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/perception/path", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/perception/marker_bins", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/perception/torpedoes", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/perception/octagon_bins", String, perception_callback)
+    rospy.Subscriber("/wamv/sensors/hydrophone/torpedo_beacon", String, hydrophone_callback)
+    rospy.Subscriber("/wamv/sensors/hydrophone/octagon_beacon", String, hydrophone_callback)
+    rospy.Subscriber("/wamv/sensors/sonar/data", String, sonar_callback)
+    rospy.Subscriber("/wamv/sensors/dvl/data", String, dvl_callback)
+    rospy.Subscriber("/wamv/mission/gate/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/buoy/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/path/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/marker_drop/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/torpedo/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/octagon_surface/confidence", String, state_estimator_callback)
+    rospy.Subscriber("/wamv/mission/octagon_bins/confidence", String, state_estimator_callback)
+    rate = rospy.Rate(10) # 10hz
+    while not rospy.is_shutdown():
+        hello_str = "hello world %s" % rospy.get_time()
+        rospy.loginfo(hello_str)
+        lat_target.publish(hello_str)
+        lon_target.publish(hello_str)
+        heading_target.publish(hello_str)
+        rate.sleep()
+
+if __name__ == '__main__':
+    try:
+        mission_planner()
+    except rospy.ROSInterruptException:
+        pass
