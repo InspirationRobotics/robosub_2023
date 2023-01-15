@@ -12,8 +12,9 @@ def sensor1_callback(data):
 
 def sensor2_callback(data):
     rospy.loginfo(data.data)
-# add as many nodes as you need for this sensor
+# add as many nodes as you need for this sensor, one node per topic you need to listen to/get data from
 
+# create a seperate node to combine the data
 def sensor_combine():
     pub = rospy.Publisher('/wamv/sensors/sensor/data', String, queue_size=10)
     rospy.init_node('sensor_combine', anonymous=True)
