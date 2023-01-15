@@ -7,10 +7,10 @@ import rospy
 from std_msgs.msg import String
 
 # name your node
-def sensor_function():
+def sensor1_function1():
     # in the single quotes write where your node is publishing to
-    pub = rospy.Publisher('/wamv/sensors/gps/data1', String, queue_size=10)
-    rospy.init_node('sensor_function', anonymous=True)
+    pub = rospy.Publisher('/wamv/sensors/sensor1/data', String, queue_size=10)
+    rospy.init_node('sensor1_function1', anonymous=True)
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
         hello_str = "hello world %s" % rospy.get_time()
@@ -20,6 +20,6 @@ def sensor_function():
 
 if __name__ == '__main__':
     try:
-        sensor_function()
+        sensor1_function1()
     except rospy.ROSInterruptException:
         pass
