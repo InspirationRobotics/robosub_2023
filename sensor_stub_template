@@ -1,0 +1,25 @@
+# ROS 1 Template for sensor stubs
+# write what this node is for ex: reading data from individual GPS 
+#!/usr/bin/env python
+# license removed for brevity
+
+import rospy
+from std_msgs.msg import String
+
+# name your node
+def sensor_function():
+    # in the single quotes write where your node is publishing to
+    pub = rospy.Publisher('/wamv/sensors/gps/data1', String, queue_size=10)
+    rospy.init_node('sensor_function', anonymous=True)
+    rate = rospy.Rate(10) # 10hz
+    while not rospy.is_shutdown():
+        hello_str = "hello world %s" % rospy.get_time()
+        rospy.loginfo(hello_str)
+        pub.publish(hello_str)
+        rate.sleep()
+
+if __name__ == '__main__':
+    try:
+        sensor_function()
+    except rospy.ROSInterruptException:
+        pass
