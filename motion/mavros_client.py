@@ -3,6 +3,8 @@
 import rospy
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
 from mavros_msgs.msg import OverrideRCIn, State
+from sensor_msgs.msg import Imu
+from std_msgs.msg import Float64
 import threading
 import time
 
@@ -10,7 +12,15 @@ rc_pub = None
 rate = None
 state_sub = None
 current_state = State()
-mode = "MANUAL"
+mode = "STABILIZE"
+
+arming_client = None
+set_mode_client = None
+stab_set_mode = None
+arm_cmd = None
+
+compass = None
+imu = None
 
 channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
 
@@ -18,6 +28,15 @@ def state_cb(msg):
     global current_state
     current_state = msg
 
+def compass_cb(msg):
+    global compass
+    compass = msg.data
+    print(compass) 
+
+def imu_cb(msg):
+    global imu
+    imu = msg
+    
 def init_ros():
     global rc_pub
     global rate
@@ -26,11 +45,17 @@ def init_ros():
     rospy.init_node("mavros_example_client")
 
     state_sub = rospy.Subscriber("mavros/state", State, callback = state_cb)
+    compass_sub = rospy.Subscriber("mavros/global_position/compass_hdg", Float64, callback = compass_cb)
     rc_pub = rospy.Publisher("mavros/rc/override", OverrideRCIn, queue_size=10)
                                  
     rate = rospy.Rate(20)
 
 def connect_arm():
+    global arming_client
+    global set_mode_client
+    global stab_set_mode
+    global arm_cmd
+    
     rospy.wait_for_service("/mavros/cmd/arming")
     arming_client = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)    
     rospy.wait_for_service("/mavros/set_mode")
@@ -64,15 +89,9 @@ def send_rc():
         msg.channels = channels
         rc_pub.publish(msg)
 
-        
-def main():
-    init_ros()
-    connect_arm()
-
-    thread = threading.Thread(target=send_rc)
-    thread.start()
-
-    # set elements of channels
+def getIMU():
+    pass
     
-if __name__ == "__main__":
-    main()
+def getCompass():
+    return compass
+
