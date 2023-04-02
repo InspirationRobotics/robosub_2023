@@ -1,6 +1,6 @@
-from navigation.rc import RCLib # in the 2019 robosub repo called inspiration_robosub/navigation/
+from navigation.rc import RCLib 
 import time
-import navigation.imu as imu # in the 2019 robosub repo called inspiration_robosub/navigation/
+import navigation.imu as imu 
 
 
 rc = RCLib()
