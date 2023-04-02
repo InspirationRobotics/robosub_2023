@@ -12,6 +12,7 @@ rc.arm()
 
 rc.throttle("time",1, -0.40) # this is to control depth, was going up instead of down
 rc.throttle("time",1, -0.40) # inside the parentheses set the meaurement to time, the time value in seconds, and the power
+# try changing the power to a different negative value, power input has to be less than or equal to 1 or -1 
 
 # moving forwards and backwards
 rc.forward("time", 3, 0.30)
