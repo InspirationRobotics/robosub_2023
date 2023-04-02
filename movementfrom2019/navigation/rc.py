@@ -4,7 +4,7 @@ import imu
 from pymavlink import mavutil
 import math
 from ac import *
-from log import *
+from log import * 
 
 # Create the connection
 
@@ -48,17 +48,22 @@ class RCLib:
                 *rc_channel_values)
 
     def raw (self, id, pwm=1900) :
+	# have to give a pwd value between 1100 and 1900
+	if(pwm>1900):
+		pwm = 1900
+	if(pwm<1100):
+		pwm = 1100
       try:
 
         if (id == "pitch") :
 
-            self.set_rc_channel_pwm(1, pwm)
+            self.set_rc_channel_pwm(1, pwm) 
             
         if (id == "roll") :
 
             self.set_rc_channel_pwm(2, pwm)
 
-        if (id == "throttle") :
+        if (id == "throttle") : # set the channel to a movement since pixhawk does not allow for individual thruster control
 
             self.set_rc_channel_pwm(3, pwm)
 
@@ -103,9 +108,12 @@ class RCLib:
         self.master.arducopter_disarm()
         
     def throttle (self, unit, value, power) :
-	
-	pwm = 1500 + (400 * power)
-	
+	''' 
+	used in the seaperch autonomous to control depth but is not working properly
+		when putting 1-2 seconds does not change the depth, when putting 4 seconds (positive and negative 4) made the sub try to go up out of the water
+	'''
+	pwm = 1500 + (400 * power) # is this what we have to do to power values to convert to correct amount of pwm value?
+		
 	if unit == "time" :
 
 	    runtime = time.time() + value
@@ -129,7 +137,9 @@ class RCLib:
  
 		
     def forward (self, unit, value, power) :
-        
+        ''' 
+	used for forward and backwards lateral movement, to move backward use negative power 
+	'''
 	if unit == "time" :
             
 	    self.setmode('ALT_HOLD')
@@ -147,7 +157,9 @@ class RCLib:
         self.log.info(imu.getDeg(self.master)) 
 
     def yaw (self, unit, value, power=None) :
-
+	''' 
+	used for turning left and right  
+	'''
         power = power * (value/abs(value))
     
     
@@ -162,6 +174,7 @@ class RCLib:
             self.raw("yaw", 1500)
     
         if unit == "imu" :
+	    # when using imu and setting the value to 45 it turns 90 degrees instead of 45, positive values turn robot to the right, negative values turn robot to the left
 
             start = imu.getDeg(self.master)
             self.log.info('start angle: %s' % start)
