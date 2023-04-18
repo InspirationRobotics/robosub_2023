@@ -1,4 +1,4 @@
-Notes on getting started with writing your an autonomous mission:
+# Notes on getting started with writing your an autonomous mission:
 
 “Missions” are just programs that tell the AUV, on a high level, how and where to move according to what rules. Even moving in a square is considered a “mission.”
 
