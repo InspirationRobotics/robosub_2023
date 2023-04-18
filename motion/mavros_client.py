@@ -50,6 +50,10 @@ def init_ros():
                                  
     rate = rospy.Rate(20)
 
+def set_mode(m):
+	global mode
+	mode = m
+
 def connect_arm():
     global arming_client
     global set_mode_client
