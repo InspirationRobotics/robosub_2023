@@ -8,9 +8,7 @@ from std_msgs.msg import Float64
 import threading
 import time
 
-rc_pub = None
-rate = None
-state_sub = None
+rate = rospy.Rate(20)
 current_state = State()
 mode = "STABILIZE"
 
@@ -24,32 +22,47 @@ imu = None
 
 channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
 
+sd = {
+    "compass": None,
+    "state": None
+}
+
 def state_cb(msg):
     global current_state
     current_state = msg
 
 def compass_cb(msg):
     global compass
-    compass = msg.data
-    print(compass) 
+    sd["compass"] = msg.data
 
-def imu_cb(msg):
-    global imu
-    imu = msg
+# def imu_cb(msg):
+#     global imu
+#     imu = msg
+
+subscribers = [
+    ["state", "/mavros/state", State, state_cb, None],
+    ["compass", "/mavros/global_position/compass_hdg", Float64, compass_cb, None]
+]
+
+publishers = [
+    ["rc", "/mavros/rc/override", OverrideRCIn, None]
+    ["imu", "/auv/sensors/imu", Point, None],
+    ["compass", "/auv/sensors/compass", Float64, None]
+    ["baro", "/auv/sensors/baro", Float64, None]
+]
+
+def get_pub(n, p):
+    for i in p:
+	if p[0] == n:
+	    return i[4]
     
 def init_ros():
-    global rc_pub
-    global rate
-    global state_sub
-
     rospy.init_node("mavros_example_client")
 
     state_sub = rospy.Subscriber("mavros/state", State, callback = state_cb)
     compass_sub = rospy.Subscriber("mavros/global_position/compass_hdg", Float64, callback = compass_cb)
     rc_pub = rospy.Publisher("mavros/rc/override", OverrideRCIn, queue_size=10)
                                  
-    rate = rospy.Rate(20)
-
 def set_mode(m):
 	global mode
 	mode = m
@@ -77,7 +90,7 @@ def send_rc():
     msg = OverrideRCIn()
     last_req = rospy.Time.now()
 
-    while(not rospy.is_shutdown()):
+    while not rospy.is_shutdown():
         if(current_state.mode != mode and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if(set_mode_client.call(stab_set_mode).mode_sent == True):
                 rospy.loginfo("mode enabled")
@@ -92,6 +105,22 @@ def send_rc():
 
         msg.channels = channels
         rc_pub.publish(msg)
+
+def publish_pix_sensors():
+    b_msg = Float64()
+    i_msg = Point()
+    c_msg = Float64()
+
+    b_msg.data = 0
+    i_msg.data = [0, 0, 0]
+    c_msg.data = 0
+
+    while not rospy.is_shutdown():
+	get_pub("baro").publish(b_msg)
+	get_pub("compass").publish(c_msg)
+	get_pub("imu").publish(i_msg)
+
+    
 
 def getIMU():
     pass

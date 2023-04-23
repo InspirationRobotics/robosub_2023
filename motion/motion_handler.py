@@ -2,7 +2,8 @@ import mavros_client as mc
 from std_msgs.msg import Int32MultiArray
 
 sd = {
-	"mode": []
+	"mode": [],
+	"state": []
 }
 
 def pwm_cb(p): 
@@ -10,23 +11,25 @@ def pwm_cb(p):
 		mc.channels = p.data
 
 subscribers = [
-		["/auv/motion/mode", String, mode_cb, NULL]
-		["/auv/motion/raw", Int32MultiArray, pwm_cb, NULL]
+	["mode", "/auv/motion/mode", String, mode_cb, NULL],
+	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, NULL],
 ]
 
-init_ros(p, s, node_name):
+def init_ros_io(p, s):
 	for i in s:
-                i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
+                i[4] = rospy.Subscriber(i[1], i[2], i[3], queue_size=10)
 
-        rospy.init_node(node_name, anonymous=True)
+        for i in p:
+		i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
+ 
 
 def main():
-	mc.init_ros()
+	rospy.init_node("motion_handler", anonymous=True)
+	mc.init_ros_io(mc.publishers, mc.subscribers)
+	init_ros_io([], subscribers)
+
 	mc.set_mode("ALT_HOLD")
 	mc.connect_arm()
-	init_ros([], subscribers, "motion_handler")
+	mc.send_rc()
 	
 	rospy.spin()
-
-
-
