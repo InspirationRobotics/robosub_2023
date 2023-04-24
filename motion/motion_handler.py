@@ -1,18 +1,24 @@
-import mavros_client as mc
+import rospy
 from std_msgs.msg import Int32MultiArray
+
+def get_pub(n, p):
+        return p[n][2]
+
+publishers = {
+        "thrusters": ["/auv/devices/thrusters", Int32MultiArray, None]
+}
 
 sd = {
 	"mode": [],
-	"state": []
 }
 
 def pwm_cb(p): 
-	if sd['mode'] == "raw":
-		mc.channels = p.data
+#	if sd['mode'] == "raw":
+        get_pub("thrusters", publishers).publish(p)
 
 subscribers = [
 	["mode", "/auv/motion/mode", String, mode_cb, NULL],
-	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, NULL],
+	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, NULL], # basically just passthrough
 ]
 
 def init_ros_io(p, s):
@@ -25,11 +31,5 @@ def init_ros_io(p, s):
 
 def main():
 	rospy.init_node("motion_handler", anonymous=True)
-	mc.init_ros_io(mc.publishers, mc.subscribers)
-	init_ros_io([], subscribers)
-
-	mc.set_mode("ALT_HOLD")
-	mc.connect_arm()
-	mc.send_rc()
-	
+	init_ros_io(publishers, subscribers)
 	rospy.spin()
