@@ -17,6 +17,9 @@ def pwm_cb(p):
 #	if sd['mode'] == "raw":
         get_pub("thrusters", publishers).publish(p)
 
+def mode_cb(p):
+        pass
+
 subscribers = [
 	["mode", "/auv/motion/mode", String, mode_cb, NULL],
 	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, NULL], # basically just passthrough
