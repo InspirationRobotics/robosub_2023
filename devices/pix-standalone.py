@@ -6,7 +6,7 @@ import rospy
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
 from mavros_msgs.msg import OverrideRCIn, State
 from sensor_msgs.msg import Imu, FluidPressure
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Int32MultiArray
 import threading
 import time
 
