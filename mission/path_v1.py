@@ -22,11 +22,11 @@ subscribers = {
 }
 
 def init_ros_io(p, s):
-	for i in s:
+        for i in s:
                 i[4] = rospy.Subscriber(i[1], i[2], i[3], queue_size=10)
-
+                
         for i in p:
-		i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
+                i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
 
 def SDoF(th, fw, lat, yaw, pitch, roll):
     get_pub("raw", publishers).publish([1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500])
