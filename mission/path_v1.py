@@ -18,7 +18,7 @@ def pwm_cb(p):
         get_pub("thrusters", publishers).publish(p)
 
 subscribers = {
-	"path": ["/auv/cv/path", PointArray, mode_cb, NULL],
+	"path": ["/auv/cv/path", PointArray, mode_cb, None],
 }
 
 def init_ros_io(p, s):

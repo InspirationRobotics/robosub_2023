@@ -21,8 +21,8 @@ def mode_cb(p):
         pass
 
 subscribers = [
-	["mode", "/auv/motion/mode", String, mode_cb, NULL],
-	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, NULL], # basically just passthrough
+	["mode", "/auv/motion/mode", String, mode_cb, None],
+	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, None], # basically just passthrough
 ]
 
 def init_ros_io(p, s):
