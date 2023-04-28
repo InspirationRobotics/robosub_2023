@@ -10,7 +10,7 @@ publishers = {
 }
 
 sd = {
-	"mode": [],
+	"mode": []
 }
 
 def pwm_cb(p): 
