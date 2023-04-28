@@ -102,4 +102,4 @@ def main():
     connect_arm()
     rospy.spin()
 
-main()
+# main()
