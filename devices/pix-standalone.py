@@ -13,10 +13,10 @@ import time
 channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
 
 pix_status = {
-    "armed": False
-    "arming_client": None
-    "set_mode_client": None
-    "stab_set_mode": None
+    "armed": False,
+    "arming_client": None,
+    "set_mode_client": None,
+    "stab_set_mode": None,
     "arm_cmd": None
 }
 
