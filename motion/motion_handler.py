@@ -21,16 +21,16 @@ def mode_cb(p):
         pass
 
 subscribers = [
-	["mode", "/auv/motion/mode", String, mode_cb, None],
-	["raw", "/auv/motion/raw", Int32MultiArray, pwm_cb, None], # basically just passthrough
+	"mode": ["/auv/motion/mode", String, mode_cb, None],
+	"raw": ["/auv/motion/raw", Int32MultiArray, pwm_cb, None], # basically just passthrough
 ]
 
 def init_ros_io(p, s):
-        for i in s:
+        for i in s.values():
                 i[4] = rospy.Subscriber(i[1], i[2], i[3], queue_size=10)
                 
-        for i in p:
-                i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
+        for i in p.values():
+                i[2] = rospy.Publisher(i[0], i[1], queue_size=10)
  
 
 def main():

@@ -76,10 +76,10 @@ subscribers = {
 }
 
 def init_ros_io(p, s):
-    for i in p:
+    for i in p.values():
         i[2] = rospy.Publisher(i[0], i[1], queue_size=10)
 
-    for i in s:
+    for i in s.values():
         i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
 
 def connect_arm():
