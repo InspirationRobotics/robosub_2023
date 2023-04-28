@@ -1,5 +1,6 @@
 import rospy
 from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import String
 
 def get_pub(n, p):
         return p[n][2]
