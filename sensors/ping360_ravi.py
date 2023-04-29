@@ -1,11 +1,20 @@
-from brping import definitions
-from brping import PingDevice
-from brping import pingmessage
+#SYSTEM IMPORTS
 import serial
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+
+# PING360 IMPORTS
+from brping import definitions
+from brping import PingDevice
+from brping import pingmessage
+
+# PING360 DEFINITIONS
+
+dev_id_src = 0
+dev_id_dest = 0
+
 
 class Ping360(PingDevice):
     def initialize(self):
