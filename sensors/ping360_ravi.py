@@ -17,7 +17,7 @@ dev_id_dest = 0
 
 
 class Ping360(PingDevice):
-    def initialize(self):
+    def initialize(self): # what is self?
         if not PingDevice.initialize(self):
             return False
         if (self.readDeviceInformation() is None):
@@ -81,7 +81,17 @@ class Ping360(PingDevice):
         m.pack_msg_data()
         self.write(m.msg_data)
 
-
+    def set_device_id(id):
+        # build the message
+        msg = pingmessage.PingMessage(definitions.PING360_DEVICE_ID)
+        msg.id = dev_id_src
+        msg.reserved = 0
+        msg.pack_msg_data() #does this do the CRC etc?
+        
+        #send the message
+        self.write(m.msg_data)
+    
+    
     def control_reset(self, bootloader, reserved):
         m = pingmessage.PingMessage(definitions.PING360_RESET)
         m.bootloader = bootloader
