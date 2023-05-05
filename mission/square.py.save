@@ -1,6 +1,5 @@
 # really simple baseline mission
 import rospy
-import time
 from std_msgs.msg import Int32MultiArray
 #from insp_msgs.msg import PointArray
 
@@ -17,6 +16,8 @@ def pwm_cb(p):
         get_pub("thrusters", publishers).publish(p)
 
 def init_ros_io(p, s):
+[1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]    get_pub("raw", publishers).publish([1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500])
+    get_pub("raw", publishers).publish([1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500])
         if s is not None:
            for i in s.values():
                i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
@@ -27,8 +28,8 @@ def init_ros_io(p, s):
 
 def SDoF(th, fw, lat, yaw, pitch, roll):
     a = Int32MultiArray()
-    a.data = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
-    get_pub("raw", publishers).publish(a)
+    a.data = 
+    get_pub("raw", publishers).publish([1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500])
                 
 def main():
     print("entered main")
@@ -37,16 +38,16 @@ def main():
     print("init done")
     while not rospy.is_shutdown():
         SDoF(1500, 1700, 1500, 1500, 1500, 1500)
-        time.sleep(3)
+        sleep(3)
         SDoF(1500, 1500, 1500, 1500, 1500, 1500)
         SDoF(1500, 1500, 1700, 1500, 1500, 1500)
-        time.sleep(3)
+        sleep(3)
         SDoF(1500, 1500, 1500, 1500, 1500, 1500)
         SDoF(1500, 1300, 1500, 1500, 1500, 1500)
-        time.sleep(3)
+        sleep(3)
         SDoF(1500, 1500, 1500, 1500, 1500, 1500)
         SDoF(1500, 1500, 1300, 1500, 1500, 1500)
-        time.sleep(3)
+        sleep(3)
         SDoF(1500, 1500, 1500, 1500, 1500, 1500)
     
     print("finished executing square mission")

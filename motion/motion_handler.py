@@ -15,25 +15,31 @@ sd = {
 
 def pwm_cb(p): 
 #	if sd['mode'] == "raw":
+        rospy.loginfo(p.data)
         get_pub("thrusters", publishers).publish(p)
 
 def mode_cb(p):
         pass
 
-subscribers = [
+subscribers = {
 	"mode": ["/auv/motion/mode", String, mode_cb, None],
 	"raw": ["/auv/motion/raw", Int32MultiArray, pwm_cb, None], # basically just passthrough
-]
+}
 
 def init_ros_io(p, s):
         for i in s.values():
-                i[4] = rospy.Subscriber(i[1], i[2], i[3], queue_size=10)
-                
+                i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
         for i in p.values():
                 i[2] = rospy.Publisher(i[0], i[1], queue_size=10)
  
 
 def main():
-	rospy.init_node("motion_handler", anonymous=True)
-	init_ros_io(publishers, subscribers)
-	rospy.spin()
+        print("entered main")
+        rospy.init_node("motion_handler", anonymous=True)
+        init_ros_io(publishers, subscribers)
+        print("initialized motion handler")
+        rospy.spin()
+
+if __name__ == "__main__":
+   while not rospy.is_shutdown():
+      main()

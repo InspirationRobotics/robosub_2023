@@ -102,4 +102,5 @@ def main():
     connect_arm()
     rospy.spin()
 
-# main()
+if __name__ == "__main__": 
+    main()
