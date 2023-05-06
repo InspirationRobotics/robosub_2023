@@ -64,6 +64,24 @@ class Ping360(PingDevice):
     # @param reserved - reserved
     #
     # @return If verify is False, True on successful communication with the device. If verify is False, True if the new device parameters are verified to have been written correctly. False otherwise (failure to read values back or on verification failure)
+    
+    def p360_init(self):
+        if self.request(definitions.PING360_DEVICE_ID) is None:
+            print("Error: Unable to communicate with ping360")
+            #rospy.logerr("Unable to communicate with ping360")
+            return False
+        print("Successful communication with ping360")
+        # rospy.loginfo("Successful communication with ping360")
+        m = pingmessage.PingMessage(definitions.PING360_DEVICE_ID)
+        m.id = id
+        if (self._id != id): #need to check
+            print("p360 init test returned incorrect value")
+            #rospy.logerr("p360 init test returned incorrect value")
+            return False
+        print("Successful test command with ping360")
+        # rospy.loginfo("Successful test command with ping360"")
+        return True
+    
     def device_id(self, id, reserved, verify=True):
         m = pingmessage.PingMessage(definitions.PING360_DEVICE_ID)
         m.id = id
