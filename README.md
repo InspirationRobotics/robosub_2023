@@ -18,15 +18,13 @@ verify integration using the template programs
 
 - Communication:Modem - This folder contains the software that Kyle Jacob worked on for the waterlinked modems 
 
-- custom_msgs 
+- custom_msgs - This folder has the instructions for custom ROS messages as well as basic ROS message code for the mapper
 
-- map
+- map - This folder has the placeholder template files for the map/coordinate system for navigation and the basic map functions
 
-- mission & map stuff 
+- mission - This folder has a placeholder file for the mission planner, the current file imports all the ros subscribers that we think we will be using
 
-- mission 
-
-- motion
+- motion - This folder has the the mav ros client code and empty placeholder files for the motion handler, path generator, and trajectory generator
 
 - movementfrom2019 - This folder contains the software what we used for the demo for the 2023 San Diego regional sea pearch competition. We used the movement logic from 2019 and in this folder we also copied over the files that contain the classes and functions that we called and used in the autonomous code.
 
