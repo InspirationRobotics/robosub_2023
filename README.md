@@ -16,18 +16,18 @@ verify integration using the template programs
 
 **Branch Breakdown**
 
-Communication:Modem - This folder contains the software that Kyle Jacob worked on for the waterlinked modems 
+- Communication:Modem - This folder contains the software that Kyle Jacob worked on for the waterlinked modems 
 
-custom_msgs 
+- custom_msgs 
 
-map
+- map
 
-mission & map stuff 
+- mission & map stuff 
 
-mission 
+- mission 
 
-motion
+- motion
 
-movementfrom2019 - This folder contains the software what we used for the demo for the 2023 San Diego regional sea pearch competition. We used the movement logic from 2019 and in this folder we also copied over the files that contain the classes and functions that we called and used in the autonomous code.
+- movementfrom2019 - This folder contains the software what we used for the demo for the 2023 San Diego regional sea pearch competition. We used the movement logic from 2019 and in this folder we also copied over the files that contain the classes and functions that we called and used in the autonomous code.
 
-sensors - This folder contains the basic templates for sensor stubs as well as the sensor wrappers (initializes the functions and does logging)
+- sensors - This folder contains the basic templates for sensor stubs as well as the sensor wrappers (initializes the functions and does logging)
