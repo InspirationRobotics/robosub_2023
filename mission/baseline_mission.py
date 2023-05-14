@@ -7,7 +7,7 @@ import time
 
 # name, topic, data type, publisher
 publishers = [
-                ["raw", "/auv/motion/raw", Int32MultiArray, NULL]
+				["raw", "/auv/motion/raw", Int32MultiArray, NULL]
 ]
 
 # ignore while there are no subscribers
@@ -15,15 +15,15 @@ publishers = [
 # def x_cb(a):
 #	global_data['x'] = a.data
 subscribers = [
-                # ["/a/b", String, x_cb, NULL]
+				# ["/a/b", String, x_cb, NULL]
 ]
 
 def init_ros(p, s, node_name):
-        for i in p:
-                i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
+	for i in p:
+		i[3] = rospy.Publisher(i[1], i[2], queue_size=10)
 	for i in s:
 		i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
-        rospy.init_node(node_name, anonymous=True)
+		rospy.init_node(node_name, anonymous=True)
 
 def pub(name):
 	for i in publishers:
@@ -44,8 +44,8 @@ def main():
 	pub('raw').publish(gen_channels(5, 1700))
 	time.sleep(3)
 	pub('raw').publish(gen_channels(3, 1300))
-        time.sleep(3)
-        pub('raw').publish(gen_channels(5, 1300))
+	time.sleep(3)
+	pub('raw').publish(gen_channels(5, 1300))
 	pub('raw').publish(gen_channels(5, 1500))
 
 	rospy.spin()
