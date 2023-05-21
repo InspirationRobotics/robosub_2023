@@ -27,7 +27,7 @@ def init_ros_io(p, s):
 
 def SDoF(th, fw, lat, yaw, pitch, roll):
     a = Int32MultiArray()
-    a.data = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    a.data = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
     get_pub("raw", publishers).publish(a)
                 
 def main():
@@ -35,22 +35,12 @@ def main():
     rospy.init_node("path_v1", anonymous=True)
     init_ros_io(publishers, None)
     print("init done")
-    while not rospy.is_shutdown():
-        SDoF(1500, 1700, 1500, 1500, 1500, 1500)
-        time.sleep(3)
-        SDoF(1500, 1500, 1500, 1500, 1500, 1500)
-        SDoF(1500, 1500, 1700, 1500, 1500, 1500)
-        time.sleep(3)
-        SDoF(1500, 1500, 1500, 1500, 1500, 1500)
-        SDoF(1500, 1300, 1500, 1500, 1500, 1500)
-        time.sleep(3)
-        SDoF(1500, 1500, 1500, 1500, 1500, 1500)
-        SDoF(1500, 1500, 1300, 1500, 1500, 1500)
-        time.sleep(3)
-        SDoF(1500, 1500, 1500, 1500, 1500, 1500)
-    
+    # while not rospy.is_shutdown():
+    SDoF(1700, 1500, 1500, 1500, 1500, 1500)
+    time.sleep(2)
+    SDoF(1500, 1500, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
-    rospy.spin()
+    #rospy.spin()
 
 if __name__ == "__main__":
    main()
