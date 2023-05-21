@@ -1,3 +1,4 @@
+
 # really simple baseline mission
 import rospy
 import time
@@ -35,12 +36,11 @@ def main():
     rospy.init_node("path_v1", anonymous=True)
     init_ros_io(publishers, None)
     print("init done")
-    # while not rospy.is_shutdown():
-    SDoF(1700, 1500, 1500, 1500, 1500, 1500)
-    time.sleep(2)
+    # SDoF(1500, 1500, 1500, 1600, 1500, 1500)
     SDoF(1500, 1500, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
     #rospy.spin()
+    print("OUT")
 
 if __name__ == "__main__":
    main()
