@@ -42,7 +42,11 @@ def main():
     time.sleep(2)
     SDoF(1500, 1700, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
+<<<<<<< HEAD
     rospy.spin()
+=======
+    #rospy.spin()
+>>>>>>> ab4aa85f9ca188a870fb8b2157fab1e84e47f96f
 
 if __name__ == "__main__":
    main()
