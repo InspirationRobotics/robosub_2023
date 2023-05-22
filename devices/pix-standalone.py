@@ -1,108 +1,173 @@
-# this will create the interfaces to the pixhawk, including the pixhawk barometer (r), pix IMU (r), pixhawk compass (r), thrusters (w)
-# need to run mavros first
-# note: to enable manually overriding RC, run `rosrun mavros mavparam set SYSID_MYGCS1`
+from rospyHandler import RosHandler
+from topicService import TopicService
+
+import mavros_msgs.msg
+import mavros_msgs.srv
+import geographic_msgs.msg
+import std_msgs.msg
+import sensor_msgs.msg
+import geometry_msgs.msg
 
 import rospy
-from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
-from mavros_msgs.msg import OverrideRCIn, State
-from sensor_msgs.msg import Imu, FluidPressure
-from std_msgs.msg import Float64, Int32MultiArray
-import threading
 import time
+import numpy as np
 
-channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+import threading
 
-pix_status = {
-    "armed": False,
-    "arming_client": None,
-    "set_mode_client": None,
-    "stab_set_mode": None,
-    "arm_cmd": None
-}
 
-def get_pub(n, p):
-    return p[n][2]
+MODE_MANUAL = "MANUAL"
+MODE_STABILIZE = "STABILIZE"
+MODE_ALTHOLD = "ALTHOLD"
+MODE_LOITER = "LOITER"
+MODE_AUTO = "AUTO"
+MODE_GUIDED = "GUIDED"
 
-publishers = {
-    "compass": ["/auv/devices/compass", Float64, None],
-    "imu": ["/auv/devices/imu", Imu, None],
-    "baro": ["/auv/devices/baro", FluidPressure, None],
-    "thrusters": ["/mavros/rc/override", OverrideRCIn, None]
-}
+class AUV(RosHandler):
 
-sub_data = {
-    # to be stored
-    "state": None
-}
+    def __init__(self):
+        super().__init__()
+        self.armed = False
+        self.guided = False
+        self.overRide = True
+        self.mode = ""
+        self.channels = [0]*18
 
-mode = 'MANUAL'
-def state_cb(msg):
-    sub_data["state"] = msg
+        # init topics
+        self.TOPIC_STATE = TopicService("/mavros/state", mavros_msgs.msg.State)
+        self.SERVICE_ARM = TopicService("/mavros/cmd/arming", mavros_msgs.srv.CommandBool)
+        self.SERVICE_SET_MODE = TopicService("/mavros/set_mode", mavros_msgs.srv.SetMode)
+        self.SERVICE_SET_PARAM = TopicService("/mavros/param/set", mavros_msgs.srv.ParamSet)
+        self.SERVICE_GET_PARAM = TopicService("/mavros/param/get", mavros_msgs.srv.ParamGet)
 
-def compass_cb(msg):
-    get_pub("compass", publishers).publish(msg.data)
+        # movement
+        self.TOPIC_SET_VELOCITY = TopicService('/mavros/setpoint_velocity/cmd_vel_unstamped', geometry_msgs.msg.Twist) # only works in auto/guided mode
+        self.TOPIC_SET_RC_OVR = TopicService('/mavros/rc/override', mavros_msgs.msg.OverrideRCIn)
 
-def imu_cb(msg):
-    get_pub("imu", publishers).publish(msg)
+        # sensory
+        self.TOPIC_GET_IMU_DATA = TopicService('/mavros/imu/data', sensor_msgs.msg.Imu)
+        self.TOPIC_GET_CMP_HDG = TopicService('/mavros/global_position/compass_hdg', std_msgs.msg.Float64)
+        self.TOPIC_GET_RC = TopicService('/mavros/rc/in', mavros_msgs.msg.RCIn)
+        #need to implement baro reading https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
 
-def baro_cb(msg):
-    get_pub("imu", publishers).publish(msg)
+        # custom topics
+        self.AUV_COMPASS = TopicService('/auv/devices/compass', std_msgs.msg.Float64)
+        self.AUV_IMU = TopicService('/auv/devices/imu', std_msgs.msg.Float64)
+        self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float64)
+        self.AUV_GET_THRUSTERS = TopicService('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn)
+        self.AUV_GET_ARM = TopicService('/auv/status/arm', std_msgs.msg.Bool)
+        self.AUV_GET_MODE = TopicService('/auv/status/mode', std_msgs.msg.String)
 
-def thruster_cb(msg):
-    rc_msg = OverrideRCIn()
-    last_req = rospy.Time.now()
+    def arm(self, status: bool):
+        data = mavros_msgs.srv.CommandBoolRequest()
+        data.value = status
+        self.SERVICE_ARM.set_data(data)
+        result = self.service_caller(self.SERVICE_ARM, timeout=30)
+        return result.success, result.result
 
-    while not rospy.is_shutdown():
-        if(sub_data["state"].mode != mode and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-            if(pix_status["set_mode_client"].call(pix_status["stab_set_mode"]).mode_sent == True):
-                rospy.loginfo("mode enabled")            
-            last_req = rospy.Time.now()
-        else:
-            if(not sub_data["state"].armed and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-                if(pix_status["arming_client"].call(pix_status["arm_cmd"]).success == True):
-                    rospy.loginfo("Vehicle armed")
-            
-                last_req = rospy.Time.now()
+    def get_param(self, param: str):
+        data = mavros_msgs.srv.ParamGetRequest()
+        data.param_id = param
+        self.SERVICE_GET_PARAM.set_data(data)
+        result = self.service_caller(self.SERVICE_GET_PARAM, timeout=30)
+        return result.success, result.value.integer, result.value.real
 
-        rc_msg.channels = msg.data
-        print(rc_msg)
-        get_pub("thrusters", publishers).publish(rc_msg)
+    def set_param(self, param: str, value_integer: int, value_real: float):
+        data = mavros_msgs.srv.ParamSetRequest()
+        data.param_id = param
+        data.value.integer = value_integer
+        data.value.real = value_real
+        self.SERVICE_SET_PARAM.set_data(data)
+        result = self.service_caller(self.SERVICE_SET_PARAM, timeout=30)
+        return result.success, result.value.integer, result.value.real
     
-subscribers = {
-    "state": ["/mavros/state", State, state_cb, None],
-    "compass": ["/mavros/global_position/compass_hdg", Float64, compass_cb, None],
-    "imu": ["/mavros/imu/data", Imu, imu_cb, None],
-    "baro": ["/mavros/imu/FluidPressure", FluidPressure, baro_cb, None],
-    "thrusters": ["/auv/devices/thrusters", Int32MultiArray, thruster_cb, None]
-}
+    def change_mode(self, mode: str):
+        data = mavros_msgs.srv.SetModeRequest()
+        data.custom_mode = mode
+        self.SERVICE_SET_MODE.set_data(data)
+        result = self.service_caller(self.SERVICE_SET_MODE, timeout=30)
+        return result.mode_sent
 
-def init_ros_io(p, s):
-    for i in p.values():
-        i[2] = rospy.Publisher(i[0], i[1], queue_size=10)
+    def enable_topics_for_read(self):
+        self.topic_subscriber(self.TOPIC_STATE)
+        self.topic_subscriber(self.TOPIC_GET_IMU_DATA)
+        self.topic_subscriber(self.TOPIC_GET_CMP_HDG)
+        self.topic_subscriber(self.TOPIC_GET_RC)
+        self.topic_subscriber(self.AUV_GET_THRUSTERS)
 
-    for i in s.values():
-        i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
+    def publish_sensors(self):
+        imu_data = self.imu
+        comp_data = std_msgs.msg.Float64()
+        #baro to be implemented
+        comp_data.data = self.compass
+        self.AUV_IMU.set_data(imu_data)
+        self.AUV_COMPASS.set_data(comp_data)
+        self.topic_publisher(topic=self.AUV_IMU)
+        self.topic_publisher(topic=self.AUV_COMPASS)
 
-def connect_arm():
-    print("entered connect arm")
-    rospy.wait_for_service("/mavros/cmd/arming")
-    pix_status["arming_client"] = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)    
-    rospy.wait_for_service("/mavros/set_mode")
-    pix_status["set_mode_client"] = rospy.ServiceProxy("mavros/set_mode", SetMode)
-    print("service proxy finished")
-    while(not rospy.is_shutdown() and not sub_data["state"].connected):
-        rate.sleep()
+    def publish_thrusters(self):
+        while not rospy.is_shutdown():
+            thruster_data = mavros_msgs.msg.OverrideRCIn()
+            thruster_data.channels = self.channels
+            self.TOPIC_SET_RC_OVR.set_data(thruster_data)
+            self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+            time.sleep(0.1)
+            
 
-    pix_status["stab_set_mode"] = SetModeRequest()
-    pix_status["stab_set_mode"].custom_mode = mode
-    pix_status["arm_cmd"] = CommandBoolRequest()
-    pix_status["arm_cmd"].value = True
+    def get_sensors(self):
+        while not rospy.is_shutdown():
+            if self.connected:
+                try:
+                    hdg = self.TOPIC_GET_CMP_HDG.get_data()
+                    thrusters = self.AUV_GET_THRUSTERS.get_data()
+                    #baro to be implemented
+                    self.imu = self.TOPIC_GET_IMU_DATA.get_data()
+                    self.channels = thrusters.channels
+                    self.compass = hdg.data
+                    self.publish_sensors()
+                except:
+                    print("sensor failed")
+                time.sleep(0.05)
 
-def main():
-    rospy.init_node("pix_interface", anonymous=True)
-    init_ros_io(publishers, subscribers)
-    connect_arm()
-    rospy.spin()
+    def update_parameters_from_topic(self):
+        while not rospy.is_shutdown():
+            if self.connected:
+                try:
+                    data = self.TOPIC_STATE.get_data()
+                    self.armed = data.armed
+                    self.mode = data.mode
+                    self.guided = data.guided
+                except:
+                    print("state failed")
+                time.sleep(0.05)
 
-if __name__ == "__main__": 
-    main()
+    def beginThreads(self):
+        self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
+        self.thread_param_updater.daemon = True
+        self.thread_param_updater.start()
+
+        self.thread_sensor_updater = threading.Timer(0, self.get_sensors)
+        self.thread_sensor_updater.daemon = True
+        self.thread_sensor_updater.start()
+
+        self.thread_override = threading.Timer(0, self.publish_thrusters)
+        self.thread_override.daemon = True
+        self.thread_override.start()
+
+        while not rospy.is_shutdown():
+            pass
+
+if __name__ == "__main__":
+    auv = AUV()
+    auv.enable_topics_for_read()
+    auv.connect("pix-standalone", rate=10)
+    while not auv.connected:
+        print("Waiting to connect...")
+        time.sleep(0.5)
+    print("Connected!")
+    auv.change_mode(MODE_STABILIZE)
+    while not auv.armed:
+        print("Attempting to arm...")
+        auv.arm()
+        time.sleep(3)
+    print("Armed!\nNow beginning loops...")
+    auv.beginThreads()
