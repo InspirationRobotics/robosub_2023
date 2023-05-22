@@ -29,6 +29,7 @@ def init_ros_io(p, s):
 def SDoF(th, fw, lat, yaw, pitch, roll):
     a = Int32MultiArray()
     a.data = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    print(a.data)
     get_pub("raw", publishers).publish(a)
                 
 def main():
@@ -38,9 +39,10 @@ def main():
     print("init done")
     # SDoF(1500, 1500, 1500, 1600, 1500, 1500)
     SDoF(1500, 1500, 1500, 1500, 1500, 1500)
+    time.sleep(2)
+    SDoF(1500, 1700, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
-    #rospy.spin()
-    print("OUT")
+    rospy.spin()
 
 if __name__ == "__main__":
    main()
