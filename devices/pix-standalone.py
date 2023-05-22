@@ -35,6 +35,7 @@ sub_data = {
     "state": None
 }
 
+mode = 'MANUAL'
 def state_cb(msg):
     sub_data["state"] = msg
 
@@ -53,18 +54,18 @@ def thruster_cb(msg):
 
     while not rospy.is_shutdown():
         if(sub_data["state"].mode != mode and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-            if(set_mode_client.call(stab_set_mode).mode_sent == True):
-                rospy.loginfo("mode enabled")
-            
+            if(pix_status["set_mode_client"].call(pix_status["stab_set_mode"]).mode_sent == True):
+                rospy.loginfo("mode enabled")            
             last_req = rospy.Time.now()
         else:
             if(not sub_data["state"].armed and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-                if(arming_client.call(sub_data["arm_cmd"]).success == True):
+                if(pix_status["arming_client"].call(pix_status["arm_cmd"]).success == True):
                     rospy.loginfo("Vehicle armed")
             
                 last_req = rospy.Time.now()
 
         rc_msg.channels = msg.data
+        print(rc_msg)
         get_pub("thrusters", publishers).publish(rc_msg)
     
 subscribers = {
@@ -83,11 +84,12 @@ def init_ros_io(p, s):
         i[3] = rospy.Subscriber(i[0], i[1], i[2], queue_size=10)
 
 def connect_arm():
+    print("entered connect arm")
     rospy.wait_for_service("/mavros/cmd/arming")
     pix_status["arming_client"] = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)    
     rospy.wait_for_service("/mavros/set_mode")
     pix_status["set_mode_client"] = rospy.ServiceProxy("mavros/set_mode", SetMode)
-    
+    print("service proxy finished")
     while(not rospy.is_shutdown() and not sub_data["state"].connected):
         rate.sleep()
 

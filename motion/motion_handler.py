@@ -16,6 +16,7 @@ sd = {
 def pwm_cb(p): 
 #	if sd['mode'] == "raw":
         rospy.loginfo(p.data)
+        print(p)
         get_pub("thrusters", publishers).publish(p)
 
 def mode_cb(p):
