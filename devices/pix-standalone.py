@@ -58,6 +58,8 @@ class AUV(RosHandler):
         self.AUV_GET_MODE = TopicService('/auv/status/mode', std_msgs.msg.String)
 
     def arm(self, status: bool):
+        if(self.armed):
+            return
         data = mavros_msgs.srv.CommandBoolRequest()
         data.value = status
         self.SERVICE_ARM.set_data(data)
@@ -93,6 +95,10 @@ class AUV(RosHandler):
         self.topic_subscriber(self.TOPIC_GET_CMP_HDG)
         self.topic_subscriber(self.TOPIC_GET_RC)
         self.topic_subscriber(self.AUV_GET_THRUSTERS)
+        #-Begin reading core data
+        self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
+        self.thread_param_updater.daemon = True
+        self.thread_param_updater.start()
 
     def publish_sensors(self):
         imu_data = self.imu
@@ -141,10 +147,6 @@ class AUV(RosHandler):
                 time.sleep(0.05)
 
     def beginThreads(self):
-        self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
-
         self.thread_sensor_updater = threading.Timer(0, self.get_sensors)
         self.thread_sensor_updater.daemon = True
         self.thread_sensor_updater.start()
