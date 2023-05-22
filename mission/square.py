@@ -40,7 +40,6 @@ def main():
     SDoF(1500, 1500, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
     #rospy.spin()
-    print("OUT")
 
 if __name__ == "__main__":
    main()
