@@ -2,7 +2,13 @@
 # really simple baseline mission
 import rospy
 import time
-from std_msgs.msg import Int32MultiArray
+import mavros_msgs.msg
+import mavros_msgs.srv
+import geographic_msgs.msg
+import std_msgs.msg
+import sensor_msgs.msg
+import geometry_msgs.msg
+
 #from insp_msgs.msg import PointArray
 
 def get_pub(n, p):
@@ -10,7 +16,8 @@ def get_pub(n, p):
         return pub
 
 publishers = {
-        "raw": ["/auv/motion/raw", Int32MultiArray, None]
+        #"raw": ["/auv/motion/raw", mavros_msgs.msg.OverrideRCIn, None]
+        "raw": ["/auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, None] #bypass motionhandler temporarily since it's just a passthrough
 }
 
 def pwm_cb(p): 
@@ -27,9 +34,9 @@ def init_ros_io(p, s):
                i[2] = rospy.Publisher(i[0], i[1], queue_size=10)
 
 def SDoF(th, fw, lat, yaw, pitch, roll):
-    a = Int32MultiArray()
-    a.data = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
-    print(a.data)
+    a = mavros_msgs.msg.OverrideRCIn()
+    a.channels = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    print(a.channels)
     get_pub("raw", publishers).publish(a)
                 
 def main():

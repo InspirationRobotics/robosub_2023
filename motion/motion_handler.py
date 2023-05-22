@@ -1,12 +1,16 @@
 import rospy
-from std_msgs.msg import Int32MultiArray
-from std_msgs.msg import String
+import mavros_msgs.msg
+import mavros_msgs.srv
+import geographic_msgs.msg
+import std_msgs.msg
+import sensor_msgs.msg
+import geometry_msgs.msg
 
 def get_pub(n, p):
         return p[n][2]
 
 publishers = {
-        "thrusters": ["/auv/devices/thrusters", Int32MultiArray, None]
+        "thrusters": ["/auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, None]
 }
 
 sd = {
@@ -23,8 +27,8 @@ def mode_cb(p):
         pass
 
 subscribers = {
-	"mode": ["/auv/motion/mode", String, mode_cb, None],
-	"raw": ["/auv/motion/raw", Int32MultiArray, pwm_cb, None], # basically just passthrough
+	"mode": ["/auv/status/mode", std_msgs.msg.String, mode_cb, None],
+	"raw": ["/auv/motion/raw", mavros_msgs.msg.OverrideRCIn, pwm_cb, None], # basically just passthrough
 }
 
 def init_ros_io(p, s):
