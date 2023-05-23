@@ -24,7 +24,7 @@ class RosHandler:
     def topic_publisher(topic: TopicService):
         pub = rospy.Publisher(topic.get_name(), topic.get_type(), queue_size=10)
         pub.publish(topic.get_data())
-        print("PUBLISHED")
+        #print("published to " + topic.get_name())
 
     @staticmethod
     def topic_subscriber(topic: TopicService):

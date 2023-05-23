@@ -11,6 +11,7 @@ import geometry_msgs.msg
 import rospy
 import time
 import numpy as np
+import signal
 
 import threading
 
@@ -51,7 +52,7 @@ class AUV(RosHandler):
 
         # custom topics
         self.AUV_COMPASS = TopicService('/auv/devices/compass', std_msgs.msg.Float64)
-        self.AUV_IMU = TopicService('/auv/devices/imu', std_msgs.msg.Float64)
+        self.AUV_IMU = TopicService('/auv/devices/imu', sensor_msgs.msg.Imu)
         self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float64)
         self.AUV_GET_THRUSTERS = TopicService('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn)
         self.AUV_GET_ARM = TopicService('/auv/status/arm', std_msgs.msg.Bool)
@@ -101,21 +102,32 @@ class AUV(RosHandler):
         self.thread_param_updater.start()
 
     def publish_sensors(self):
-        imu_data = self.imu
-        comp_data = std_msgs.msg.Float64()
-        #baro to be implemented
-        comp_data.data = self.compass
-        self.AUV_IMU.set_data(imu_data)
-        self.AUV_COMPASS.set_data(comp_data)
-        self.topic_publisher(topic=self.AUV_IMU)
-        self.topic_publisher(topic=self.AUV_COMPASS)
+        try:
+            imu_data = self.imu
+            comp_data = self.hdg
+            #baro to be implemented
+            self.AUV_IMU.set_data(imu_data)
+            self.AUV_COMPASS.set_data(comp_data)
+            self.topic_publisher(topic=self.AUV_IMU)
+            self.topic_publisher(topic=self.AUV_COMPASS)
+        except:
+            print("publish sensors failed")
 
     def publish_thrusters(self):
         while not rospy.is_shutdown():
-            thruster_data = mavros_msgs.msg.OverrideRCIn()
-            thruster_data.channels = self.channels
-            self.TOPIC_SET_RC_OVR.set_data(thruster_data)
-            self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+            try:
+                thrusters = self.AUV_GET_THRUSTERS.get_data()
+                if(thrusters != None):
+                    self.channels = thrusters.channels
+                    thruster_data = mavros_msgs.msg.OverrideRCIn()
+                    thruster_data.channels = self.channels
+                else:
+                    thruster_data = mavros_msgs.msg.OverrideRCIn()
+                    thruster_data.channels = [1500]*18
+                self.TOPIC_SET_RC_OVR.set_data(thruster_data)
+                self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+            except:
+                print("Thrusters failed")
             time.sleep(0.1)
             
 
@@ -123,16 +135,14 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             if self.connected:
                 try:
-                    hdg = self.TOPIC_GET_CMP_HDG.get_data()
-                    thrusters = self.AUV_GET_THRUSTERS.get_data()
+                    self.hdg = self.TOPIC_GET_CMP_HDG.get_data()
                     #baro to be implemented
                     self.imu = self.TOPIC_GET_IMU_DATA.get_data()
-                    self.channels = thrusters.channels
-                    self.compass = hdg.data
+                    #print(self.compass)
                     self.publish_sensors()
                 except:
                     print("sensor failed")
-                time.sleep(0.05)
+                time.sleep(0.1)
 
     def update_parameters_from_topic(self):
         while not rospy.is_shutdown():
@@ -158,18 +168,33 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             pass
 
-if __name__ == "__main__":
-    auv = AUV()
-    auv.enable_topics_for_read()
-    auv.connect("pix-standalone", rate=10)
+def main():
     while not auv.connected:
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_STABILIZE)
+    auv.change_mode(MODE_MANUAL)
     while not auv.armed:
         print("Attempting to arm...")
-        auv.arm()
+        auv.arm(True)
         time.sleep(3)
     print("Armed!\nNow beginning loops...")
     auv.beginThreads()
+
+def onExit(signum, frame):
+    auv.arm(False)
+    rospy.signal_shutdown("Rospy Exited")
+    while not rospy.is_shutdown():
+        pass
+    print("\n\nCleanly Exited")
+    exit(1)
+
+signal.signal(signal.SIGINT, onExit)
+
+if __name__ == "__main__":
+    auv = AUV()
+    auv.enable_topics_for_read()
+    thread_sensor_updater = threading.Timer(0, main)
+    thread_sensor_updater.daemon = True
+    thread_sensor_updater.start()
+    auv.connect("pixStandalone", rate=10)
