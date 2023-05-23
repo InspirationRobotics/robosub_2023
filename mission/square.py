@@ -35,8 +35,10 @@ def init_ros_io(p, s):
 
 def SDoF(th, fw, lat, yaw, pitch, roll):
     a = mavros_msgs.msg.OverrideRCIn()
-    a.channels = [1500, 1500, th, yaw, fw, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    rate = rospy.Rate(5)
+    a.channels = [1500, 1500, th, yaw, fw, lat, pitch, roll, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
     print(a.channels)
+    rate.sleep()
     get_pub("raw", publishers).publish(a)
                 
 def main():
@@ -45,9 +47,9 @@ def main():
     init_ros_io(publishers, None)
     print("init done")
     # SDoF(1500, 1500, 1500, 1600, 1500, 1500)
-    SDoF(1500, 1500, 1500, 1500, 1500, 1500)
+    SDoF(1500, 1500, 1550, 1500, 1500, 1500)
     time.sleep(2)
-    SDoF(1500, 1700, 1500, 1500, 1500, 1500)
+    SDoF(1500, 1500, 1500, 1500, 1500, 1500)
     print("finished executing square mission")
 
 if __name__ == "__main__":

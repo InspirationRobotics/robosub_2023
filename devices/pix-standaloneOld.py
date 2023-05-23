@@ -6,7 +6,7 @@ import rospy
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
 from mavros_msgs.msg import OverrideRCIn, State
 from sensor_msgs.msg import Imu, FluidPressure
-from std_msgs.msg import Float64, Int32MultiArray
+from std_msgs.msg import Float64
 import threading
 import time
 
@@ -52,19 +52,20 @@ def thruster_cb(msg):
     rc_msg = OverrideRCIn()
     last_req = rospy.Time.now()
 
-    while not rospy.is_shutdown():
-        if(sub_data["state"].mode != mode and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-            if(pix_status["set_mode_client"].call(pix_status["stab_set_mode"]).mode_sent == True):
-                rospy.loginfo("mode enabled")            
-            last_req = rospy.Time.now()
-        else:
-            if(not sub_data["state"].armed and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
-                if(pix_status["arming_client"].call(pix_status["arm_cmd"]).success == True):
-                    rospy.loginfo("Vehicle armed")
+    #while not rospy.is_shutdown():
+    if(sub_data["state"].mode != mode and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
+        if(pix_status["set_mode_client"].call(pix_status["stab_set_mode"]).mode_sent == True):
+            rospy.loginfo("mode enabled")            
             
-                last_req = rospy.Time.now()
+        last_req = rospy.Time.now()
+    else:
+        if(not sub_data["state"].armed and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
+            if(pix_status["arming_client"].call(pix_status["arm_cmd"]).success == True):
+                rospy.loginfo("Vehicle armed")
+            
+            last_req = rospy.Time.now()
 
-        rc_msg.channels = msg.data
+        rc_msg.channels = msg.channels
         print(rc_msg)
         get_pub("thrusters", publishers).publish(rc_msg)
     
@@ -73,7 +74,7 @@ subscribers = {
     "compass": ["/mavros/global_position/compass_hdg", Float64, compass_cb, None],
     "imu": ["/mavros/imu/data", Imu, imu_cb, None],
     "baro": ["/mavros/imu/FluidPressure", FluidPressure, baro_cb, None],
-    "thrusters": ["/auv/devices/thrusters", Int32MultiArray, thruster_cb, None]
+    "thrusters": ["/auv/devices/thrusters", OverrideRCIn, thruster_cb, None]
 }
 
 def init_ros_io(p, s):
