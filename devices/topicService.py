@@ -10,6 +10,11 @@ class TopicService:
         self.__data = data
 
     def get_data(self):
+        data = self.__data
+        self.__data = None
+        return data
+    
+    def get_data_last(self):
         return self.__data
 
     def get_type(self):

@@ -96,6 +96,8 @@ class AUV(RosHandler):
         self.topic_subscriber(self.TOPIC_GET_CMP_HDG)
         self.topic_subscriber(self.TOPIC_GET_RC)
         self.topic_subscriber(self.AUV_GET_THRUSTERS)
+        self.topic_subscriber(self.AUV_GET_ARM)
+        self.topic_subscriber(self.AUV_GET_MODE)
         #-Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
         self.thread_param_updater.daemon = True
@@ -121,11 +123,8 @@ class AUV(RosHandler):
                     self.channels = thrusters.channels
                     thruster_data = mavros_msgs.msg.OverrideRCIn()
                     thruster_data.channels = self.channels
-                else:
-                    thruster_data = mavros_msgs.msg.OverrideRCIn()
-                    thruster_data.channels = [1500]*18
-                self.TOPIC_SET_RC_OVR.set_data(thruster_data)
-                self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+                    self.TOPIC_SET_RC_OVR.set_data(thruster_data)
+                    self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
             except:
                 print("Thrusters failed")
             time.sleep(0.1)
@@ -135,10 +134,21 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             if self.connected:
                 try:
-                    self.hdg = self.TOPIC_GET_CMP_HDG.get_data()
+                    self.hdg = self.TOPIC_GET_CMP_HDG.get_data_last()
                     #baro to be implemented
-                    self.imu = self.TOPIC_GET_IMU_DATA.get_data()
-                    #print(self.compass)
+                    self.imu = self.TOPIC_GET_IMU_DATA.get_data_last()
+                    armRequest = self.AUV_GET_ARM.get_data()
+                    modeRequest = self.AUV_GET_MODE.get_data()
+                    if(armRequest != None):
+                        self.armRequest = armRequest.data
+                        while(auv.armed != self.armRequest):
+                            self.arm(self.armRequest)
+                            time.sleep(2)
+                    if(modeRequest != None):
+                        self.modeRequest = modeRequest.data
+                        while(self.mode != self.modeRequest):
+                            self.change_mode(self.modeRequest)
+                            time.sleep(0.5)
                     self.publish_sensors()
                 except:
                     print("sensor failed")
@@ -197,4 +207,4 @@ if __name__ == "__main__":
     thread_sensor_updater = threading.Timer(0, main)
     thread_sensor_updater.daemon = True
     thread_sensor_updater.start()
-    auv.connect("pixStandalone", rate=10)
+    auv.connect("pixStandalone", rate=20) #change rate to 10 if issues arrive
