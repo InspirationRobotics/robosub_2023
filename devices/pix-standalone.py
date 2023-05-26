@@ -8,6 +8,7 @@ import std_msgs.msg
 import sensor_msgs.msg
 import geometry_msgs.msg
 
+from struct import pack, unpack
 import rospy
 import time
 import numpy as np
@@ -48,12 +49,13 @@ class AUV(RosHandler):
         self.TOPIC_GET_IMU_DATA = TopicService('/mavros/imu/data', sensor_msgs.msg.Imu)
         self.TOPIC_GET_CMP_HDG = TopicService('/mavros/global_position/compass_hdg', std_msgs.msg.Float64)
         self.TOPIC_GET_RC = TopicService('/mavros/rc/in', mavros_msgs.msg.RCIn)
-        #need to implement baro reading https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
+        self.TOPIC_GET_MAVBARO = TopicService('/mavlink/from', mavros_msgs.msg.Mavlink)
+        #https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
 
         # custom topics
         self.AUV_COMPASS = TopicService('/auv/devices/compass', std_msgs.msg.Float64)
         self.AUV_IMU = TopicService('/auv/devices/imu', sensor_msgs.msg.Imu)
-        self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float64)
+        self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float32MultiArray)
         self.AUV_GET_THRUSTERS = TopicService('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn)
         self.AUV_GET_ARM = TopicService('/auv/status/arm', std_msgs.msg.Bool)
         self.AUV_GET_MODE = TopicService('/auv/status/mode', std_msgs.msg.String)
@@ -107,9 +109,12 @@ class AUV(RosHandler):
         try:
             imu_data = self.imu
             comp_data = self.hdg
-            #baro to be implemented
+            baro_data = std_msgs.msg.Float32MultiArray()
+            baro_data.data = [self.press_abs, self.press_diff]
+            self.AUV_BARO.set_data(baro_data)
             self.AUV_IMU.set_data(imu_data)
             self.AUV_COMPASS.set_data(comp_data)
+            self.topic_publisher(topic=self.AUV_BARO)
             self.topic_publisher(topic=self.AUV_IMU)
             self.topic_publisher(topic=self.AUV_COMPASS)
         except:
@@ -135,8 +140,12 @@ class AUV(RosHandler):
             if self.connected:
                 try:
                     self.hdg = self.TOPIC_GET_CMP_HDG.get_data_last()
-                    #baro to be implemented
                     self.imu = self.TOPIC_GET_IMU_DATA.get_data_last()
+                    baro = self.TOPIC_GET_MAVBARO.get_data_last()
+                    if(baro.msgid == 29): #change this to correct id for Scaled Pressure 3
+                        p = pack("QQ", *baro.payload64)
+                        time_boot_ms, self.press_abs, self.press_diff, temperature = unpack("Iffhxx", p)
+                        #pressure is in mBar
                     armRequest = self.AUV_GET_ARM.get_data()
                     modeRequest = self.AUV_GET_MODE.get_data()
                     if(armRequest != None):
