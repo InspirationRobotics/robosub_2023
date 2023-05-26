@@ -25,8 +25,10 @@ class RobotControl:
         channels[6] = ((array["pitch"]*80) + 1500)
         channels[7] = ((array["roll"]*80) + 1500)
         pwm.channels = channels
+        print(pwm.channels)
         rate.sleep()
         self.pub.publish(pwm)
         time.sleep(array["t"])
-        pwm.channels = self.channels
+        pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+        print(pwm.channels)
         self.pub.publish(pwm)
