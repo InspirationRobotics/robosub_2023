@@ -29,6 +29,6 @@ class RobotControl:
         rate.sleep()
         self.pub.publish(pwm)
         time.sleep(array["t"])
-        pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+        pwm.channels = [0, 0, 0, 0, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
         print(pwm.channels)
         self.pub.publish(pwm)

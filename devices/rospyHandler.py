@@ -27,8 +27,9 @@ class RosHandler:
         #print("published to " + topic.get_name())
 
     @staticmethod
-    def topic_subscriber(topic: TopicService):
-        rospy.Subscriber(topic.get_name(), topic.get_type(), topic.set_data)
+    def topic_subscriber(topic: TopicService, function=None):
+        if(function==None): function=topic.set_data
+        rospy.Subscriber(topic.get_name(), topic.get_type(), function)
 
     @staticmethod
     def service_caller(service: TopicService, timeout=30):
