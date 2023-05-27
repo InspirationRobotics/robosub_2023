@@ -94,15 +94,13 @@ class AUV(RosHandler):
 
     def get_baro(self, baro):
         try:
-            #print(baro)
-            if(baro.msgid == 143): #change this to correct id for Scaled Pressure 3
+            if(baro.msgid == 143): 
                 p = pack("QQ", *baro.payload64)
                 time_boot_ms, self.press_abs, self.press_diff, temperature = unpack("Iffhxx", p) #pressure is in mBar
                 self.press_abs = round(self.press_abs,2)
                 self.press_diff = round(self.press_diff,2)
                 baro_data = std_msgs.msg.Float32MultiArray()
                 baro_data.data = [self.press_abs, self.press_diff]
-                #print(baro_data)
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
         except:

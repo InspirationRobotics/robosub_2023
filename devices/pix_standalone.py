@@ -13,6 +13,7 @@ import rospy
 import time
 import numpy as np
 import signal
+from simple_pid import PID
 
 import threading
 
@@ -30,9 +31,11 @@ class AUV(RosHandler):
         super().__init__()
         self.armed = False
         self.guided = False
-        self.overRide = True
+        self.DepthHoldMode = False
         self.mode = ""
         self.channels = [0]*18
+        self.pid = PID(5, 0.01, 0.1, setpoint=-0.5)
+        self.pid.output_limits = (-300, 300)
 
         # init topics
         self.TOPIC_STATE = TopicService("/mavros/state", mavros_msgs.msg.State)
@@ -86,25 +89,37 @@ class AUV(RosHandler):
         return result.success, result.value.integer, result.value.real
     
     def change_mode(self, mode: str):
+        if(mode==MODE_ALTHOLD): 
+            self.DepthHoldMode = True
+            return
+        self.DepthHoldMode = False
         data = mavros_msgs.srv.SetModeRequest()
         data.custom_mode = mode
         self.SERVICE_SET_MODE.set_data(data)
         result = self.service_caller(self.SERVICE_SET_MODE, timeout=30)
         return result.mode_sent
 
+    def depthHold(self, depth):
+        try:
+            self.pid.setpoint = 0.4 # in meters
+            depthMotorPower = self.pid(depth)
+            # assume motor range is 1200-1800 so +-300
+        except:
+            print("DepthHold error")
+
     def get_baro(self, baro):
         try:
-            #print(baro)
-            if(baro.msgid == 143): #change this to correct id for Scaled Pressure 3
+            if(baro.msgid == 143):
                 p = pack("QQ", *baro.payload64)
                 time_boot_ms, self.press_abs, self.press_diff, temperature = unpack("Iffhxx", p) #pressure is in mBar
                 self.press_abs = round(self.press_abs,2)
+                self.depth = self.press_abs/(997.0474*9.80665*0.01)
                 self.press_diff = round(self.press_diff,2)
                 baro_data = std_msgs.msg.Float32MultiArray()
                 baro_data.data = [self.press_abs, self.press_diff]
-                #print(baro_data)
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
+                if(self.DepthHoldMode): self.depthHold(self.depth)
         except:
             print("Baro Failed")
 
