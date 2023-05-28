@@ -16,6 +16,7 @@ import signal
 from simple_pid import PID
 
 import threading
+from statistics import mean
 
 
 MODE_MANUAL = "MANUAL"
@@ -32,10 +33,12 @@ class AUV(RosHandler):
         self.armed = False
         self.guided = False
         self.DepthHoldMode = False
+        self.depthMotorPower = 0
         self.mode = ""
         self.channels = [0]*18
-        self.pid = PID(5, 0.01, 0.1, setpoint=-0.5)
-        self.pid.output_limits = (-300, 300)
+        self.depthCalib = 0
+        self.pid = PID(100, 0.05, 0, setpoint=0)
+        self.pid.output_limits = (-200, 200)
 
         # init topics
         self.TOPIC_STATE = TopicService("/mavros/state", mavros_msgs.msg.State)
@@ -88,24 +91,42 @@ class AUV(RosHandler):
         result = self.service_caller(self.SERVICE_SET_PARAM, timeout=30)
         return result.success, result.value.integer, result.value.real
     
-    def change_mode(self, mode: str):
+    def change_mode(self, mode: str, flag = False):
         if(mode==MODE_ALTHOLD): 
             self.DepthHoldMode = True
+            self.change_mode(MODE_STABILIZE, True)
             return
-        self.DepthHoldMode = False
+        self.DepthHoldMode = flag
         data = mavros_msgs.srv.SetModeRequest()
         data.custom_mode = mode
         self.SERVICE_SET_MODE.set_data(data)
         result = self.service_caller(self.SERVICE_SET_MODE, timeout=30)
         return result.mode_sent
 
+    def calibrateDepth(self):
+        print("\nStarting Depth Calibration...")
+        start_time = time.time()
+        depthArr = []
+        while(self.depth==None): pass
+        prevDepth = self.depth
+        while(time.time()-start_time<3):
+            if(self.depth!=prevDepth):
+                depthArr.append(self.depth)
+                prevDepth=self.depth
+        self.depthCalib = mean(depthArr)
+        print(f"Finished. Surface is: {self.depthCalib}")
+        return
+
     def depthHold(self, depth):
         try:
+            depth = depth-self.depthCalib
             self.pid.setpoint = 0.4 # in meters
-            depthMotorPower = self.pid(depth)
+            self.depthMotorPower = int(self.pid(depth)*-1 + 1485)
+            print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
-        except:
+        except Exception as e:
             print("DepthHold error")
+            print(e)
 
     def get_baro(self, baro):
         try:
@@ -120,8 +141,9 @@ class AUV(RosHandler):
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
                 if(self.DepthHoldMode): self.depthHold(self.depth)
-        except:
+        except Exception as e:
             print("Baro Failed")
+            print(e)
 
 
     def enable_topics_for_read(self):
@@ -146,21 +168,27 @@ class AUV(RosHandler):
             self.AUV_COMPASS.set_data(comp_data)
             self.topic_publisher(topic=self.AUV_IMU)
             self.topic_publisher(topic=self.AUV_COMPASS)
-        except:
+        except Exception as e:
             print("publish sensors failed")
+            print(e)
 
     def publish_thrusters(self):
+        time.sleep(2)
         while not rospy.is_shutdown():
             try:
                 thrusters = self.AUV_GET_THRUSTERS.get_data()
                 if(thrusters != None):
-                    self.channels = thrusters.channels
-                    thruster_data = mavros_msgs.msg.OverrideRCIn()
-                    thruster_data.channels = self.channels
-                    self.TOPIC_SET_RC_OVR.set_data(thruster_data)
-                    self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
-            except:
+                    self.channels = list(thrusters.channels)
+                else:
+                    self.channels = [0]*18
+                thruster_data = mavros_msgs.msg.OverrideRCIn()
+                self.channels[2] = self.depthMotorPower
+                thruster_data.channels = self.channels
+                self.TOPIC_SET_RC_OVR.set_data(thruster_data)
+                self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+            except Exception as e:
                 print("Thrusters failed")
+                print(e)
             time.sleep(0.1)
             
 
@@ -183,8 +211,9 @@ class AUV(RosHandler):
                             self.change_mode(self.modeRequest)
                             time.sleep(0.5)
                     self.publish_sensors()
-                except:
+                except Exception as e:
                     print("sensor failed")
+                    print(e)
                 time.sleep(0.1)
 
     def update_parameters_from_topic(self):
@@ -195,8 +224,9 @@ class AUV(RosHandler):
                     self.armed = data.armed
                     self.mode = data.mode
                     self.guided = data.guided
-                except:
+                except Exception as e:
                     print("state failed")
+                    print(e)
                 time.sleep(0.05)
 
     def beginThreads(self):
@@ -216,23 +246,29 @@ def main():
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_MANUAL)
+    auv.change_mode(MODE_ALTHOLD)
+    auv.calibrateDepth()
+    time.sleep(2)
     while not auv.armed:
         print("Attempting to arm...")
         auv.arm(True)
         time.sleep(3)
-    print("Armed!\nNow beginning loops...")
+    print("Armed!")
+    print("\nNow beginning loops...")
     auv.beginThreads()
 
 def onExit(signum, frame):
-    print("\nDisarming and exiting...")
-    auv.arm(False)
-    time.sleep(5)
-    rospy.signal_shutdown("Rospy Exited")
-    while not rospy.is_shutdown():
+    try:
+        print("\nDisarming and exiting...")
+        auv.arm(False)
+        time.sleep(3)
+        rospy.signal_shutdown("Rospy Exited")
+        while not rospy.is_shutdown():
+            pass
+        print("\n\nCleanly Exited")
+        exit(1)
+    except:
         pass
-    print("\n\nCleanly Exited")
-    exit(1)
 
 signal.signal(signal.SIGINT, onExit)
 
