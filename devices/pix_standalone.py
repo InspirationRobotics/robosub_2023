@@ -37,7 +37,7 @@ class AUV(RosHandler):
         self.mode = ""
         self.channels = [0]*18
         self.depthCalib = 0
-        self.pid = PID(100, 0.05, 0, setpoint=0)
+        self.pid = PID(100, 0.05, 0, setpoint=0.4) #in meters
         self.pid.output_limits = (-200, 200)
 
         # init topics
@@ -63,6 +63,7 @@ class AUV(RosHandler):
         self.AUV_IMU = TopicService('/auv/devices/imu', sensor_msgs.msg.Imu)
         self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float32MultiArray)
         self.AUV_GET_THRUSTERS = TopicService('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn)
+        self.AUV_GET_DEPTH = TopicService('/auv/devices/setDepth', std_msgs.msg.Float64)
         self.AUV_GET_ARM = TopicService('/auv/status/arm', std_msgs.msg.Bool)
         self.AUV_GET_MODE = TopicService('/auv/status/mode', std_msgs.msg.String)
 
@@ -120,7 +121,6 @@ class AUV(RosHandler):
     def depthHold(self, depth):
         try:
             depth = depth-self.depthCalib
-            self.pid.setpoint = 0.4 # in meters
             self.depthMotorPower = int(self.pid(depth)*-1 + 1485)
             print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
@@ -145,6 +145,10 @@ class AUV(RosHandler):
             print("Baro Failed")
             print(e)
 
+    def setDepth(self, setDValue):
+        if(setDValue.data<0):
+            return
+        self.pid.setpoint = setDValue.data
 
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE)
@@ -155,6 +159,7 @@ class AUV(RosHandler):
         self.topic_subscriber(self.AUV_GET_ARM)
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
+        self.topic_subscriber(self.AUV_GET_DEPTH, self.setDepth)
         #-Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
         self.thread_param_updater.daemon = True
