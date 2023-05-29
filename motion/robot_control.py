@@ -39,34 +39,31 @@ class RobotControl:
         channels[6] = ((array["pitch"]*80) + 1500)
         channels[7] = ((array["roll"]*80) + 1500)
         pwm.channels = channels
-        print(pwm.channels)
+        print(pwm.channels, self.pub)
         rate.sleep()
         timer=0
         while(timer<array["t"]):
             self.pub.publish(pwm)
+            print(pwm.channels)
             time.sleep(0.1)
             timer=timer+0.1
-            #print(timer)
 
         #time.sleep(array["t"])
         pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
         print(pwm.channels)
         self.pub.publish(pwm)
         
-    def setHeading(self, target: int, error: int):
-        print(target, error)
-        minTarget = ((target-error) + 360) % 360
-        maxTarget = (target+error) % 360
+    def setHeading(self, target: int):
         pwm = mavros_msgs.msg.OverrideRCIn()
         rate = rospy.Rate(5)
-        pwm.channels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        pwm.channels = [1500]*18
+        target = ((target)%360)
         while True:
             current = self.compass
             current = int(current)
             print(current)
             dir = 1  # cw
             diff = abs(target-current)
-            print(diff)
             if(diff >= 180):
                 dir *= -1
             if(current > target):
@@ -74,15 +71,17 @@ class RobotControl:
             if(diff >= 180):
                 diff = 360-diff
             if(diff <= 10):
-                speed = 25
+                speed = 55
             else:
-                speed = 40
-            if(diff <= error):
+                speed = 70
+            if(diff <= 2):
                 pwm.channels[3] = 1500
+                print(pwm.channels)
                 self.pub.publish(pwm)
                 break
             else:
                 pwm.channels[3] = 1500+(dir*speed)
+                print(pwm.channels)
                 self.pub.publish(pwm)
           
         print("Heading is set")
@@ -90,21 +89,27 @@ class RobotControl:
     def forwardHeading(self, power, t):
         deg = self.compass
         forwardPower = (power*80)+1500
-        print(forwardPower)
         t1=0
         pwm = mavros_msgs.msg.OverrideRCIn()
         rate = rospy.Rate(5)
         pwm.channels = [1500]*18
-        pwm.channels[3] = forwardPower
+        pwm.channels[4] = forwardPower
         print(pwm.channels)
+        while (t1<t):
+            new_deg = self.compass
+   #         print("init deg: " + deg + "current deg: " + new_deg)
+            if(abs(new_deg-deg)>10):
+                 self.setHeading(deg)
+            self.pub.publish(pwm)
+            print(pwm, t1)
+            time.sleep(0.1)
+            t1=t1+0.1
+
+        pwm.channels = [1500]*18
+        t2=0
+        while (t2 <= 1):
+            self.pub.publish(pwm)
+            time.sleep(0.1)
+            t2=t2+0.1
         self.pub.publish(pwm)
-        while True:
-         #   new_deg = self.compass
-          #  if(abs(new_deg-deg)>2):
-           #      setHeading(deg, 2)
-            time.sleep(1)
-            t1=t1+1
-            if(t1==t):
-                break
-        pwm.channels[3] = 1500
-        self.pub.publish(pwm)
+        print("finished forward heading")

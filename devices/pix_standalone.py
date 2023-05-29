@@ -34,10 +34,11 @@ class AUV(RosHandler):
         self.guided = False
         self.DepthHoldMode = False
         self.depthMotorPower = 0
+        self.depth=None
         self.mode = ""
         self.channels = [0]*18
         self.depthCalib = 0
-        self.pid = PID(100, 0.05, 0, setpoint=0.4) #in meters
+        self.pid = PID(200, 0.05, 0, setpoint=0.4) #in meters
         self.pid.output_limits = (-200, 200)
 
         # init topics
@@ -121,6 +122,8 @@ class AUV(RosHandler):
     def depthHold(self, depth):
         try:
             depth = depth-self.depthCalib
+            if(depth<-9):
+                return
             self.depthMotorPower = int(self.pid(depth)*-1 + 1485)
             print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
@@ -182,13 +185,14 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             try:
                 thrusters = self.AUV_GET_THRUSTERS.get_data()
+                self.channels = [1500]*18
                 if(thrusters != None):
                     self.channels = list(thrusters.channels)
-                else:
-                    self.channels = [0]*18
+                    print(f"Pre: {self.channels}")
                 thruster_data = mavros_msgs.msg.OverrideRCIn()
-                self.channels[2] = self.depthMotorPower
+                if(self.DepthHoldMode): self.channels[2] = self.depthMotorPower
                 thruster_data.channels = self.channels
+                #print(f"Post: {thruster_data.channels}")
                 self.TOPIC_SET_RC_OVR.set_data(thruster_data)
                 self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
             except Exception as e:
