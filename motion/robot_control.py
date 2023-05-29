@@ -33,9 +33,12 @@ class RobotControl:
     def setDepth(d):
         depth = Float64
         depth.data = d
-        rate = rospy.Rate(5)
-        self.pubDepth(depth)
-        rate.sleep()
+        timer=0
+        while(timer<1):
+            time.sleep(0.1)
+            self.pubDepth(depth)
+            
+        print("successfully set depth")
         
     def movement(self, **array):
         pwm = mavros_msgs.msg.OverrideRCIn()
@@ -57,7 +60,6 @@ class RobotControl:
             time.sleep(0.1)
             timer=timer+0.1
 
-        #time.sleep(array["t"])
         pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
         print(pwm.channels)
         self.pubThrusters.publish(pwm)
@@ -96,27 +98,38 @@ class RobotControl:
         print("Heading is set")
                 
     def forwardHeading(self, power, t):
-        deg = self.compass
         forwardPower = (power*80)+1500
-        t1=0
+        timer=0
+        if (t>3.5):
+            timeStop = t/7
+        else:
+            timeStop = 0.5
+        
+        timer = timeStop
+        powerStop = 1500 - (power*40)
+        print(timeStop, powerStop)
         pwm = mavros_msgs.msg.OverrideRCIn()
         rate = rospy.Rate(5)
         pwm.channels = [1500]*18
         pwm.channels[4] = forwardPower
-        print(pwm.channels)
-        while (t1<t):
-            new_deg = self.compass
-   #         print("init deg: " + deg + "current deg: " + new_deg)
-            if(abs(new_deg-deg)>10):
-                 self.setHeading(deg)
+        while (timer<t):
             self.pub.publish(pwm)
-            print(pwm, t1)
             time.sleep(0.1)
-            t1=t1+0.1
+            timer=timer+0.1
 
+        print("finished forward")
+        timer=0
         pwm.channels = [1500]*18
+        pwm.channels[4] = powerStop
+        while (timer<timeStop):
+            self.pub.publish(pwm)
+            time.sleep(0.1)
+            timer=timer+0.1
+        
         t2=0
-        while (t2 <= 1):
+        print("finished backstopping")
+        pwm.channels = [1500]*18
+        while (t2 <= 0.5):
             self.pub.publish(pwm)
             time.sleep(0.1)
             t2=t2+0.1
