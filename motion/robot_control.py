@@ -12,7 +12,8 @@ class RobotControl:
 
     def __init__(self):
         self.compass = None
-        self.pub = rospy.Publisher('auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
+        self.pubThrusters = rospy.Publisher('auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
+        self.pubDepth = rospy.Publisher('auv/devices/setDepth', Float64, queue_size=10)
         rospy.init_node("robotcontrol", anonymous=True)
         self.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
         self.thread_compass = threading.Timer(0, self.get_compass)
@@ -27,7 +28,15 @@ class RobotControl:
 
     def compass_cb(self, data):
         self.compass = data.data
-
+        return data.data
+    
+    def setDepth(d):
+        depth = Float64
+        depth.data = d
+        rate = rospy.Rate(5)
+        self.pubDepth(depth)
+        rate.sleep()
+        
     def movement(self, **array):
         pwm = mavros_msgs.msg.OverrideRCIn()
         rate = rospy.Rate(5)
@@ -43,7 +52,7 @@ class RobotControl:
         rate.sleep()
         timer=0
         while(timer<array["t"]):
-            self.pub.publish(pwm)
+            self.pubThrusters.publish(pwm)
             print(pwm.channels)
             time.sleep(0.1)
             timer=timer+0.1
@@ -51,7 +60,7 @@ class RobotControl:
         #time.sleep(array["t"])
         pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
         print(pwm.channels)
-        self.pub.publish(pwm)
+        self.pubThrusters.publish(pwm)
         
     def setHeading(self, target: int):
         pwm = mavros_msgs.msg.OverrideRCIn()
@@ -77,12 +86,12 @@ class RobotControl:
             if(diff <= 2):
                 pwm.channels[3] = 1500
                 print(pwm.channels)
-                self.pub.publish(pwm)
+                self.pubThrusters.publish(pwm)
                 break
             else:
                 pwm.channels[3] = 1500+(dir*speed)
                 print(pwm.channels)
-                self.pub.publish(pwm)
+                self.pubThrusters.publish(pwm)
           
         print("Heading is set")
                 
