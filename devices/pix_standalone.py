@@ -122,7 +122,7 @@ class AUV(RosHandler):
     def depthHold(self, depth):
         try:
             depth = depth-self.depthCalib
-            if(depth<-9):
+            if(depth<-9 or depth>100):
                 return
             self.depthMotorPower = int(self.pid(depth)*-1 + 1485)
             print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")

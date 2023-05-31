@@ -28,15 +28,22 @@ class RobotControl:
 
     def compass_cb(self, data):
         self.compass = data.data
-        return data.data
     
-    def setDepth(d):
-        depth = Float64
+    def mapping(x, in_min, in_max, out_min, out_max): 
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+    def return_compass(self):
+        return self.compass
+
+    def setDepth(self, d):
+        depth = Float64()
         depth.data = d
         timer=0
+        print(depth)
         while(timer<1):
             time.sleep(0.1)
-            self.pubDepth(depth)
+            self.pubDepth.publish(depth)
+            timer=timer+0.1
             
         print("successfully set depth")
         
@@ -50,8 +57,7 @@ class RobotControl:
         channels[3] = ((array["yaw"]*80) + 1500)
         channels[6] = ((array["pitch"]*80) + 1500)
         channels[7] = ((array["roll"]*80) + 1500)
-        pwm.channels = channels
-        print(pwm.channels, self.pub)
+        pwm.channels = channels       
         rate.sleep()
         timer=0
         while(timer<array["t"]):
@@ -98,40 +104,63 @@ class RobotControl:
         print("Heading is set")
                 
     def forwardHeading(self, power, t):
+        #Power 1: 7.8t+3.4 (in inches)
+        #Power 2: 21t+0.00952
+        #Power 3: 32.1t-18.7
         forwardPower = (power*80)+1500
         timer=0
-        if (t>3.5):
-            timeStop = t/7
+        if (t>3):
+            timeStop = t/6
         else:
             timeStop = 0.5
         
-        timer = timeStop
+        t = t+timeStop
         powerStop = 1500 - (power*40)
         print(timeStop, powerStop)
         pwm = mavros_msgs.msg.OverrideRCIn()
         rate = rospy.Rate(5)
         pwm.channels = [1500]*18
         pwm.channels[4] = forwardPower
-        while (timer<t):
-            self.pub.publish(pwm)
+        print(pwm)
+        startTime = time.time()
+        while (time.time()-startTime<t):
+            self.pubThrusters.publish(pwm)
             time.sleep(0.1)
-            timer=timer+0.1
 
         print("finished forward")
-        timer=0
-        pwm.channels = [1500]*18
-        pwm.channels[4] = powerStop
-        while (timer<timeStop):
-            self.pub.publish(pwm)
+        gradDec = int((forwardPower-powerStop)/(timeStop*10))
+        startTime = time.time()
+        while (time.time()-startTime<timeStop):
+            current_p = pwm.channels[4]
+            pwm.channels[4] = current_p - gradDec
+            print(pwm.channels)
+            self.pubThrusters.publish(pwm)
             time.sleep(0.1)
-            timer=timer+0.1
         
         t2=0
         print("finished backstopping")
         pwm.channels = [1500]*18
         while (t2 <= 0.5):
-            self.pub.publish(pwm)
+            self.pubThrusters.publish(pwm)
             time.sleep(0.1)
             t2=t2+0.1
-        self.pub.publish(pwm)
+        print(pwm)
         print("finished forward heading")
+
+    def forwardDist(self, dist, power):
+        inches = 39.37*dist
+        print(power, inches)
+        if(power==3):
+            inches = inches-9.843
+            time = (inches+18.7)/32.1
+            print(time)
+            self.forwardHeading(3, time)
+        elif(power==2):
+            time = (inches-0.01)/21
+            self.forwardHeading(2, time)
+        elif(power==1):
+            time=(inches-3.4)/7.8
+            self.forwardHeading(1, time)
+        
+        print("completed forward with distance!")
+
