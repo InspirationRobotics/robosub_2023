@@ -21,4 +21,8 @@ def get_frame(cid):
 
 def show(f):
     cv2.imshow(f)
+  
+
+#https://youtu.be/2l913YwWYe4
+#https://stackoverflow.com/questions/55377442/how-to-subscribe-and-publish-images-in-ros
 
