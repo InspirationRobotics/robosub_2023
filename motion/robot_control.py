@@ -49,7 +49,6 @@ class RobotControl:
         
     def movement(self, **array):
         pwm = mavros_msgs.msg.OverrideRCIn()
-        rate = rospy.Rate(5)
         channels = self.channels
         channels[2] = ((array["throttle"]*80) + 1500)
         channels[4] = ((array["forward"]*80) + 1500)
@@ -58,17 +57,8 @@ class RobotControl:
         channels[6] = ((array["pitch"]*80) + 1500)
         channels[7] = ((array["roll"]*80) + 1500)
         pwm.channels = channels       
-        rate.sleep()
-        timer=0
-        while(timer<array["t"]):
-            self.pubThrusters.publish(pwm)
-            print(pwm.channels)
-            time.sleep(0.1)
-            timer=timer+0.1
-
-        pwm.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
-        print(pwm.channels)
         self.pubThrusters.publish(pwm)
+        #print(pwm.channels)
         
     def setHeading(self, target: int):
         pwm = mavros_msgs.msg.OverrideRCIn()
