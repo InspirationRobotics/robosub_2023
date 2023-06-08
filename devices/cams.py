@@ -35,6 +35,8 @@ cam2.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
 
 fake1 = pyfakewebcam.FakeWebcam(newDevice1, IMG_W, IMG_H)
 fake2 = pyfakewebcam.FakeWebcam(newDevice2, IMG_W, IMG_H)
+print("Forward output at: " + newDevice1)
+print("Downward output at: " + newDevice2)
 
 class CameraStreams():
     def __init__(self):
@@ -55,7 +57,7 @@ class CameraStreams():
 
     def callbackForward(self, msg):
         try:
-            self.forwardVideo = self.br.imgmsg_to_cv2(msg)
+            self.forwardVideo = cv2.cvtColor(self.br.imgmsg_to_cv2(msg), cv2.COLOR_BGR2RGB)
             fake1.schedule_frame(self.forwardVideo)
         except Exception as e:
             print("Forward Output Error, make sure running in Python2")
@@ -63,7 +65,7 @@ class CameraStreams():
 
     def callbackBottom(self, msg):
         try:
-            self.bottomVideo = self.br.imgmsg_to_cv2(msg)
+            self.bottomVideo = cv2.cvtColor(self.br.imgmsg_to_cv2(msg), cv2.COLOR_BGR2RGB)
             fake2.schedule_frame(self.bottomVideo)
         except Exception as e:
             print("Bottom Output Error, make sure running in Python2")

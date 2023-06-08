@@ -1,16 +1,39 @@
 import numpy as np
 import cv2
 import time
+#
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+#
+br = CvBridge()
+pubForward = rospy.Publisher('/auv/camera/videoForwardOutput', Image,queue_size=10)
+global forwardVideo
+forwardVideo = None
+rospy.init_node("CV", anonymous=True)
+rospy.Rate(30)
 
-cap = cv2.VideoCapture('red3.mp4')
+
+def callbackForward(msg):
+        global forwardVideo
+        try:
+            forwardVideo = br.imgmsg_to_cv2(msg)
+        except Exception as e:
+            print("Forward Output Error, make sure running in Python2")
+            print(e)
+
+rospy.Subscriber("/auv/camera/videoForwardRaw",Image,callbackForward)
+
+#cap = cv2.VideoCapture('red3.mp4')
+width  = 640 #cap.get(3)  # float `width`
+height = 480 #cap.get(4)
 rec = 0
 confidence = []
 x_left = []
 x_center = []
 x_right = []
 # Start a while loop
-width  = cap.get(3)  # float `width`
-height = cap.get(4)
+
 
 def align(rec, confidence, leg):
     if(rec % 20 == 0):
@@ -59,79 +82,83 @@ def align(rec, confidence, leg):
         l_avg = 0
 
 while(1):
-    rec+=1
-    align(rec, confidence, "Left")
-    if(rec % 20 == 0):
-        confidence=[]
-    # Reading the video from the
-    # webcam in image frames
-    _, imageFrame = cap.read()
-  
-    hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
-  
-    red_lower = np.array([120, 50, 50], np.uint8)
-    red_upper = np.array([180, 255, 255], np.uint8)
-    red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
-  
-    kernel = np.ones((5, 5), "uint8")
-      
-    # For red color
-    red_mask = cv2.dilate(red_mask, kernel)
-    red_mask = cv2.GaussianBlur(red_mask, (21, 21), 0)
-    res_red = cv2.bitwise_and(imageFrame, imageFrame, mask=red_mask)
+    try:
+        rec+=1
+        align(rec, confidence, "Left")
+        if(rec % 20 == 0):
+            confidence=[]
+        # Reading the video from the
+        # webcam in image frames
+        #_, imageFrame = cap.read()
+        imageFrame = forwardVideo
+        hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
     
-   
-    # Creating contour to track red color
-    contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    bbox_list = []
+        red_lower = np.array([120, 50, 50], np.uint8)
+        red_upper = np.array([180, 255, 255], np.uint8)
+        red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
     
-    for pic, contour in enumerate(contours):
-        area = cv2.contourArea(contour)
-        x, y, w, h = cv2.boundingRect(contour)
-        ar = float(w)/h
-        if(area > 230 and ar<0.45): 
-            bbox_list.append((x, y, w, h))
-
-    o_list = []
-    if(len(bbox_list) >= 2):
-        num = len(bbox_list)
-        x_list=[]
-        for bbox in bbox_list:
-            x, y, w, h = bbox
-            x_list.append(x)
+        kernel = np.ones((5, 5), "uint8")
         
-        x_list = sorted(x_list)
-        if(len(x_list) > 3):
-            x_list = x_list[1:4]
-
-        for bbox in bbox_list:
-            x, y, w, h = bbox
+        # For red color
+        red_mask = cv2.dilate(red_mask, kernel)
+        red_mask = cv2.GaussianBlur(red_mask, (21, 21), 0)
+        res_red = cv2.bitwise_and(imageFrame, imageFrame, mask=red_mask)
+        
+    
+        # Creating contour to track red color
+        contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        bbox_list = []
+        
+        for pic, contour in enumerate(contours):
+            area = cv2.contourArea(contour)
+            x, y, w, h = cv2.boundingRect(contour)
             ar = float(w)/h
-            o = ""
-            if(x in x_list):
-                if(x == x_list[0] and ar < 0.25):
-                    o = "Left"
-                    confidence.append(o)
-                    o_list.append(o)
-                    x_left.append(x)
-                elif((x == x_list[-1] and ar < 0.25) and ("Right" not in o_list)):
-                    o = "Right"
-                    confidence.append(o)
-                    o_list.append(o)
-                    x_right.append(x)
-                elif(0.45>ar>0.25):
-                    if((("Left" in o_list) or ("Right" in o_list)) and ("Center" not in o_list)):
-                        o = "Center"
+            if(area > 230 and ar<0.45): 
+                bbox_list.append((x, y, w, h))
+
+        o_list = []
+        if(len(bbox_list) >= 2):
+            num = len(bbox_list)
+            x_list=[]
+            for bbox in bbox_list:
+                x, y, w, h = bbox
+                x_list.append(x)
+            
+            x_list = sorted(x_list)
+            if(len(x_list) > 3):
+                x_list = x_list[1:4]
+
+            for bbox in bbox_list:
+                x, y, w, h = bbox
+                ar = float(w)/h
+                o = ""
+                if(x in x_list):
+                    if(x == x_list[0] and ar < 0.25):
+                        o = "Left"
                         confidence.append(o)
                         o_list.append(o)
-                        x_center.append(x)
+                        x_left.append(x)
+                    elif((x == x_list[-1] and ar < 0.25) and ("Right" not in o_list)):
+                        o = "Right"
+                        confidence.append(o)
+                        o_list.append(o)
+                        x_right.append(x)
+                    elif(0.45>ar>0.25):
+                        if((("Left" in o_list) or ("Right" in o_list)) and ("Center" not in o_list)):
+                            o = "Center"
+                            confidence.append(o)
+                            o_list.append(o)
+                            x_center.append(x)
 
-                area = w*h
-                image = cv2.rectangle(imageFrame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                cv2.putText(image, str(area), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                    area = w*h
+                    image = cv2.rectangle(imageFrame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                    cv2.putText(image, str(area), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
-    cv2.imshow("Red", imageFrame)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        cap.release()
-        cv2.destroyAllWindows()
-        break
+        #cv2.imshow("Red", imageFrame)
+        pubForward.publish(br.cv2_to_imgmsg(imageFrame))
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            #cap.release()
+            cv2.destroyAllWindows()
+            break
+    except:
+        pass

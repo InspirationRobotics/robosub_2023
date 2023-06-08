@@ -38,7 +38,7 @@ class AUV(RosHandler):
         self.mode = ""
         self.channels = [0]*18
         self.depthCalib = 0
-        self.pid = PID(200, 0.05, 0, setpoint=0.4) #in meters
+        self.pid = PID(200, 0.05, 0, setpoint=0.65) #in meters
         self.pid.output_limits = (-200, 200)
 
         # init topics
