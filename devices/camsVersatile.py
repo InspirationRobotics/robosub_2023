@@ -10,28 +10,32 @@ import pyfakewebcam
 import numpy as np
 import signal
 import threading
+import platform
 
 ogDev = []
 newDevice = []
 cam = []
 fake = []
 preDevices = os.popen('ls /dev/video*').read()
-preDevices = preDevices.split("\n")
-for i in len(preDevices):
-    if(i%2==0):
-        ogDev.append(preDevices[i])
-os.system('sudo modprobe v4l2loopback devices='+len(ogDev))
+preDevicesSplit = preDevices.split("\n")
+camMod = 2
+if("nx" in platform.node()):
+    camMod = 4
+for i in enumerate(preDevicesSplit):
+    if(i[0]%camMod==0 and i[1]!=''): 
+        ogDev.append(i[1])
+camAmt = len(ogDev)
+os.system('sudo modprobe v4l2loopback devices='+str(camAmt))
 postDevices = os.popen('ls /dev/video*').read()
 diff = postDevices[len(preDevices):]
 diff = diff.split("\n")
-for i in len(diff):
+for i in range(camAmt):
     newDevice.append(diff[i])
-
 
 IMG_W = 640
 IMG_H = 480
 
-for i in len(preDevices):
+for i in range(camAmt):
     cam.append(cv2.VideoCapture(ogDev[i]))
     cam[i].set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
     cam[i].set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
@@ -53,22 +57,24 @@ class camera():
             self.frame = cv2.cvtColor(self.br.imgmsg_to_cv2(msg), cv2.COLOR_BGR2RGB)
             fake[self.id].schedule_frame(self.frame)
         except Exception as e:
-            print("Camera "+self.id+" Output Error, make sure running in Python2")
+            print("Camera "+str(self.id)+" Output Error, make sure running in Python2")
             print(e)
     
     def runner(self):
         while not rospy.is_shutdown():
             try:
                 ret, frame1 = cam[self.id].read()
-                self.pub.publish(self.br.cv2_to_imgmsg(frame1))
+                msg = self.br.cv2_to_imgmsg(frame1)
+                self.pub.publish(msg)
+                pass
             except Exception as e:
-                print("Camera "+self.id+" Input Error")
+                print("Camera "+str(self.id)+" Input Error")
                 print(e)
 
             self.loop_rate.sleep()
 
     def start(self):
-        rospy.loginfo("Starting Camera "+self.id+" Stream...")
+        rospy.loginfo("Starting Camera "+str(self.id)+" Stream...")
         self.thread_param_updater = threading.Timer(0, self.runner)
         self.thread_param_updater.daemon = True
         self.thread_param_updater.start()
@@ -76,20 +82,21 @@ class camera():
 class cameraStreams():
     def __init__(self):
         rospy.loginfo("Initializing Camera Streams...")
-        self.cams == []
-        for i in len(preDevices):
+        self.cams = []
+        for i in range(camAmt):
             self.cams.append(camera(i))
         
     def start(self):
         for i in self.cams:
             i.start()
+        rospy.spin()
             
 def onExit(signum, frame):
     try:
         print("\Closing Cameras and exiting...")
         for i in cam:
             i.release()
-        time.sleep(1)
+        time.sleep(3)
         rospy.signal_shutdown("Rospy Exited")
         while not rospy.is_shutdown():
             pass
