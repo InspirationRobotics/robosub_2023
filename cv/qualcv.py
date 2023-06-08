@@ -2,29 +2,30 @@ import numpy as np
 import cv2
 import time
 #
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+# import rospy
+# from sensor_msgs.msg import Image
+# from cv_bridge import CvBridge, CvBridgeError
+
+# br = CvBridge()
+# pubForward = rospy.Publisher('/auv/camera/videoOutput1', Image,queue_size=10)
+# global forwardVideo
+# forwardVideo = None
+# rospy.init_node("CV", anonymous=True)
+# rospy.Rate(30)
+
+
+# def callbackForward(msg):
+#         global forwardVideo
+#         try:
+#             forwardVideo = br.imgmsg_to_cv2(msg)
+#         except Exception as e:
+#             print("Forward Output Error, make sure running in Python2")
+#             print(e)
+
+# rospy.Subscriber("/auv/camera/videoRaw1",Image,callbackForward)
 #
-br = CvBridge()
-pubForward = rospy.Publisher('/auv/camera/videoForwardOutput', Image,queue_size=10)
-global forwardVideo
-forwardVideo = None
-rospy.init_node("CV", anonymous=True)
-rospy.Rate(30)
 
-
-def callbackForward(msg):
-        global forwardVideo
-        try:
-            forwardVideo = br.imgmsg_to_cv2(msg)
-        except Exception as e:
-            print("Forward Output Error, make sure running in Python2")
-            print(e)
-
-rospy.Subscriber("/auv/camera/videoForwardRaw",Image,callbackForward)
-
-#cap = cv2.VideoCapture('red3.mp4')
+cap = cv2.VideoCapture('red3.mp4')
 width  = 640 #cap.get(3)  # float `width`
 height = 480 #cap.get(4)
 rec = 0
@@ -89,8 +90,8 @@ while(1):
             confidence=[]
         # Reading the video from the
         # webcam in image frames
-        #_, imageFrame = cap.read()
-        imageFrame = forwardVideo
+        _, imageFrame = cap.read()
+        #imageFrame = forwardVideo
         hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
     
         red_lower = np.array([120, 50, 50], np.uint8)
@@ -154,10 +155,10 @@ while(1):
                     image = cv2.rectangle(imageFrame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                     cv2.putText(image, str(area), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
-        #cv2.imshow("Red", imageFrame)
-        pubForward.publish(br.cv2_to_imgmsg(imageFrame))
+        cv2.imshow("Red", imageFrame)
+        #pubForward.publish(br.cv2_to_imgmsg(imageFrame))
         if cv2.waitKey(10) & 0xFF == ord('q'):
-            #cap.release()
+            cap.release()
             cv2.destroyAllWindows()
             break
     except:
