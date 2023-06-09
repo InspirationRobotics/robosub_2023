@@ -26,8 +26,8 @@ import time
 #
 
 cap = cv2.VideoCapture('red3.mp4')
-width  = 640 #cap.get(3)  # float `width`
-height = 480 #cap.get(4)
+width  = 640 # float `width`
+height = 480 
 rec = 0
 confidence = []
 x_left = []
@@ -35,7 +35,9 @@ x_center = []
 x_right = []
 # Start a while loop
 
-
+#technically it only needs to sample 20 frames and then it can do real time based off referencing those frames 
+#once you know your distance you can adaptively change your bounds of reasonable movement to determine valid and invalid positions
+#if you know your further away from the gate after your 20 frame sample, you can make your error margin small since the gate should not move significantly, and as you come closer the error margin can increase since the gate movement is amplified
 def align(rec, confidence, leg):
     if(rec % 20 == 0):
         list = []
@@ -85,12 +87,15 @@ def align(rec, confidence, leg):
 while(1):
     try:
         rec+=1
+        time.sleep(1/24)
         align(rec, confidence, "Left")
         if(rec % 20 == 0):
             confidence=[]
         # Reading the video from the
         # webcam in image frames
         _, imageFrame = cap.read()
+        if(not _):
+           break
         #imageFrame = forwardVideo
         hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
     
@@ -119,7 +124,6 @@ while(1):
 
         o_list = []
         if(len(bbox_list) >= 2):
-            num = len(bbox_list)
             x_list=[]
             for bbox in bbox_list:
                 x, y, w, h = bbox
@@ -145,7 +149,7 @@ while(1):
                         o_list.append(o)
                         x_right.append(x)
                     elif(0.45>ar>0.25):
-                        if((("Left" in o_list) or ("Right" in o_list)) and ("Center" not in o_list)):
+                        if((("Left" in o_list) or ("Right" in o_list)) and ("Center" not in o_list)): #what is the point of this condition?
                             o = "Center"
                             confidence.append(o)
                             o_list.append(o)
@@ -153,7 +157,7 @@ while(1):
 
                     area = w*h
                     image = cv2.rectangle(imageFrame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                    cv2.putText(image, str(area), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                    cv2.putText(image, o, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
         cv2.imshow("Red", imageFrame)
         #pubForward.publish(br.cv2_to_imgmsg(imageFrame))
