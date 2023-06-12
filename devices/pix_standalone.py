@@ -38,8 +38,10 @@ class AUV(RosHandler):
         self.mode = ""
         self.channels = [0]*18
         self.depthCalib = 0
-        self.pid = PID(200, 0.05, 0, setpoint=0.65) #in meters
-        self.pid.output_limits = (-200, 200)
+        #self.limNeu = [200,1485]
+        self.limNeu = [400,1400]
+        self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.65) #in meters
+        self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
 
         # init topics
         self.TOPIC_STATE = TopicService("/mavros/state", mavros_msgs.msg.State)
@@ -124,7 +126,7 @@ class AUV(RosHandler):
             depth = depth-self.depthCalib
             if(depth<-9 or depth>100):
                 return
-            self.depthMotorPower = int(self.pid(depth)*-1 + 1485)
+            self.depthMotorPower = int(self.pid(depth)*-1 + self.limNeu[1])
             print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
         except Exception as e:
