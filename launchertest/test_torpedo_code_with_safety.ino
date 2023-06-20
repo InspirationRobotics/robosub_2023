@@ -41,7 +41,7 @@ void loop() {
     
     //load
     else if(rx_byte == 'l' && load == false && shot == true) {
-      s1.write(20);
+      s1.write(30);
       shot = false;
       load = true;
       Serial.println("\nLoaded");
