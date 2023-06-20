@@ -13,24 +13,28 @@ import threading
 import platform
 from camsHelper import findCam
 
+#order is forward, down
+#onyx = ["Sonix_Technology_Co.__Ltd._H264_USB_Camera_SN0001"]
+grey = ["platform-70090000.xusb-usb-0:2.2:1.0","platform-70090000.xusb-usb-0:2.1.1:1.0"]
 
 ogDev = []
 newDevice = []
 cam = []
 fake = []
 preDevices = os.popen('ls /dev/video*').read()
+sub = False #default to grey
 # preDevicesSplit = preDevices.split("\n")
 # camMod = 2
-# if("nx" in platform.node()):
-#     camMod = 4
+if("nx" in platform.node()):
+    sub  = True
+    ogDev = findCam(onyx)
+else:
+    ogDev = findCam(grey)
 # for i in enumerate(preDevicesSplit):
 #     if(i[0]%camMod==0 and i[1]!=''): 
 #         ogDev.append(i[1])
 #
-#order is forward, down
-onyx = ["Sonix_Technology_Co.__Ltd._H264_USB_Camera_SN0001"]
-grey = ["",""]
-ogDev = findCam(onyx)
+#
 #
 camAmt = len(ogDev)
 os.system('sudo modprobe v4l2loopback devices='+str(camAmt))
