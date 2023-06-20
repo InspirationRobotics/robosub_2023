@@ -8,6 +8,8 @@ red = 38
 GPIO.setup(red, GPIO.OUT)
 GPIO.setup(blue, GPIO.OUT)
 
-GPIO.output(red, GPIO.HIGH)
+GPIO.output(blue, GPIO.HIGH)
+print("Blue Light is On!")
+
 
 GPIO.cleanup()
