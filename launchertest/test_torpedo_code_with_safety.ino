@@ -3,17 +3,17 @@
 Servo s1; 
 bool load;
 bool shot;
-bool safe;
 
 void setup() {
   load = true;
   shot = false;
 
   Serial.begin(9600);
-  Serial.println("Is it safe to shoot? Enter y if yes");
-  s1.write(20);
+  
+  //load
+  s1.write(30);
   s1.attach(9);
-  // put your setup code here, to run once:
+  Serial.println("Is it safe to shoot? Enter y if yes");
 
 }
 
@@ -22,7 +22,10 @@ void loop() {
   char rx_byte2;
 
   if(Serial.available()>0) {
+    
     rx_byte = Serial.read();
+
+    //shoot
     if(rx_byte == 'y' && load == true && shot == false){
       Serial.flush();
       Serial.println("\nIt is safe to shoot, enter s to shoot");
