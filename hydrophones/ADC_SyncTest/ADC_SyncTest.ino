@@ -8,8 +8,11 @@
 
 #ifdef ADC_DUAL_ADCS
 
-const int readPin = A12;
-const int readPin2 = A13;
+//Pins are 30, 31, 32 (need to resolder)
+//https://github.com/KurtE/TeensyDocuments/blob/master/Teensy4.1%20Pins.pdf
+
+const int readPin = A11; //ADC 0
+const int readPin2 = A12; //ADC 1
 
 ADC *adc = new ADC(); // adc object
 

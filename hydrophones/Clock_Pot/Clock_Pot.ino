@@ -45,6 +45,7 @@ void digitalPotWrite(int value, int Chip_s) {
 void setup() {
   // put your setup code here, to run once:
   SPI.begin();
+  Serial.begin(9600);
   //pinMode(CS1, OUTPUT);
   //pinMode(CS2, OUTPUT);
   //pinMode(CS3, OUTPUT);
@@ -59,8 +60,9 @@ void loop() {
   /*digitalPotWrite(0,CS1);
     digitalPotWrite(0,CS2);
     digitalPotWrite(0,CS3);
-  */int sensorValue = analogRead(A16);
-  Serial.println(sensorValue);
+  */
+  //int sensorValue = analogRead(A16);
+  //Serial.println(sensorValue);
   /*float voltage = sensorValue * (5.0 / 1023.0);
     if(voltage>3.8) {
       Serial.println(voltage);
