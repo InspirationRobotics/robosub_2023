@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sleep 50
 while true 
 do
     if ping -c 2 -W 1 8.8.8.8 | grep -q '64 bytes'; then

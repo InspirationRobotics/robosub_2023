@@ -1,5 +1,6 @@
 from robot_control import RobotControl
 import time
+import os
 
 rc = RobotControl()
 time.sleep(1)
@@ -28,3 +29,4 @@ while t<1.3:
 
 rc.forwardDist(5.5, 3)
 print("finished")
+os.system("python3 /home/inspiration/auv/devices/disarm.py")

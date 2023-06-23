@@ -1,7 +1,10 @@
-gnome-terminal -- bash -c "ssh inspiration@jet-nano01.local; sudo chmod 777 /dev/ttyACM0; roslaunch mavros apm.launch"
+#!/bin/bash
 
-# Open a new terminal window and execute the second set of commands
-gnome-terminal -- bash -c "ssh inspiration@jet-nano01.local; rosrun mavros mavparam set SYSID_MYGCS 1; cd auv/devices/; python3 pix-standaloneOld.py"
-
-# Open a new terminal window and execute the third set of commands
-gnome-terminal -- bash -c "ssh inspiration@jet-nano01.local; cd auv/mission/; python3 square.py"
+#screen -dmS mavros bash -c 'sudo chmod 666 /dev/ttyACM0 ; roslaunch mavros apm.launch'
+#sleep 10
+#screen -dmS cams bash -c '/usr/bin/python /home/inspiration/auv/camsVersatile.py'
+sleep 120 #two minutes for tether disconnect
+screen -dmS pix_standalone bash -c '/usr/bin/python3 /home/inspiration/auv/devices/pix_standalone.py'
+/usr/bin/python3 /home/inspiration/auv/devices/statusLed.py redOn
+sleep 60
+screen -dmS prequal bash -c '/usr/bin/python3 /home/inspiration/auv/motion/prequal.py'
