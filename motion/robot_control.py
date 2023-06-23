@@ -130,19 +130,29 @@ class RobotControl():
             time.sleep(0.05)
         print("finished forward heading")
 
+    def forwardHeadingUni(self, power, t):
+        forwardPower = (power*80)+1500
+        pwm = mavros_msgs.msg.OverrideRCIn()
+        pwm.channels = [1500]*18
+        pwm.channels[4] = forwardPower
+        startTime = time.time()
+        while (time.time()-startTime<t): 
+            self.pubThrusters.publish(pwm)
+            time.sleep(0.1)
+        self.backStop(pwm, t)
 
     def backStop(self, pwm, t):
         if (t>3): timeStop = t/6
         else: timeStop = 0.5
         maxPower = [1500]*18
         powerStop = [1500]*18
-        for i in len(pwm.channels):
+        for i in range(len(pwm.channels)):
                 if(pwm.channels[i]!=1500):
                     maxPower[i] = pwm.channels[i]
                     powerStop[i] = (1500-pwm.channels[i])/2 +1500
         startTime = time.time()
         while (time.time()-startTime<=timeStop):
-            for i in len(pwm.channels):
+            for i in range(len(pwm.channels)):
                 if(pwm.channels[i]!=1500):
                     pwm.channels[i] = int(self.mapping(time.time()-startTime, 0, timeStop, maxPower[i], powerStop[i]))
             self.pubThrusters.publish(pwm)
@@ -162,13 +172,12 @@ class RobotControl():
             inches = inches-9.843
             time = (inches+18.7)/32.1
             print(time)
-            self.forwardHeading(3, time)
+            self.forwardHeadingUni(3, time)
         elif(power==2):
             time = (inches-0.01)/21
-            self.forwardHeading(2, time)
+            self.forwardHeadingUni(2, time)
         elif(power==1):
             time=(inches-3.4)/7.8
-            self.forwardHeading(1, time)
-        
+            self.forwardHeadingUni(1, time)        
         print("completed forward with distance!")
 
