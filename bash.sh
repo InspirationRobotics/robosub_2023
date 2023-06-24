@@ -6,5 +6,5 @@
 sleep 120 #two minutes for tether disconnect
 screen -dmS pix_standalone bash -c '/usr/bin/python3 /home/inspiration/auv/devices/pix_standalone.py'
 /usr/bin/python3 /home/inspiration/auv/devices/statusLed.py redOn
-sleep 60
+sleep 30 #60
 screen -dmS prequal bash -c '/usr/bin/python3 /home/inspiration/auv/motion/prequal.py'

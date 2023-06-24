@@ -43,7 +43,7 @@ class AUV(RosHandler):
         self.limNeu = [200,1485] #grey
         if("nx" in platform.node()):
             self.sub  = True #onyx
-            self.limNeu = [400,1400] #onyx
+            self.limNeu = [300,1450] #onyx
         self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.65) #in meters
         self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
 
