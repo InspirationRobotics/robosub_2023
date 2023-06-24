@@ -9,13 +9,14 @@ import geometry_msgs.msg
 import threading
 
 class RobotControl():
-
+    # initialize AUV state to idle (1500) and get initial compass heading
     def __init__(self):
         self.compass = None
         self.pubThrusters = rospy.Publisher('auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pubDepth = rospy.Publisher('auv/devices/setDepth', Float64, queue_size=10)
         rospy.init_node("robotcontrol", anonymous=True)
         self.channels = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+        # initializing compass
         self.thread_compass = threading.Timer(0, self.get_compass)
         self.thread_compass.daemon = True
         self.thread_compass.start()
@@ -34,7 +35,8 @@ class RobotControl():
 
     def return_compass(self):
         return self.compass
-
+        
+    # setting depth for depth holding to specific input
     def setDepth(self, d):
         depth = Float64()
         depth.data = d
@@ -78,10 +80,12 @@ class RobotControl():
                 dir *= -1
             if(diff >= 180):
                 diff = 360-diff
+            # if farther from desired heading, speed will be faster, if closer to heading, speed will decrease
             if(diff <= 10):
                 speed = 55
             else:
                 speed = 70
+            # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
             if(diff <= 2):
                 pwm.channels[3] = 1500
                 self.pubThrusters.publish(pwm)
