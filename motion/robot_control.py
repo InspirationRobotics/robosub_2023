@@ -86,7 +86,7 @@ class RobotControl():
             else:
                 speed = 70
             # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
-            if(diff <= 2):
+            if(diff <= 1):
                 pwm.channels[3] = 1500
                 self.pubThrusters.publish(pwm)
                 break
@@ -133,6 +133,17 @@ class RobotControl():
             self.pubThrusters.publish(pwm)
             time.sleep(0.05)
         print("finished forward heading")
+
+    def lateralUni(self, power, t):
+        forwardPower = (power*80)+1500
+        pwm = mavros_msgs.msg.OverrideRCIn()
+        pwm.channels = [1500]*18
+        pwm.channels[5] = forwardPower
+        startTime = time.time()
+        while (time.time()-startTime<t): 
+            self.pubThrusters.publish(pwm)
+            time.sleep(0.1)
+        self.backStop(pwm, t)
 
     def forwardHeadingUni(self, power, t):
         forwardPower = (power*80)+1500
