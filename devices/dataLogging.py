@@ -14,10 +14,10 @@ def create_rosbag(bag_filename):
     bag = rosbag.Bag('dl.bag', 'w')
 
     # Subscribe to the desired topics and save messages to the bag
-    rospy.Subscriber("/mavros/state", State, bag_write_callback, callback_args=(bag, topic))
-    rospy.Subscriber("/mavros/imu/data, Imu, bag_write_callback, callback_args=(bag, topic))
-    rospy.Subscriber("/mavros/imu/FluidPressure", FluidPressure, bag_write_callback, callback_args=(bag, topic))
-    rospy.Subscriber("/mavros/rc/override", OvverrideRCIn, bag_write_callback, callback_args=(bag, topic))
+    rospy.Subscriber("/mavros/state", State, bag_write_callback, callback_args=(bag, "/mavros/state"))
+    rospy.Subscriber("/mavros/imu/data, Imu, bag_write_callback, callback_args=(bag, "/mavros/imu/data"))
+    rospy.Subscriber("/mavros/imu/FluidPressure", FluidPressure, bag_write_callback, callback_args=(bag, "/mavros/imu/FluidPressure"))
+    rospy.Subscriber("/mavros/rc/override", OvverrideRCIn, bag_write_callback, callback_args=(bag, "/mavros/rc/override"))
     rospy.spin()
 
     # Close the bag file
