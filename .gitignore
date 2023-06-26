@@ -1,0 +1,7 @@
+devices/__pycache__
+motion/__pycache__
+*.mp4
+*.pyc
+*.swp
+*.save
+*.DS_Store
