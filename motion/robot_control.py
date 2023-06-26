@@ -80,7 +80,7 @@ class RobotControl():
         pwm.channels = [1500]*18
         target = ((target)%360)
         # dir variable is direction; clockwise and counterclockwise
-        while True:
+        while not rospy.is_shutdown():
             current = int(self.compass)
             print(current)
             dir = 1  # cw
@@ -214,3 +214,15 @@ class RobotControl():
             self.forwardHeadingUni(1, time)        
         print("completed forward with distance!")
 
+    def onExit(signum, frame):
+        try:
+            print("\nDisarming and exiting...")
+            rospy.signal_shutdown("Rospy Exited")
+            while not rospy.is_shutdown():
+                pass
+            print("\n\nCleanly Exited")
+            exit(1)
+        except:
+            pass
+    
+    signal.signal(signal.SIGINT, onExit)
