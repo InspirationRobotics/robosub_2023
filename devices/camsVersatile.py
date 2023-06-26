@@ -15,7 +15,7 @@ from camsHelper import findCam
 
 #order is forward, down
 onyx = ["platform-3610000.xhci-usb-0:2.1.4:1.0"]
-grey = ["platform-70090000.xusb-usb-0:2.2:1.0","platform-70090000.xusb-usb-0:2.1.1:1.0"]
+grey = ["platform-70090000.xusb-usb-0:2.3:1.0","platform-70090000.xusb-usb-0:2.4:1.0"]
 
 ogDev = []
 newDevice = []
