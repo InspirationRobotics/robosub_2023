@@ -1,7 +1,12 @@
 #!/usr/bin/env python
-
 import rospy
 import rosbag
+from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
+from mavros_msgs.msg import OverrideRCIn, State
+from sensor_msgs.msg import Imu, FluidPressure
+from std_msgs.msg import Float64
+import threading
+import time
 
 
 def create_rosbag(bag_filename):
@@ -9,9 +14,10 @@ def create_rosbag(bag_filename):
     bag = rosbag.Bag('dl.bag', 'w')
 
     # Subscribe to the desired topics and save messages to the bag
-    subscribers = []
-    subscribers.append(rospy.Subscriber(topic, String, bag_write_callback, callback_args=(bag, topic)))
-
+    rospy.Subscriber("/mavros/state", State, bag_write_callback, callback_args=(bag, topic))
+    rospy.Subscriber("/mavros/imu/data, Imu, bag_write_callback, callback_args=(bag, topic))
+    rospy.Subscriber("/mavros/imu/FluidPressure", FluidPressure, bag_write_callback, callback_args=(bag, topic))
+    rospy.Subscriber("/mavros/rc/override", OvverrideRCIn, bag_write_callback, callback_args=(bag, topic))
     rospy.spin()
 
     # Close the bag file
