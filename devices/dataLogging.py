@@ -7,11 +7,12 @@ from sensor_msgs.msg import Imu, FluidPressure
 from std_msgs.msg import Float64
 import threading
 import time
-
+import datetime
 
 def create_rosbag():
     rospy.init_node('rosbag_creator', anonymous=True)
-    bag = rosbag.Bag('dl.bag', 'w')
+    name = '~/bags/' + str(datetime.now())
+    bag = rosbag.Bag(name, 'w')
 
     # Subscribe to the desired topics and save messages to the bag
     rospy.Subscriber("/auv/devices/compass", Float64, bag_write_callback, callback_args=(bag, "/auv/devices/compass"))

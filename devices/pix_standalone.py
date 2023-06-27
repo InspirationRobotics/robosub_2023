@@ -40,7 +40,7 @@ class AUV(RosHandler):
         self.channels = [0]*18
         self.depthCalib = 0
         self.sub = True #grey
-        self.limNeu = [200,1485] #grey
+        self.limNeu = [200,1475] #grey
         if("nx" in platform.node()):
             self.sub  = False #onyx
             self.limNeu = [300,1450] #onyx
