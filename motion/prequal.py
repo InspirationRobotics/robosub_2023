@@ -7,7 +7,7 @@ rc = RobotControl()
 time.sleep(1)
 rc.setDepth(0.8) #setting depth
 time.sleep(4)
-rc.forwardDist(19.3, 3)
+rc.forwardDist(19.5, 3)
 time.sleep(2)
 
 rc.lateralUni(2, 5)
