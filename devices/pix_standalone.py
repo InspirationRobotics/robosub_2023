@@ -150,7 +150,7 @@ class AUV(RosHandler):
                 baro_data.data = [self.press_abs, self.press_diff]
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
-                if(self.DepthHoldMode): self.depthHold(self.depth)
+                if(self.DepthHoldMode and self.armed): self.depthHold(self.depth)
         except Exception as e:
             print("Baro Failed")
             print(e)
