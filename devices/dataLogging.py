@@ -9,15 +9,18 @@ import threading
 import time
 
 
-def create_rosbag(bag_filename):
+def create_rosbag():
     rospy.init_node('rosbag_creator', anonymous=True)
     bag = rosbag.Bag('dl.bag', 'w')
 
     # Subscribe to the desired topics and save messages to the bag
-    rospy.Subscriber("/mavros/state", State, bag_write_callback, callback_args=(bag, "/mavros/state"))
-    rospy.Subscriber("/mavros/imu/data, Imu, bag_write_callback, callback_args=(bag, "/mavros/imu/data"))
-    rospy.Subscriber("/mavros/imu/FluidPressure", FluidPressure, bag_write_callback, callback_args=(bag, "/mavros/imu/FluidPressure"))
-    rospy.Subscriber("/mavros/rc/override", OvverrideRCIn, bag_write_callback, callback_args=(bag, "/mavros/rc/override"))
+    rospy.Subscriber("/auv/devices/compass", Float64, bag_write_callback, callback_args=(bag, "/auv/devices/compass"))
+    rospy.Subscriber("/auv/devices/imu", Imu, bag_write_callback, callback_args=(bag, "/auv/devices/imu"))
+    rospy.Subscriber("/auv/devices/baro", std_msgs.msg.Float32MultiArray, bag_write_callback, callback_args=(bag, "/auv/devices/baro"))
+    rospy.Subscriber("/auv/devices/thrusters", OverrideRCIn, bag_write_callback, callback_args=(bag, "/auv/devices/thrusters"))
+    rospy.Subscriber("/auv/devices/setDepth", Float64, bag_write_callback, callback_args=(bag, "/auv/devices/setDepth"))
+    rospy.Subscriber("/auv/status/arm", std_msgs.msg.Bool, bag_write_callback, callback_args=(bag, "/auv/status/arm"))
+    rospy.Subscriber("/auv/status/mode", std_msgs.msg.String, bag_write_callback, callback_args=(bag, "/auv/status/mode"))
     rospy.spin()
 
     # Close the bag file
