@@ -1,5 +1,6 @@
 import Jetson.GPIO as GPIO
 import sys
+import time
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -14,6 +15,14 @@ def red(state):
     else:
         GPIO.output(redPin, GPIO.LOW)
         print("Red Light is Off!")
+
+def flashRed():
+    GPIO.setup(redPin, GPIO.OUT)
+    if(time.time()%2 == 0):
+        if(GPIO.input(redPin)==0):
+            GPIO.output(redPin, GPIO.HIGH)
+        elif(GPIO.input(redPin)==1):
+            GPIO.output(redPin, GPIO.LOW)
 
 def blue(state):
     GPIO.setup(bluePin, GPIO.OUT)

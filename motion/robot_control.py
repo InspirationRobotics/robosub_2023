@@ -7,6 +7,7 @@ from std_msgs.msg import Float64
 import sensor_msgs.msg
 import geometry_msgs.msg
 import threading
+import signal
 
 class RobotControl():
     # initialize AUV state to idle (1500) and get initial compass heading

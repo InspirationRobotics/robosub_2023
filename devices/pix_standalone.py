@@ -18,7 +18,7 @@ from simple_pid import PID
 
 import threading
 from statistics import mean
-
+import statusLed
 
 MODE_MANUAL = "MANUAL"
 MODE_STABILIZE = "STABILIZE"
@@ -39,10 +39,10 @@ class AUV(RosHandler):
         self.mode = ""
         self.channels = [0]*18
         self.depthCalib = 0
-        self.sub = False #grey
+        self.sub = True #grey
         self.limNeu = [200,1485] #grey
         if("nx" in platform.node()):
-            self.sub  = True #onyx
+            self.sub  = False #onyx
             self.limNeu = [300,1450] #onyx
         self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.65) #in meters
         self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
@@ -64,6 +64,7 @@ class AUV(RosHandler):
         self.TOPIC_GET_RC = TopicService('/mavros/rc/in', mavros_msgs.msg.RCIn)
         self.TOPIC_GET_MAVBARO = TopicService('/mavlink/from', mavros_msgs.msg.Mavlink)
         #https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
+        self.TOPIC_GET_BATTERY = TopicService('/mavros/battery', sensor_msgs.msg.BatteryState)
 
         # custom topics
         self.AUV_COMPASS = TopicService('/auv/devices/compass', std_msgs.msg.Float64)
@@ -159,6 +160,13 @@ class AUV(RosHandler):
             return
         self.pid.setpoint = setDValue.data
 
+    def batteryIndicator(self, msg):
+        if(self.sub):
+            self.voltage = msg.voltage
+            if(self.voltage<13.5):
+                statusLed.flashRed()
+        pass
+
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE)
         self.topic_subscriber(self.TOPIC_GET_IMU_DATA)
@@ -169,6 +177,7 @@ class AUV(RosHandler):
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
         self.topic_subscriber(self.AUV_GET_DEPTH, self.setDepth)
+        self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
         #-Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
         self.thread_param_updater.daemon = True
