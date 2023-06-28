@@ -3,9 +3,9 @@
 #include <Adafruit_SI5351.h>
 #include <SPI.h>
 
-const int CS1 = 30;
-const int CS2 = 31;
-const int CS3 = 32;
+#define mic1 A10 //Right
+#define mic2 A11 //Middle
+#define mic3 A12 //Left
 
 Adafruit_SI5351 clockgen = Adafruit_SI5351();
 
@@ -33,41 +33,23 @@ void setClock(int DIV)
 
 }
 
-void digitalPotWrite(int value, int Chip_s) {
-  digitalWrite(Chip_s, LOW);
-  SPI.transfer(0x00);
-  SPI.transfer(value);
-  digitalWrite(Chip_s, HIGH);
-}
-
-
-
 void setup() {
   // put your setup code here, to run once:
-  SPI.begin();
   Serial.begin(9600);
-  //pinMode(CS1, OUTPUT);
-  //pinMode(CS2, OUTPUT);
-  //pinMode(CS3, OUTPUT);
-  pinMode(A16, INPUT);
-  //digitalWrite(CS1, HIGH);
+  pinMode(mic1, INPUT_PULLDOWN);
+  pinMode(mic2, INPUT_PULLDOWN);
+  pinMode(mic3, INPUT_PULLDOWN);
   delay(10);
   setClock(235);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  /*digitalPotWrite(0,CS1);
-    digitalPotWrite(0,CS2);
-    digitalPotWrite(0,CS3);
-  */
-  //int sensorValue = analogRead(A16);
-  //Serial.println(sensorValue);
-  /*float voltage = sensorValue * (5.0 / 1023.0);
-    if(voltage>3.8) {
-      Serial.println(voltage);
-      delay(50);
-    }*/
+
+  int mic1Data = analogRead(mic1);
+  int mic2Data = analogRead(mic2);
+  int mic3Data = analogRead(mic3);
+  Serial.print(mic1Data); Serial.print(", "); Serial.print(mic2Data); Serial.print(", "); Serial.println(mic3Data);
   delay(10);
   if (Serial.available())
   {
