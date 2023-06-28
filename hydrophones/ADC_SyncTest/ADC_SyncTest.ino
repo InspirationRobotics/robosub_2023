@@ -11,8 +11,9 @@
 //Pins are 30, 31, 32 (need to resolder)
 //https://github.com/KurtE/TeensyDocuments/blob/master/Teensy4.1%20Pins.pdf
 
-const int readPin = A11; //ADC 0
-const int readPin2 = A12; //ADC 1
+int mic1 = A10; //ADC 0
+int mic2 = A11; //ADC 0
+int mic3 = A12; //ADC 1
 
 ADC *adc = new ADC(); // adc object
 
@@ -21,28 +22,25 @@ elapsedMicros time_;
 void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(readPin, INPUT_DISABLE);
-  pinMode(readPin2, INPUT_DISABLE);
+  pinMode(mic1, INPUT_PULLDOWN);
+  pinMode(mic2, INPUT_PULLDOWN);
+  pinMode(mic3, INPUT_PULLDOWN);
 
   Serial.begin(9600);
 
   ///// ADC0 ////
   adc->adc0->setAveraging(2);  // set number of averages
   adc->adc0->setResolution(10); // set bits of resolution
-  adc->adc0->setConversionSpeed(
-      ADC_CONVERSION_SPEED::HIGH_SPEED); // change the conversion speed
-  adc->adc0->setSamplingSpeed(
-      ADC_SAMPLING_SPEED::HIGH_SPEED); // change the sampling speed
+  adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED); // change the conversion speed
+  adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED); // change the sampling speed
 
   ////// ADC1 /////
   adc->adc1->setAveraging(2);  // set number of averages
   adc->adc1->setResolution(10); // set bits of resolution
-  adc->adc1->setConversionSpeed(
-      ADC_CONVERSION_SPEED::HIGH_SPEED); // change the conversion speed
-  adc->adc1->setSamplingSpeed(
-      ADC_SAMPLING_SPEED::HIGH_SPEED); // change the sampling speed
+  adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED); // change the conversion speed
+  adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED); // change the sampling speed
 
-  adc->startSynchronizedContinuous(readPin, readPin2);
+  adc->startSynchronizedContinuous(mic1, mic3);
   // You can also try:
   // adc->startSynchronizedContinuousDifferential(A10, A11, A12, A13);
   // Read the values in the loop() with readSynchronizedContinuous()
@@ -65,17 +63,15 @@ void loop() {
   result = adc->readSynchronizedContinuous();
   // if using 16 bits and single-ended is necessary to typecast to unsigned,
   // otherwise values larger than 3.3/2 will be interpreted as negative
-  result.result_adc0 = (uint16_t)result.result_adc0;
-  result.result_adc1 = (uint16_t)result.result_adc1;
+  //result.result_adc0 = (uint16_t)result.result_adc0;
+  //result.result_adc1 = (uint16_t)result.result_adc1;
 
   // digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
   // Serial.print("Value ADC0: ");
-  Serial.print(time_, DEC);
-  Serial.print(" ");
-  Serial.print(result.result_adc0 * 3.3 / adc->adc0->getMaxValue(), DEC);
-  Serial.print(" ");
-  Serial.println(result.result_adc1 * 3.3 / adc->adc1->getMaxValue(), DEC);
+  Serial.print(result.result_adc0);
+  Serial.print(", ");
+  Serial.println(result.result_adc1);
 
   // Print errors, if any.
   if (adc->adc0->fail_flag != ADC_ERROR::CLEAR) {
