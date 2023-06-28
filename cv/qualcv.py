@@ -7,6 +7,7 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+# initializing publisher, will output cv image here
 br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoOutput0', Image,queue_size=10)
 global forwardVideo
@@ -14,7 +15,7 @@ forwardVideo = None
 rospy.init_node("CV", anonymous=True)
 rospy.Rate(30)
 
-
+# initializing subscriber and callback to retrieve video feed, assigning to forwardVideo 
 def callbackForward(msg):
         global forwardVideo
         try:
@@ -23,9 +24,10 @@ def callbackForward(msg):
             print("Forward Output Error, make sure running in Python2")
             print(e)
 
-rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward)
+rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward) # subscribing here
 
 #cap = cv2.VideoCapture('red3.mp4')
+# Establishing initial variables
 rec = 0
 confidence = []
 x_left = []
@@ -34,10 +36,10 @@ x_right = []
 # Start a while loop
 #width  = cap.get(3)  # float `width`
 #height = cap.get(4)
+width = 640 # width of frame
+height = 480 # height of frame
 
-width = 640
-height = 480
-
+# align function, given specific leg, will send "Strafe right" and "Strafe left" commands to align to that leg
 def align(rec, confidence, leg):
     pwms = [1500]*18
     if(rec % 5 == 0):
@@ -85,18 +87,20 @@ def align(rec, confidence, leg):
         r_avg = 0
         l_avg = 0
 
+# Main while loop
 while(1):
     try:
         rec+=1
-        align(rec, confidence, "Left")
+        align(rec, confidence, "Left") # input for which leg to align to
         if(rec % 20 == 0):
             confidence=[]
     # Reading the video from the
     # webcam in image frames
     #_, imageFrame = cap.read()
         imageFrame = forwardVideo
-        hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
-  
+        hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV) # converting image to HSV
+
+	# HSV lower and upper limits for the color red
         red_lower = np.array([120, 50, 50], np.uint8)
         red_upper = np.array([180, 255, 255], np.uint8)
         red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
@@ -105,14 +109,15 @@ while(1):
       
     # For red color
         red_mask = cv2.dilate(red_mask, kernel)
-        red_mask = cv2.GaussianBlur(red_mask, (21, 21), 0)
+        red_mask = cv2.GaussianBlur(red_mask, (21, 21), 0) # gaussian blur to get rid of noise
         res_red = cv2.bitwise_and(imageFrame, imageFrame, mask=red_mask)
     
    
     # Creating contour to track red color
-        contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # detecting contours
         bbox_list = []
-    
+
+	# looping through contours and giving pixel size and height to width ratio requirements
         for pic, contour in enumerate(contours):
             area = cv2.contourArea(contour)
             x, y, w, h = cv2.boundingRect(contour)
@@ -121,6 +126,7 @@ while(1):
                 bbox_list.append((x, y, w, h))
 
         o_list = []
+	# main point of this block of code is to confidently determine which legs are visible which will be fed into the align function
         if(len(bbox_list) >= 2):
             num = len(bbox_list)
             x_list=[]
@@ -159,9 +165,9 @@ while(1):
                     cv2.putText(image, str(area), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
     #cv2.imshow("Red", imageFrame)
-        pubForward.publish(br.cv2_to_imgmsg(imageFrame))
+        pubForward.publish(br.cv2_to_imgmsg(imageFrame)) # publishing video output to /auv/camera/videoForwardOutput0
 	#time.sleep(0.05)
-        if cv2.waitKey(10) & 0xFF == ord('q'):
+        if cv2.waitKey(10) & 0xFF == ord('q'): # code kill
             #cap.release()
             cv2.destroyAllWindows()
             break
