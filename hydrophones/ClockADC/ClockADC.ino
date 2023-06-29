@@ -42,7 +42,7 @@ void setup() {
   pinMode(mic2, INPUT_PULLDOWN);
   pinMode(mic3, INPUT_PULLDOWN);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   ///// ADC0 ////
   adc->adc0->setAveraging(2);  // set number of averages
@@ -59,15 +59,15 @@ void setup() {
   setClock(235);
 }
 
-int mic1Data;
-int mic2Data;
-int mic3Data;
+int mic1Data = 0;
+int mic2Data = 0;
+int mic3Data = 0;
 
 elapsedMicros timeMic_;
 elapsedMillis timeMil_;
 boolean state = false;
 
-unsigned long count;
+//unsigned long count;
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -83,13 +83,21 @@ void loop() {
   if(state) {mic1Data = adc->adc0->readSingle();}
   else {mic2Data = adc->adc0->readSingle();}
   mic3Data = adc->adc1->readSingle();
-  count++;
+  //count++;
 
-  if(timeMil_>=6000) {
-    double freq = count/timeMil_;
+  /*if(timeMil_>=6000) {
+    double freq = count/(timeMil_/1000);
     Serial.println(freq);
     while(true) {}
-  }
-
+  }*/
+  if(mic1Data<120) {mic1Data = 0;}
+  else{Serial.println(mic1Data);}
+  if(mic2Data<120) {mic2Data = 0;}
+  else{Serial.println(mic2Data);}
+  if(mic3Data<120) {mic3Data = 0;}
+  else{Serial.println(mic3Data);}
+  
+  //Serial.print(mic1Data); Serial.print(", "); Serial.print(mic2Data); Serial.print(", "); Serial.println(mic3Data);
+  //delay(1);
   
 }
