@@ -50,14 +50,22 @@
 #     print(lis3mdl.get_magnetometer_raw())
 #     sleep(1)
 
-import numpy as np
-import math
+# import numpy as np
+# import math
 
-A = [10,20,12]
-B = [5,10,13]
+# A = [10,20,12]
+# B = [5,10,13]
 
-norm1 = np.linalg.norm(A)
-norm2 = math.sqrt(np.dot(A,A))
+# norm1 = np.linalg.norm(A)
+# norm2 = math.sqrt(np.dot(A,A))
 
-print(norm1)
-print(norm2)
+# print(norm1)
+# print(norm2)
+
+from datetime import datetime
+
+fileName = str(datetime.now())
+fileName = fileName.split(".")
+fileName = fileName[0].split(" ")
+fileName = fileName[0] + "_" + fileName[1]
+print(fileName)

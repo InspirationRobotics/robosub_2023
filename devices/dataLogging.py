@@ -4,35 +4,61 @@ import rosbag
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
 from mavros_msgs.msg import OverrideRCIn, State
 from sensor_msgs.msg import Imu, FluidPressure
-from std_msgs.msg import Float64
+import std_msgs.msg
 import threading
 import time
-import datetime
+from datetime import datetime
+import os
+import signal
 
-def create_rosbag():
-    rospy.init_node('rosbag_creator', anonymous=True)
-    name = '~/bags/' + str(datetime.now())
-    bag = rosbag.Bag(name, 'w')
+class rosBags():
+    def create_rosbag(self):
+        rospy.init_node('rosbag_creator', anonymous=True)
+        fileName = str(datetime.now())
+        fileName = fileName.split(".")
+        fileName = fileName[0].split(" ")
+        temp = fileName[1].split(":")
+        fileName[1] = temp[0]+"-"+temp[1]+"-"+temp[2]
+        fileName = fileName[0] + "_" + fileName[1]
+        self.name = '/home/inspiration/bags/' + fileName + ".bag"
+        os.system("mkdir /home/inspiration/bags >/dev/null 2>&1")
+        os.system("touch " + self.name)
+        self.bag = rosbag.Bag(self.name, 'w')
+        print("Successfully made bag file: " + self.name)
 
-    # Subscribe to the desired topics and save messages to the bag
-    rospy.Subscriber("/auv/devices/compass", Float64, bag_write_callback, callback_args=(bag, "/auv/devices/compass"))
-    rospy.Subscriber("/auv/devices/imu", Imu, bag_write_callback, callback_args=(bag, "/auv/devices/imu"))
-    rospy.Subscriber("/auv/devices/baro", std_msgs.msg.Float32MultiArray, bag_write_callback, callback_args=(bag, "/auv/devices/baro"))
-    rospy.Subscriber("/auv/devices/thrusters", OverrideRCIn, bag_write_callback, callback_args=(bag, "/auv/devices/thrusters"))
-    rospy.Subscriber("/auv/devices/setDepth", Float64, bag_write_callback, callback_args=(bag, "/auv/devices/setDepth"))
-    rospy.Subscriber("/auv/status/arm", std_msgs.msg.Bool, bag_write_callback, callback_args=(bag, "/auv/status/arm"))
-    rospy.Subscriber("/auv/status/mode", std_msgs.msg.String, bag_write_callback, callback_args=(bag, "/auv/status/mode"))
-    rospy.spin()
+        # Subscribe to the desired topics and save messages to the bag
+        rospy.Subscriber("/auv/devices/compass", std_msgs.msg.Float64, self.bag_write_callback, callback_args=("/auv/devices/compass"))
+        rospy.Subscriber("/auv/devices/imu", Imu, self.bag_write_callback, callback_args=("/auv/devices/imu"))
+        rospy.Subscriber("/auv/devices/baro", std_msgs.msg.Float32MultiArray, self.bag_write_callback, callback_args=("/auv/devices/baro"))
+        rospy.Subscriber("/auv/devices/thrusters", OverrideRCIn, self.bag_write_callback, callback_args=("/auv/devices/thrusters"))
+        rospy.Subscriber("/auv/devices/setDepth", std_msgs.msg.Float64, self.bag_write_callback, callback_args=("/auv/devices/setDepth"))
+        rospy.Subscriber("/auv/status/arm", std_msgs.msg.Bool, self.bag_write_callback, callback_args=("/auv/status/arm"))
+        rospy.Subscriber("/auv/status/mode", std_msgs.msg.String, self.bag_write_callback, callback_args=("/auv/status/mode"))
+        rospy.spin()
 
-    # Close the bag file
-    bag.close()
+    def closeBag(self):
+        # Close the bag file
+        self.bag.close()
+
+    def bag_write_callback(self, msg, topic):
+        self.bag.write(topic, msg)
 
 
-def bag_write_callback(msg, args):
-    bag = args[0]
-    topic = args[1]
-    bag.write(topic, msg)
+def onExit(signum, frame):
+    try:
+        print("\nClosing Rosbag...")
+        rospy.signal_shutdown("Rospy Exited")
+        while not rospy.is_shutdown():
+            pass
+        bag.closeBag()
+        time.sleep(1)
+        print("\nBag Saved to "+bag.name+" ...Done")
+        exit(1)
+    except:
+        pass
 
+signal.signal(signal.SIGINT, onExit)
 
 if __name__ == '__main__':
-    create_rosbag()
+    bag = rosBags()
+    bag.create_rosbag()
