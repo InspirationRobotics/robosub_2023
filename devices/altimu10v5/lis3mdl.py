@@ -11,7 +11,7 @@ The datasheet for the LSM6DS33 is available at
 
 from .i2c import I2C
 from .constants import *
-
+import time
 
 class LIS3MDL(I2C):
     """ Set up and access LIS3MDL magnetometer.
@@ -33,6 +33,9 @@ class LIS3MDL(I2C):
 
         super(LIS3MDL, self).__init__(bus_id)
         self.is_magnetometer_enabled = False
+        self.is_mag_calibrated = False
+        self.mag_cal_min = [32767, 32767, 32767]
+        self.mag_cal_max = [-32768, -32768, -32768]
 
     def __del__(self):
         """ Clean up. """
@@ -74,6 +77,29 @@ class LIS3MDL(I2C):
 
         # Write calculated value to the CTRL_REG1 register
         self.write_register(LIS3MDL_ADDR, LIS3MDL_CTRL_REG1, ctrl_reg1)
+        time.sleep(0.1)
+        self.calibrate()
+
+    def calibrate(self, iterations=1000):
+        """ Calibrate the mags raw values."""
+        print('Calibrating Magnetometer...')
+
+        for i in range(iterations):
+            mag_raw = self.get_magnetometer_raw()
+
+            self.mag_cal_min[0] = min(self.mag_cal_min[0], mag_raw[0])
+            self.mag_cal_min[1] = min(self.mag_cal_min[1], mag_raw[1])
+            self.mag_cal_min[2] = min(self.mag_cal_min[2], mag_raw[2])
+
+            self.mag_cal_max[0] = max(self.mag_cal_max[0], mag_raw[0])
+            self.mag_cal_max[1] = max(self.mag_cal_max[1], mag_raw[1])
+            self.mag_cal_max[2] = max(self.mag_cal_max[2], mag_raw[2])
+
+            time.sleep(0.01)
+        print('Calibration Done')
+        print(self.mag_cal_min)
+        print(self.mag_cal_max)
+        self.is_mag_calibrated=True
 
     def get_magnetometer_raw(self):
         """ Return 3D vector of raw magnetometer data.
@@ -83,3 +109,12 @@ class LIS3MDL(I2C):
             raise(Exception('Magnetometer is not enabled'))
 
         return self.read_3d_sensor(LIS3MDL_ADDR, self.magnetometer_registers)
+    
+    def get_magnetometer_calibrated(self):
+        if not self.is_mag_calibrated:
+            raise(Exception('Magnetometer is not enabled'))
+        magCalib = self.get_magnetometer_raw()
+        magCalib[0] -= (self.mag_cal_min[0] + self.mag_cal_max[0]) / 2
+        magCalib[1] -= (self.mag_cal_min[1] + self.mag_cal_max[1]) / 2
+        magCalib[2] -= (self.mag_cal_min[2] + self.mag_cal_max[2]) / 2
+        return magCalib

@@ -6,15 +6,15 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import os
 import time
-import pyfakewebcam
+import cams.pyfakewebcam as pyfakewebcam
 import numpy as np
 import signal
 import threading
 import platform
-from camsHelper import findCam
+from cams.camsHelper import findCam
 
 #order is forward, down
-onyx = ["platform-3610000.xhci-usb-0:2.1.4:1.0"]
+onyx = ["platform-3610000.xhci-usb-0:2.2.4:1.0"]
 grey = ["platform-70090000.xusb-usb-0:2.3:1.0","platform-70090000.xusb-usb-0:2.4:1.0"]
 
 ogDev = []

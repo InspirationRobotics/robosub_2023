@@ -35,17 +35,29 @@
 
 #difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
 
-from altimu10v5.lsm6ds33 import LSM6DS33
-from altimu10v5.lis3mdl import LIS3MDL
-from time import sleep
+# from altimu10v5.lsm6ds33 import LSM6DS33
+# from altimu10v5.lis3mdl import LIS3MDL
+# from time import sleep
 
-lsm6ds33 = LSM6DS33()
-lis3mdl = LIS3MDL()
-lsm6ds33.enable()
-lis3mdl.enable()
+# lsm6ds33 = LSM6DS33()
+# lis3mdl = LIS3MDL()
+# lsm6ds33.enable()
+# lis3mdl.enable()
 
-while True:
-    #print(lsm6ds33.get_accelerometer_g_forces())
-    #print(lsm6ds33.get_gyro_angular_velocity())
-    print(lis3mdl.get_magnetometer_raw())
-    sleep(1)
+# while True:
+#     #print(lsm6ds33.get_accelerometer_g_forces())
+#     #print(lsm6ds33.get_gyro_angular_velocity())
+#     print(lis3mdl.get_magnetometer_raw())
+#     sleep(1)
+
+import numpy as np
+import math
+
+A = [10,20,12]
+B = [5,10,13]
+
+norm1 = np.linalg.norm(A)
+norm2 = math.sqrt(np.dot(A,A))
+
+print(norm1)
+print(norm2)

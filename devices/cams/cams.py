@@ -6,7 +6,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import os
 import time
-import pyfakewebcam
+import devices.cams.pyfakewebcam as pyfakewebcam
 import numpy as np
 import signal
 

@@ -1,5 +1,3 @@
-
-
 class TopicService:
     def __init__(self, name: str, classType):
         self.__name = name
