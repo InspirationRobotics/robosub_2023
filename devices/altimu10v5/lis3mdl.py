@@ -46,7 +46,7 @@ class LIS3MDL(I2C):
         except:
             pass
 
-    def enable(self):
+    def enable(self, minCal=None, maxCal=None):
         """ Enable and set up the the magnetometer and determine
             whether to auto increment registers during I2C read operations.
         """
@@ -78,7 +78,14 @@ class LIS3MDL(I2C):
         # Write calculated value to the CTRL_REG1 register
         self.write_register(LIS3MDL_ADDR, LIS3MDL_CTRL_REG1, ctrl_reg1)
         time.sleep(0.1)
-        self.calibrate()
+        if(minCal == None or maxCal == None):
+            self.calibrate()
+        else:
+            self.mag_cal_min = minCal
+            self.mag_cal_max = maxCal
+            self.is_mag_calibrated = True
+            print("min: " + str(self.mag_cal_min))
+            print("max: " + str(self.mag_cal_max))
 
     def calibrate(self, iterations=1000):
         """ Calibrate the mags raw values."""
@@ -97,8 +104,8 @@ class LIS3MDL(I2C):
 
             time.sleep(0.01)
         print('Calibration Done')
-        print(self.mag_cal_min)
-        print(self.mag_cal_max)
+        print("min: " + str(self.mag_cal_min))
+        print("max: " + str(self.mag_cal_max))
         self.is_mag_calibrated=True
 
     def get_magnetometer_raw(self):
@@ -112,7 +119,7 @@ class LIS3MDL(I2C):
     
     def get_magnetometer_calibrated(self):
         if not self.is_mag_calibrated:
-            raise(Exception('Magnetometer is not enabled'))
+            raise(Exception('Magnetometer is not calibrated'))
         magCalib = self.get_magnetometer_raw()
         magCalib[0] -= (self.mag_cal_min[0] + self.mag_cal_max[0]) / 2
         magCalib[1] -= (self.mag_cal_min[1] + self.mag_cal_max[1]) / 2
