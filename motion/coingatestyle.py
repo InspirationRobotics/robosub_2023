@@ -7,6 +7,10 @@ from servos import *
 # Coin toss, gate, and style points with working computer vision, autonomously fire torpedoes and drop the markers
 
 start = 331 # this is the heading the robot will align to at the beginning of the program, need to update when go to the pool
+torpedo1 = True # default torpedoes values are either loaded or unloaded
+torpedo2 = True
+marker1 = True # default markers values are either loaded or unloaded
+marker2 = True
 rc = RobotControl()
 
 # coin toss
