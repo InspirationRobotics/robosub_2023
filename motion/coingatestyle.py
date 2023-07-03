@@ -19,7 +19,7 @@ time.sleep(4)
 rc.setHeading(gate) 
 
 # move towards the gate
-rc.forwardDist(2, 2) 
+rc.forwardDist(5, 2) 
 # for the monday pool test use (5,2) goes forward for 5 seconds at power of 2 which is about 13 meters
 time.sleep(2)
 
@@ -37,7 +37,7 @@ if torpedo1 and torpedo2 == True:
   servo.torpedoLauncher(1) # shoots first torpedo
   torpedo1 = False  
   time.sleep(1)
-  rc.setDepth(0.45) # change depth, moving up .5 meters, not sure if this is the right way to do it 
+  rc.setDepth(0.9) # change depth, moving down .5 meters
   servo.torpedoLauncher(2) # shoots second torpedo
   torpedo2 = False
   time.sleep(1)
