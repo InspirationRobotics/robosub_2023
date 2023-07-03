@@ -43,6 +43,8 @@ if torpedo1 and torpedo2 == True:
   time.sleep(1)
 else:
   rc.forwardDist(1, 2)  
+
+
 if marker1 and marker2 == True:
 
     # drop both markers
@@ -50,6 +52,9 @@ if marker1 and marker2 == True:
     time.sleep(1)
     servo.dropper(2) # drops second marker
     time.sleep(1)
+
+else:
+    time.sleep(4)
 os.system("python3 /home/inspiration/auv/devices/disarm.py")
 exit(1)
 
