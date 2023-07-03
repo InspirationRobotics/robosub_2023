@@ -1,4 +1,6 @@
 opencv-python
+matplotlib
 numpy
 pyserial
 bluerobotics-ping
+simple-pid
