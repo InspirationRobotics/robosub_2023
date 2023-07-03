@@ -2,8 +2,10 @@ from robot_control import RobotControl
 import time
 import os
 from devices import servos as servo
+
 # For july 3rd pool test, written on 7/1/2023 and 7/2/2023
 # Coin toss, gate, and style points with working computer vision, autonomously fire torpedoes and drop the markers
+# Note that this was based on the most recent prequalification code which was for Graey not Onyx
 
 gate = 331 # this is the heading the robot will align to at the beginning of the program, need to update when go to the pool
 torpedo1 = True # default torpedoes values are either loaded or unloaded
