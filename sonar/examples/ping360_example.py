@@ -30,10 +30,14 @@ p = Ping360(
     angle_step=5,
 )
 
+
 p.set_transmit_frequency(750)
-p.set_sample_period(400) # 25ns units : 400*25ns = 10us
-p.set_number_of_samples(500)
+p.set_sample_period(1000) # 25ns units : 400*25ns = 10us
+p.set_number_of_samples(200)
 p.set_gain_setting(1)
+
+d = p.get_device_data()
+print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
@@ -46,3 +50,4 @@ logging.info(f"Scan complete in {end-start} seconds")
 
 with open(args.output, "w") as f:
     f.write(str(scan))
+

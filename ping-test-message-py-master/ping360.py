@@ -4,7 +4,6 @@ from brping import pingmessage
 import serial
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
 
 class Ping360(PingDevice):
@@ -261,5 +260,7 @@ if __name__ == "__main__":
                 image[int(center[0]+i*cos(2*pi*(angle+k)/400)), int(center[1]+i*sin(2*pi*(angle+k)/400)), 0] = pointColor
         angle = (angle + step)%400
         # color = cv2.applyColorMap(image,cv2.COLORMAP_JET)
-        cv2.imshow('Sonar Image',image)
-        cv2.waitKey(25)
+
+        cv2.imwrite("sonar_image.png", image)
+        # cv2.imshow('Sonar Image',image)
+        # cv2.waitKey(25)
