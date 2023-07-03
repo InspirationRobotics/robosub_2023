@@ -1,8 +1,7 @@
 from robot_control import RobotControl
 import time
 import os
-from servos import *
-
+from devices import servos as servo
 # For july 3rd pool test, written on 7/1/2023 and 7/2/2023
 # Coin toss, gate, and style points with working computer vision, autonomously fire torpedoes and drop the markers
 
@@ -30,26 +29,27 @@ time.sleep(2)
 rc.forwardDist(2, 2) 
 
 # style points, yaw 720 degrees
-rc.setHeading(start+720) 
+rc.setHeading(gate+720) 
 
 # torpedo shooter - shoot one, pause, change depth, pause, shoot the second
 rc.forwardDist(2, 2) 
 if torpedo1 and torpedo2 == True:
-  torpedoLauncher(1) # shoots first torpedo
+  servo.torpedoLauncher(1) # shoots first torpedo
   torpedo1 = False  
   time.sleep(1)
   rc.setDepth(0.45) # change depth, moving up .5 meters, not sure if this is the right way to do it 
-  torpedoLauncher(2) # shoots second torpedo
+  servo.torpedoLauncher(2) # shoots second torpedo
   torpedo2 = False
   time.sleep(1)
 else:
   rc.forwardDist(1, 2)  
+if marker1 and marker2 == True:
 
-# drop both markers
-dropper(1) # drops first marker
-time.sleep(1)
-dropper(2) # drops second marker
-time.sleep(1)
+    # drop both markers
+    servo.dropper(1) # drops first marker
+    time.sleep(1)
+    servo.dropper(2) # drops second marker
+    time.sleep(1)
 os.system("python3 /home/inspiration/auv/devices/disarm.py")
 exit(1)
 
