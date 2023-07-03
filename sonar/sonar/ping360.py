@@ -16,7 +16,7 @@ class Ping360(brping.Ping360):
         self._angle_range = self.set_angle_range(angle_range)
         self._angle_step = self.set_angle_step(angle_step)
         self._angle = angle_range[0]
-        self.
+        self._increment = self._angle_step
 
         logger.debug(f"Ping360 initialized")
 
