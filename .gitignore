@@ -5,3 +5,4 @@ motion/__pycache__
 *.swp
 *.save
 *.DS_Store
+venv/
