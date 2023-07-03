@@ -9,5 +9,3 @@ class Ping1D(brping.Ping1D):
         if not self.initialize():
             raise RuntimeError("failed to initialize Ping1D")
 
-    def read(self):
-        return self.get_distance()

@@ -43,8 +43,8 @@ class Ping360(brping.Ping360):
         self._increment = angle_step
         return self._angle_step
 
-    def read(self):
-        """Read a single scan from the sensor and return the current angle and distances"""
+    def step_scan(self):
+        """Get a step scan from the sensor and return the current angle and distances"""
 
         # update angle
         if self._scan_mode == 0:
@@ -70,8 +70,8 @@ class Ping360(brping.Ping360):
         logger.debug(f"angle: {angle}, distances: {data}")
         return angle, data
 
-    def read_full_scan(self):
-        """Read a full scan from the sensor and return the data as a point list of length 400."""
+    def full_scan(self):
+        """Get a full scan from the sensor and return the data as a point list of length 400."""
 
         # create points list
         points = [[] for _ in range(400)]
@@ -80,7 +80,7 @@ class Ping360(brping.Ping360):
         self._angle = self._angle_range[0]
 
         while self._angle <= self._angle_range[1]:
-            angle, data = self.read()
+            angle, data = self.step_scan()
             self.points[angle] = data
 
         return points
@@ -92,4 +92,4 @@ class Ping360(brping.Ping360):
         self._angle = self._angle_range[0]
 
         while self._angle <= self._angle_range[1]:
-            yield self.read()
+            yield self.step_scan()

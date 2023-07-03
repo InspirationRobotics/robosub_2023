@@ -39,7 +39,7 @@ p.set_gain_setting(1)
 logging.info("Starting Ping360 full scan")
 start = time.time()
 
-scan = p.read_full_scan()
+scan = p.full_scan()
 
 end = time.time()
 logging.info(f"Scan complete in {end-start} seconds")
