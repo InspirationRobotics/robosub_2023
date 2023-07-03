@@ -25,7 +25,7 @@ args = parser.parse_args()
 p = Ping360(
     args.device,
     args.baudrate,
-    scan_mode=1,
+    scan_mode=0,
     angle_range=(0, 399),
     angle_step=1,
 )
@@ -35,12 +35,14 @@ p.set_sample_period(400) # 25ns units : 400*25ns = 10us
 p.set_number_of_samples(500)
 p.set_gain_setting(1)
 
-# calculate the scan time
-start = time.time()
-
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
+start = time.time()
+
 scan = p.read_full_scan()
+
+end = time.time()
+logging.info(f"Scan complete in {end-start} seconds")
 
 with open(args.output, "wb") as f:
     f.write(scan)

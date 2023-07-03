@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 class Ping360(brping.Ping360):
 
     def __init__(self, device, baudrate=115200, scan_mode=0, angle_range=(0, 399), angle_step=1):
-        super(Ping360, self).__init__()
+        super().__init__()
         self.connect_serial(device, baudrate)
         
         if not self.initialize():
