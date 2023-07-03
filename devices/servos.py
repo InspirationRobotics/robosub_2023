@@ -73,5 +73,6 @@ class servos:
 		else:
 			print("Invalid Arg in [dropper]")
 
-	torpedoLauncher(0)
-	dropper(0)
+	torpedoLauncher(1,1)
+	time.sleep(1)
+	dropper(1,1)

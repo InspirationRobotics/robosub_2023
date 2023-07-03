@@ -27,7 +27,7 @@ p = Ping360(
     args.baudrate,
     scan_mode=0,
     angle_range=(0, 399),
-    angle_step=1,
+    angle_step=5,
 )
 
 p.set_transmit_frequency(750)
@@ -44,5 +44,5 @@ scan = p.full_scan()
 end = time.time()
 logging.info(f"Scan complete in {end-start} seconds")
 
-with open(args.output, "wb") as f:
-    f.write(scan)
+with open(args.output, "w") as f:
+    f.write(str(scan))

@@ -79,9 +79,11 @@ class Ping360(brping.Ping360):
         # reset angle to start of range
         self._angle = self._angle_range[0]
 
-        while self._angle <= self._angle_range[1]:
+        while self._angle < self._angle_range[1]:
+            
             angle, data = self.step_scan()
-            points[angle] = data
+            if angle > 0 and angle < 400:
+                points[angle] = data
 
         return points
 
@@ -91,5 +93,5 @@ class Ping360(brping.Ping360):
         # reset angle to start of range
         self._angle = self._angle_range[0]
 
-        while self._angle <= self._angle_range[1]:
+        while self._angle < self._angle_range[1]:
             yield self.step_scan()
