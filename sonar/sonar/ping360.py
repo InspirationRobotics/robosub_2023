@@ -81,7 +81,7 @@ class Ping360(brping.Ping360):
 
         while self._angle <= self._angle_range[1]:
             angle, data = self.step_scan()
-            self.points[angle] = data
+            points[angle] = data
 
         return points
 
