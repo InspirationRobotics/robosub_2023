@@ -4,7 +4,6 @@ from brping import pingmessage
 import serial
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
 
 class Ping360(PingDevice):
