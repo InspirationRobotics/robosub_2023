@@ -45,12 +45,12 @@ filename = str(time.time()) + ".txt"
 
 while(True):
     try:
-        with open(filename, "wb") as f:
-            start = time.time()
-            scan = p.full_scan()
-            end = time.time()
-            logging.info(f"Scan complete in {end-start} seconds")
+        start = time.time()
+        scan = p.full_scan()
+        end = time.time()
+        logging.info(f"Scan complete in {end-start} seconds")
 
+        with open(filename, "ab") as f:
             f.writelines(scan)
     except KeyboardInterrupt:
         break
