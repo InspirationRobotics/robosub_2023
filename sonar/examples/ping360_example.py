@@ -31,23 +31,25 @@ p = Ping360(
 )
 
 
-p.set_transmit_frequency(750)
-p.set_sample_period(1000) # 25ns units : 400*25ns = 10us
+p.set_transmit_frequency(800)
+p.set_sample_period(80) # 25ns units : 400*25ns = 10us
 p.set_number_of_samples(200)
-p.set_gain_setting(1)
+p.set_gain_setting(0)
 
 d = p.get_device_data()
 print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
-start = time.time()
 
-scan = p.full_scan()
+while(True):
+    try:
+        with open(str(time.time()) + ".txt", "wb") as f:
+            start = time.time()
+            scan = p.full_scan()
+            end = time.time()
+            logging.info(f"Scan complete in {end-start} seconds")
 
-end = time.time()
-logging.info(f"Scan complete in {end-start} seconds")
-
-with open(args.output, "w") as f:
-    f.write(str(scan))
-
+            f.writelines(scan)
+    except KeyboardInterrupt:
+        break

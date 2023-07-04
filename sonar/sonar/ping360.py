@@ -66,7 +66,7 @@ class Ping360(brping.Ping360):
         # read sensor
         self.transmitAngle(self._angle)
 
-        angle, data = self._angle, list(self._data)
+        angle, data = self._angle, bytearray(self._data)
         logger.debug(f"angle: {angle}, distances: {data}")
         return angle, data
 
@@ -74,7 +74,7 @@ class Ping360(brping.Ping360):
         """Get a full scan from the sensor and return the data as a point list of length 400."""
 
         # create points list
-        points = [[] for _ in range(400)]
+        points = [bytearray() for _ in range(400)]
 
         # reset angle to start of range
         self._angle = self._angle_range[0]
