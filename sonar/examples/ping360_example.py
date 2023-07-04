@@ -8,6 +8,11 @@ import os
 import time
 
 from sonar import Ping360
+from sonar.io import Record
+from sonar import viz
+
+import numpy as np
+import cv2
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 parser = argparse.ArgumentParser(description='Ping360 data collection script')
 parser.add_argument('--device', action="store", required=False, default="/dev/ttyUSB0", type=str, help="Ping360 serial device")
 parser.add_argument('--baudrate', action="store", required=False, default=115200, type=int, help="Ping360 serial baudrate")
-parser.add_argument('--output', action="store", required=False, default="sonar.txt", type=str, help="Output file name")
+parser.add_argument('--output', action="store", required=False, default=str(time.time()) + ".txt", type=str, help="Output file name")
 
 # usage example: python ping360.py --device /dev/ttyUSB0 --baudrate 115200 --output sonar.txt
 
@@ -41,16 +46,24 @@ print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
-filename = str(time.time()) + ".txt"
+r = Record(args.output, "w")
+
+img = np.zeros((400, 400, 3), dtype=np.uint8)
 
 while(True):
     try:
-        start = time.time()
-        scan = p.full_scan()
-        end = time.time()
-        logging.info(f"Scan complete in {end-start} seconds")
+        start_time = time.time()
+        
+        for ts, angle, points in p.stream_full_scan():
+            r.write(ts, angle, points)
+            viz.color_image_to_polar(img, angle, points, imsize=400)
 
-        with open(filename, "ab") as f:
-            f.writelines(scan)
+        end_time = time.time()
+
+        polar = viz.cart_to_polar(img)
+        cv2.imwrite(str(time.time()) + ".png", polar)
+
+        logging.info(f"Full scan complete in {end_time - start_time} seconds")
+        
     except KeyboardInterrupt:
         break

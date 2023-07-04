@@ -1,8 +1,9 @@
-devices/__pycache__
-motion/__pycache__
 *.mp4
 *.pyc
 *.swp
 *.save
+*.egg-info
 *.DS_Store
+*__pycache__
 .vscode
+.pytest_cache
