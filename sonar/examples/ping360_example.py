@@ -41,10 +41,11 @@ print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
+filename = str(time.time()) + ".txt"
 
 while(True):
     try:
-        with open(str(time.time()) + ".txt", "wb") as f:
+        with open(filename, "wb") as f:
             start = time.time()
             scan = p.full_scan()
             end = time.time()
