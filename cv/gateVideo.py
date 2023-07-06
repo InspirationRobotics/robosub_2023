@@ -80,17 +80,34 @@ while True:
     print('go forward')
     cv.putText(redLegs, 'go forward', (300, 300), 1, 1, (0, 255, 0))
  elif legs[biggerLegIndex][0] >= legs[secondBiggerLegIndex][0]:
-    print('go left')
-    cv.putText(redLegs, 'go left', (300, 300), 1, 1, (0, 255, 0))
+    print('rotate clockwise')
+    cv.putText(redLegs, 'rotate clockwise', (300, 300), 1, 1, (0, 255, 0))
  elif legs[biggerLegIndex][0] < legs[secondBiggerLegIndex][0]:
-    print('go right')
-    cv.putText(redLegs, 'go right', (300, 300), 1, 1, (0, 255, 0))
+    print('rotate counterclockwise')
+    cv.putText(redLegs, 'rotate counterclockwise', (300, 300), 1, 1, (0, 255, 0))
  
  #print(sum/len(legs))
  #print(len(legs))
  #find the average of the x values to find the cneter of the gate
- for i in range(270):
-     redLegs[i][int(sum/len(legs))] = [255,255,255]
+ midlegs = int(sum/len(legs))
+ midframe = (redLegs.shape[:2][0]/2, redLegs.shape[:2][1]/2)
+
+ print(midlegs)
+ print(midframe)
+
+ if midlegs*1.05 > int(midframe[1]) and midlegs*3< int(midframe[1])*3:
+    print('move forward')
+    cv.putText(redLegs, 'move forward', (300, 310), 1, 1, (0, 255, 0))
+ elif midlegs > int(midframe[1]):
+    print('move left')
+    cv.putText(redLegs, 'move left', (300, 310), 1, 1, (0, 255, 0))
+ elif midlegs <= int(midframe[1]):
+    print('move right')
+    cv.putText(redLegs, 'move right', (300, 310), 1, 1, (0, 255, 0))
+
+ for i in range(480):
+   redLegs[i][midlegs] = [255,255,255] #draws center of the gate
+   redLegs[i][int(midframe[1])] = [255,0,255] # draws center of the frame
  cv.imshow('frame', redLegs)
  cv.imshow('cnts',edges)
  if cv.waitKey(5) == ord('q'):
