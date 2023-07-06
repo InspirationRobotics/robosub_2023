@@ -3,8 +3,8 @@ import serial
 
 # configure the serial connections (the parameters differs on the device you are connecting to)
 ser = serial.Serial(
-	port='/dev/cu.usbserial-1240',
-	baudrate=115200,
+	port='/dev/ttyUSB1',
+	baudrate=9600,
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
 	bytesize=serial.EIGHTBITS
@@ -38,4 +38,4 @@ while 1 :
 			out += ser.read(1)
 			
 		if out != b'':
-			print(out)
+			print(out.decode())

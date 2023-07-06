@@ -3,7 +3,7 @@ import serial
 
 # configure the serial connections (the parameters differs on the device you are connecting to)
 ser = serial.Serial(
-	port='/dev/ttyUSB1',
+	port='/dev/ttyUSB0',
 	baudrate=115200,
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
@@ -28,7 +28,7 @@ while 1 :
 	else:
 		# send the character to the device
 		# (note that I happend a \r\n carriage return and line feed to the characters - this is requested by my device)
-		buffer = _input + '\r\n'
+		buffer = _input + '\n'
 		print(buffer)
 		ser.write(buffer.encode())
 		out = b''
@@ -38,4 +38,4 @@ while 1 :
 			out += ser.read(1)
 			
 		if out != b'':
-			print( out)
+			print(out.decode())
