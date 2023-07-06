@@ -16,3 +16,5 @@ done
 
 #sleep 2
 #screen -dmS wifi ping -D 8.8.8.8
+
+#no longer needed, was only for buggy wifi issue

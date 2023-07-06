@@ -52,5 +52,6 @@ while(True):
 
         with open(filename, "ab") as f:
             f.writelines(scan)
+            f.write(b"\n")
     except KeyboardInterrupt:
         break

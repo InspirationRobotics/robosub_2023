@@ -1,5 +1,6 @@
 import os
 import time
+import serial
 
 #torpedo channel 2:
 #load: 2400
@@ -20,9 +21,15 @@ global gripState
 gripState = True #true for open, false for closed
 class servos:
 
+	def __init__(self):
+		self.torpedoLauncher(0)
+		self.dropper(0)
+		print("Initialized...")
+
+
 	def setPwm(self, channel, pwm): 
 		#if there is an error with this function open noMachine into jetson 
-		#and go to auv/maestro-linux folder and do ./MaestroControlCenter and enable the servos and drag them around a bit
+		#and go to auv/maestro-linux folder and do ./MaestroControlCenter and go to errors tab and then clear the errors
 		#you can then close it and try running these functions again and it should work
 		os.system("cd /home/inspiration/auv/maestro-linux && ./UscCmd --servo " + str(channel) + "," + str(int(pwm*4)))
 
@@ -72,9 +79,3 @@ class servos:
 			self.dropper(0) #resets to load position now that its empty
 		else:
 			print("Invalid Arg in [dropper]")
-
-#torpeedo = servos()
-#torpeedo.torpedoLauncher(1)
-#	torpedoLauncher(1,0)
-#	time.sleep(1)
-#	dropper(1,0)
