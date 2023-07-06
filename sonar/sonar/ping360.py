@@ -3,15 +3,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class Ping360(brping.Ping360):
 
-    def __init__(self, device, baudrate=115200, scan_mode=0, angle_range=(0, 399), angle_step=1):
+class Ping360(brping.Ping360):
+    def __init__(
+        self, device, baudrate=115200, scan_mode=0, angle_range=(0, 399), angle_step=1
+    ):
         super().__init__()
         self.connect_serial(device, baudrate)
-        
+
         if not self.initialize():
             raise RuntimeError("failed to initialize Ping360")
-        
+
         self._scan_mode = self.set_scan_mode(scan_mode)
         self._angle_range = self.set_angle_range(angle_range)
         self._angle_step = self.set_angle_step(angle_step)
@@ -26,9 +28,13 @@ class Ping360(brping.Ping360):
 
         self._scan_mode = scan_mode
         return self._scan_mode
-    
+
     def set_angle_range(self, angle_range):
-        if angle_range[0] < 0 or angle_range[1] > 399 or angle_range[0] > angle_range[1]:
+        if (
+            angle_range[0] < 0
+            or angle_range[1] > 399
+            or angle_range[0] > angle_range[1]
+        ):
             raise ValueError(f"invalid angle range: {angle_range}")
 
         self._angle_range = angle_range
@@ -77,7 +83,7 @@ class Ping360(brping.Ping360):
         self._angle = self._angle_range[0]
 
         while self._angle < self._angle_range[1]:
-            
+
             ts, angle, data = self.step_scan()
             if angle > 0 and angle < 400:
                 points[angle] = data

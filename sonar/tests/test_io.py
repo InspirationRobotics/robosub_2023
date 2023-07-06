@@ -11,7 +11,7 @@ def test_record():
 
     r.write(1, 5, [255, 127, 1])
     r.write(2, 10, [1, 2, 3])
-    del r # close the file
+    del r  # close the file
 
     assert os.path.exists(filename)
     assert os.path.getsize(filename) > 0
@@ -29,7 +29,7 @@ def test_record_append():
     r = Record(filename, mode="a")
 
     r.write(3, 15, [4, 5, 6])
-    del r # close the file
+    del r  # close the file
 
     assert os.path.exists(filename)
     assert os.path.getsize(filename) > 0
@@ -40,16 +40,18 @@ def test_record_append():
     assert len(lines) == 3
     assert lines[2] == '{"timestamp": 3, "angle": 15, "data": [4, 5, 6]}\n'
 
+
 def test_playback():
     filename = "test.txt"
     pb = Playback(filename)
 
-    data = list(pb.read())
+    data = list(pb.stream_full_scan())
 
     assert len(data) == 3
     assert data[0] == (1, 5, [255, 127, 1])
     assert data[1] == (2, 10, [1, 2, 3])
     assert data[2] == (3, 15, [4, 5, 6])
+
 
 def test_cleanup():
     if os.path.exists("test.txt"):
