@@ -44,7 +44,7 @@ while flag:
         lateral = 0
         forward = 0
         yaw = 0
-	os.system("python3 /home/inspiration/auv/devices/disarm.py")
+        os.system("python3 /home/inspiration/auv/devices/disarm.py")
         flag = False
     else:
         print("Bad Input")
