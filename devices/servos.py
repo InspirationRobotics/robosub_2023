@@ -22,16 +22,18 @@ gripState = True #true for open, false for closed
 class servos:
 
 	def __init__(self):
+		self.USB = serial.Serial(port="/dev/ttyACM0")
+		self.USB.isOpen()
 		self.torpedoLauncher(0)
 		self.dropper(0)
 		print("Initialized...")
 
-
-	def setPwm(self, channel, pwm): 
-		#if there is an error with this function open noMachine into jetson 
-		#and go to auv/maestro-linux folder and do ./MaestroControlCenter and go to errors tab and then clear the errors
-		#you can then close it and try running these functions again and it should work
-		os.system("cd /home/inspiration/auv/maestro-linux && ./UscCmd --servo " + str(channel) + "," + str(int(pwm*4)))
+	def setPwm(self, channel, target):
+		target = target*4
+		lsb = target & 0x7f #7 bits for least significant byte
+		msb = (target >> 7) & 0x7f #shift 7 and take next 7 bits for msb
+		cmd = chr(0x84) + chr(channel) + chr(lsb) + chr(msb)
+		self.USB.write(bytes(cmd.encode()))
 
 	#please test this code for gripper, the 1.5 seconds will likely need to be adjusted (should be close though)
 	#if gripper keeps pushing after reaching its limit, it WILL KILL our power distribution board

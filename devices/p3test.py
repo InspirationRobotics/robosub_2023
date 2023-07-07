@@ -62,10 +62,26 @@
 # print(norm1)
 # print(norm2)
 
-from datetime import datetime
+# from datetime import datetime
 
-fileName = str(datetime.now())
-fileName = fileName.split(".")
-fileName = fileName[0].split(" ")
-fileName = fileName[0] + "_" + fileName[1]
-print(fileName)
+# fileName = str(datetime.now())
+# fileName = fileName.split(".")
+# fileName = fileName[0].split(" ")
+# fileName = fileName[0] + "_" + fileName[1]
+# print(fileName)
+
+# import serial
+# import os
+# import time
+
+# def setPwm(channel, target):
+#     target = target*4
+#     USB = serial.Serial(port="/dev/ttyACM0")
+#     USB.isOpen()
+#     lsb = target & 0x7f #7 bits for least significant byte
+#     msb = (target >> 7) & 0x7f #shift 7 and take next 7 bits for msb
+#     cmd = chr(0x84) + chr(channel) + chr(lsb) + chr(msb)
+#     USB.write(bytes(cmd.encode()))
+#     USB.close()
+# print(createBytes(2, 1500))
+# setPwm(2, 1500)
