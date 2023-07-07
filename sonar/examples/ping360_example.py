@@ -72,6 +72,8 @@ r = Record(args.output, "w")
 imsize = 400
 img = np.zeros((imsize, imsize, 3), dtype=np.uint8)
 
+imcount = 0
+
 while True:
     try:
         start_time = time.time()
@@ -83,10 +85,12 @@ while True:
         end_time = time.time()
 
         cartesian = utils.polar_to_cart(img)
-        cv2.imwrite(str(time.time()) + "_cart.png", cartesian)
-        cv2.imwrite(str(time.time()) + "_polar.png", img)
+        cv2.imwrite(str(imcount) + "_cart.png", cartesian)
+        cv2.imwrite(str(imcount) + "_polar.png", img)
 
         logging.info(f"Full scan complete in {end_time - start_time} seconds")
+
+        imcount += 1
 
     except KeyboardInterrupt:
         break
