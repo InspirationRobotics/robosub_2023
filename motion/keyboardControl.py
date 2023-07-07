@@ -1,6 +1,7 @@
 from robot_control import RobotControl
 import threading
 import time
+import os
 
 rc = RobotControl()
 time.sleep(1)
