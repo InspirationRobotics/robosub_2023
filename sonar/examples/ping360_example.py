@@ -84,7 +84,7 @@ while True:
 
         cartesian = utils.polar_to_cart(img)
         cv2.imwrite(str(time.time()) + "_cart.png", cartesian)
-        cv2.imwrite(str(time.time()) + "_polar.png", ismg)
+        cv2.imwrite(str(time.time()) + "_polar.png", img)
 
         logging.info(f"Full scan complete in {end_time - start_time} seconds")
 
