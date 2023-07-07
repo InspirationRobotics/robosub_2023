@@ -85,3 +85,62 @@
 #     USB.close()
 # print(createBytes(2, 1500))
 # setPwm(2, 1500)
+
+# import json
+
+# SA = ":SA,   +0.00,   +0.00,  0.00"
+# TS = ":TS,23070714400162,35.0, +26.1,   0.0,1536.9,  0"
+# BI = ":BI,-32768,-32768,-32768,-32768,V"
+# BS = ":BS,-32768,-32768,-32768,V"
+# BE = ":BE,-32768,-32768,-32768,V"
+# BD = ":BD,        +0.00,        +0.00,        +0.00,   0.00,  7.15"
+
+# data = TS
+
+# #print(data.replace(" ", "").split(","))
+
+# def createPacket(SA):
+#     dataPacket = {
+#         "Timestamp":[],             # year, month, day, hour:minute:second
+#         "Attitude":[],              # roll, pitch, and heading in degrees
+#         "Salinity":[],              # in ppt (parts per thousand)
+#         "Temp":[],                  # celcius
+#         "Transducer_depth":[],      # meters
+#         "Speed_of_sound":[],        # meters per second
+#         "Result_code": [],
+#         "DVL_velocity":[],          # mm/s # xyz error
+#         "isDVL_velocity_valid": [],   # boolean
+#         "AUV_velocity":[],          # mm/s # xyz
+#         "isAUV_velocity_valid": [],   # boolean
+#         "Distance_from_bottom": [], # meters
+#         "Time_since_valid": []      # seconds
+#         }
+#     SA = SA.replace(" ", "").split(",")
+#     if(SA[0]==":SA"):
+#         dataPacket["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
+#         #read next line
+#         TS = ":TS,23070714400162,35.0, +26.1,   0.0,1536.9,  0"
+#         TS = TS.replace(" ", "").split(",")
+#         dataPacket["Timestamp"] = ['20'+TS[1][:2]+"-"+TS[1][4:6]+"-"+TS[1][2:4], TS[1][6:8]+":"+TS[1][8:10]+":"+TS[1][10:12]]
+#         dataPacket["Salinity"] = float(TS[2])
+#         dataPacket["Temp"] = float(TS[3])
+#         dataPacket["Transducer_depth"] = float(TS[4])
+#         dataPacket["Speed_of_sound"] = float(TS[5])
+#         dataPacket["Result_code"] = TS[6]
+#         BI = ":BI,-32768,-32768,-32768,-32768,V" # read next line
+#         BI = BI.replace(" ", "").split(",")
+#         dataPacket["DVL_velocity"] = [int(BI[1]), int(BI[2]), int(BI[3]), int(BI[4])]
+#         dataPacket["isDVL_velocity_valid"] = (BI[5]=="A")
+#         BS = ":BS,-32768,-32768,-32768,V" #read next line
+#         BS = BS.replace(" ", "").split(",")
+#         dataPacket["AUV_velocity"] = [int(BS[1]), int(BS[2]), int(BS[3])]
+#         dataPacket["isAUV_velocity_valid"] = (BS[4]=="A")
+#         BE = ":BE,-32768,-32768,-32768,V" #read next line
+#         BE = BE.replace(" ", "").split(",") # unused
+#         BD = ":BD,        +0.00,        +0.00,        +0.00,   0.00,  7.15" #read next line
+#         BD = BD.replace(" ", "").split(",")
+#         dataPacket["Distance_from_bottom"] = float(BD[4])
+#         dataPacket["Time_since_valid"] = float(BD[5])
+#     return dataPacket
+
+# print(createPacket(SA))
