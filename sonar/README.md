@@ -15,7 +15,7 @@ pip install -e .
 ```python
 from sonar import Ping1D
 
-ping = Ping1D("/dev/ttyUSB0", 115200)
+ping = Ping1D("/dev/ttyUSB2", 115200)
 
 # Get distance in meters
 distance = ping.get_distance()
@@ -26,11 +26,23 @@ distance = ping.get_distance()
 ```python
 from sonar import Ping360
 
-ping = Ping360("/dev/ttyUSB0", 115200)
+ping = Ping360("/dev/ttyUSB2", 115200)
 
 # get a full scan
-scan = ping.read_full_scan()
+scan = ping.full_scan()
 
 # get a single step
-points = ping.read()
+ts, angle, points = ping.step_scan()
+```
+
+## Run tests
+
+anywhere in the repo, run:
+
+```bash
+pytest .
+```
+or 
+```bash
+python -m pytest .
 ```

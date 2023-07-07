@@ -8,14 +8,40 @@ import os
 import time
 
 from sonar import Ping360
+from sonar.io import Record
+from sonar import utils
+
+import numpy as np
+import cv2
 
 logging.basicConfig(level=logging.INFO)
 
 
-parser = argparse.ArgumentParser(description='Ping360 data collection script')
-parser.add_argument('--device', action="store", required=False, default="/dev/ttyUSB0", type=str, help="Ping360 serial device")
-parser.add_argument('--baudrate', action="store", required=False, default=115200, type=int, help="Ping360 serial baudrate")
-parser.add_argument('--output', action="store", required=False, default="sonar.txt", type=str, help="Output file name")
+parser = argparse.ArgumentParser(description="Ping360 data collection script")
+parser.add_argument(
+    "--device",
+    action="store",
+    required=False,
+    default="/dev/ttyUSB0",
+    type=str,
+    help="Ping360 serial device",
+)
+parser.add_argument(
+    "--baudrate",
+    action="store",
+    required=False,
+    default=115200,
+    type=int,
+    help="Ping360 serial baudrate",
+)
+parser.add_argument(
+    "--output",
+    action="store",
+    required=False,
+    default=str(time.time()) + ".txt",
+    type=str,
+    help="Output file name",
+)
 
 # usage example: python ping360.py --device /dev/ttyUSB0 --baudrate 115200 --output sonar.txt
 
@@ -32,7 +58,7 @@ p = Ping360(
 
 
 p.set_transmit_frequency(800)
-p.set_sample_period(80) # 25ns units : 400*25ns = 10us
+p.set_sample_period(80)  # 25ns units : 400*25ns = 10us
 p.set_number_of_samples(200)
 p.set_gain_setting(0)
 
@@ -41,17 +67,26 @@ print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
-filename = str(time.time()) + ".txt"
+r = Record(args.output, "w")
 
-while(True):
+imsize = 400
+img = np.zeros((imsize, imsize, 3), dtype=np.uint8)
+
+while True:
     try:
-        start = time.time()
-        scan = p.full_scan()
-        end = time.time()
-        logging.info(f"Scan complete in {end-start} seconds")
+        start_time = time.time()
 
-        with open(filename, "ab") as f:
-            f.writelines(scan)
-            f.write(b"\n")
+        for ts, angle, points in p.stream_full_scan():
+            r.write(ts, angle, points)
+            utils.color_image_to_polar(img, angle, points, imsize=imsize)
+
+        end_time = time.time()
+
+        cartesian = utils.polar_to_cart(img)
+        cv2.imwrite(str(time.time()) + "_cart.png", cartesian)
+        cv2.imwrite(str(time.time()) + "_polar.png", img)
+
+        logging.info(f"Full scan complete in {end_time - start_time} seconds")
+
     except KeyboardInterrupt:
         break
