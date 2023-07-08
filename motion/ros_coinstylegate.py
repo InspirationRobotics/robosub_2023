@@ -4,7 +4,7 @@ from std_msgs.msg import int32
 from robot_control import RobotControl
 import time
 import os
-from devices import servos as servo
+from motion import servos as servo
 
 gate = 331 # this is the heading the robot will align to at the beginning of the program, need to update when go to the pool
 torpedo1 = True # default torpedoes values are either loaded or unloaded

@@ -1,8 +1,10 @@
 from robot_control import RobotControl
+from servos import servos
 import threading
 import time
 import os
 
+test = servos()
 rc = RobotControl()
 time.sleep(1)
 
@@ -41,6 +43,8 @@ while flag:
         yaw = -1
     elif(var=="l"):
         yaw = 1
+    elif(var=="t"):
+        test.torpedo()
     elif(var=="q"):
         lateral = 0
         forward = 0

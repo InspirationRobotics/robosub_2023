@@ -53,13 +53,13 @@ p = Ping360(
     args.baudrate,
     scan_mode=0,
     angle_range=(0, 399),
-    angle_step=2,
+    angle_step=3,
 )
 
 
 p.set_transmit_frequency(800)
-p.set_sample_period(600)  # 25ns units : 400*25ns = 10us
-p.set_number_of_samples(1000)
+p.set_sample_period(1000)  # 25ns units : 400*25ns = 10us
+p.set_number_of_samples(500)
 p.set_gain_setting(2)
 
 d = p.get_device_data()
