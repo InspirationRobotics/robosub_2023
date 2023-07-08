@@ -99,18 +99,3 @@ class Ping360(brping.Ping360):
             while (curr_increment == self._increment):
                 yield self.__next__()
 
-    def full_scan(self):
-        """Get a full scan from the sensor and return the data as a point list of length 400."""
-
-        # create points list
-        points = [bytearray() for _ in range(400)]
-
-        # reset angle to start of range
-        self._angle = self._angle_range[0]
-
-        while self._angle < self._angle_range[1]:
-            ts, angle, data = self.step_scan()
-            if angle > 0 and angle < 400:
-                points[angle] = data
-
-        return points

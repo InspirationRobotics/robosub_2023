@@ -29,7 +29,9 @@ from sonar import Ping360
 ping = Ping360("/dev/ttyUSB2", 115200)
 
 # get a full scan
-scan = ping.full_scan()
+for timestamp, angle, data in ping:
+    # do something here with the data
+    print(angle, data)
 
 # get a single step
 ts, angle, points = ping.step_scan()
