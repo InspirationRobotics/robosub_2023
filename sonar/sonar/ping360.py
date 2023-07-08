@@ -32,8 +32,7 @@ class Ping360(brping.Ping360):
 
     def set_angle_range(self, angle_range):
         if (
-            angle_range[0] < 0
-            or angle_range[1] > 399
+            angle_range[1] > 399
             or angle_range[0] > angle_range[1]
         ):
             raise ValueError(f"invalid angle range: {angle_range}")
@@ -71,7 +70,8 @@ class Ping360(brping.Ping360):
             self._angle += self._increment
 
         # read sensor
-        self.transmitAngle(self._angle)
+        angle = self._angle % 400
+        self.transmitAngle(angle)
         return time.time(), self._angle, list(self._data)
 
     def full_scan(self):
