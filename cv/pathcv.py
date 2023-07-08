@@ -100,9 +100,19 @@ while 1:
                 a[3] = 1550
             else:
                 #strafe left or right to align
-                print("aligned, go forward")
-                a = 18*[1500]
-                a[4] = 1660
+                range = [(width/2)-20, (width/2)+20]
+                if(range[0] > (cols-1)):
+                    print("strafe right")
+                    a = 18*[1500]
+                    a[5] = 1580
+                elif(range[1] < (cols-1)):
+                    print("strafe left")
+                    a = 18*[1500]
+                    a[5] = 1420
+                else:
+                    print("aligned, go forward")
+                    a = 18*[1500]
+                    a[4] = 1660
     
             print(a)
             
