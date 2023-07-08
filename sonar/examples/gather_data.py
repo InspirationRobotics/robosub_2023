@@ -83,7 +83,11 @@ while True:
         for ts, angle, points in p:
             r.write(ts, angle, points)
             utils.plot_to_polar_gray(
-                img, angle, points, imsize=size, step_angle=step_angle
+                img,
+                angle,
+                points,
+                imsize=size,
+                step_angle=step_angle,
             )
 
         end_time = time.time()
