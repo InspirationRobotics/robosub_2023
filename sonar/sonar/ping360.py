@@ -18,7 +18,7 @@ class Ping360(brping.Ping360):
         self._scan_mode = self.set_scan_mode(scan_mode)
         self._angle_range = self.set_angle_range(angle_range)
         self._angle_step = self.set_angle_step(angle_step)
-        self._angle = angle_range[0] % 400
+        self._angle = angle_range[0]
         self._increment = self._angle_step
 
         logger.debug(f"Ping360 initialized")
@@ -62,16 +62,15 @@ class Ping360(brping.Ping360):
 
         elif self._scan_mode == 1:
             # reverse direction when angle reaches end of range
-            if self._angle <= self._angle_range[0] and self._increment < 0 and abs(self._angle - self.angle_range[0]) < 20:
+            if self._angle <= self._angle_range[0] and self._increment < 0:
                 self._increment = self._angle_step
-            elif self._angle >= self._angle_range[1] and self._increment > 0 and abs(self._angle - self.angle_range[0]) < 20:
+            elif self._angle >= self._angle_range[1] and self._increment > 0:
                 self._increment = -self._angle_step
 
             self._angle += self._increment
 
         # read sensor
-        angle = self._angle % 400
-        self.transmitAngle(angle)
+        self.transmitAngle(self._angle)
         return time.time(), self._angle, list(self._data)
 
     def full_scan(self):
