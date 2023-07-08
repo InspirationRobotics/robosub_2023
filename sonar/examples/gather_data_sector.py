@@ -70,7 +70,7 @@ logging.info("Starting Ping360 full scan")
 r = Record(args.output, "w")
 
 imsize = 400
-img = np.zeros((imsize, imsize, 3), dtype=np.uint8)
+img = np.zeros((imsize, imsize, 1), dtype=np.uint8)
 
 imcount = 0
 
@@ -80,7 +80,7 @@ while True:
 
         for ts, angle, points in p:
             r.write(ts, angle, points)
-            utils.plot_to_polar_color(img, angle, points, imsize=imsize)
+            utils.plot_to_polar_gray(img, angle, points, imsize=imsize)
 
         end_time = time.time()
 
