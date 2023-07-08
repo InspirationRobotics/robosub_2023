@@ -8,4 +8,4 @@
 *__pycache__
 .vscode
 .pytest_cache
-sonar/examples/*.txt
+sonar/examples/**/*.txt
