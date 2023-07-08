@@ -37,8 +37,8 @@ class Ping360(brping.Ping360):
         ):
             raise ValueError(f"invalid angle range: {angle_range}")
 
-        self._angle_range = angle_range
-        self._angle = angle_range[0] % 400
+        self._angle_range = (angle_range[0] % 400, angle_range[1] % 400)
+        self._angle = angle_range[0]
         return self._angle_range
 
     def set_angle_step(self, angle_step):
