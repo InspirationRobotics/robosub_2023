@@ -62,9 +62,9 @@ class Ping360(brping.Ping360):
 
         elif self._scan_mode == 1:
             # reverse direction when angle reaches end of range
-            if self._angle - self._angle_range[0] < self._angle_step:
+            if self._angle <= self._angle_range[0] and self._increment < 0 and abs(self._angle - self.angle_range[0]) < 20:
                 self._increment = self._angle_step
-            elif self._angle - self._angle_range[1] > -self._angle_step:
+            elif self._angle >= self._angle_range[1] and self._increment > 0 and abs(self._angle - self.angle_range[0]) < 20:
                 self._increment = -self._angle_step
 
             self._angle += self._increment
