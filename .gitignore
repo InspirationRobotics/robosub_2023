@@ -1,4 +1,5 @@
 *.mp4
+*.png
 *.pyc
 *.swp
 *.save
@@ -7,3 +8,4 @@
 *__pycache__
 .vscode
 .pytest_cache
+sonar/examples/*.txt
