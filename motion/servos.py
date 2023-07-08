@@ -17,14 +17,14 @@ import serial
 # open: 1550 1.5 seconds then 1500 to stop
 # close: 1450 1.5 seconds then 1500 to stop
 
-global gripState
-gripState = True #true for open, false for closed
 class servos:
 
 	def __init__(self):
 		self.USB = serial.Serial(port="/dev/ttyACM0")
 		self.USB.isOpen()
-		self.torpedoLauncher(0)
+		self.gripState = True
+		self.torpedoState = 0
+		self.torpedo(0)
 		self.dropper(0)
 		print("Initialized...")
 
@@ -38,8 +38,7 @@ class servos:
 	#please test this code for gripper, the 1.5 seconds will likely need to be adjusted (should be close though)
 	#if gripper keeps pushing after reaching its limit, it WILL KILL our power distribution board
 	def gripper(self, state): # true for to open, false for to close
-		global gripState
-		if(gripState==state):
+		if(self.gripState==state):
 			return
 		pwm=1500
 		if(state):
@@ -52,19 +51,26 @@ class servos:
 			time.sleep(0.05)
 		self.setPwm(0,1500) #stops gripper
 		self.setPwm(0,1500) #redundant
-		gripState = state
+		self.gripState = state
 
-	def torpedoLauncher(self, torpedo): #0,1,2 : load, fire 1, fire 2
-		if torpedo == 0: #load state
+	def torpedo(self, torpedoNum=-1): #0,1,2 : load, fire 1, fire 2
+		if torpedoNum == 0: #load state
 			self.setPwm(2, 2400)
-		elif torpedo == 1: #fire torpedo 1
+			self.torpedoState=0
+			print("Torpedo in Load State")
+		elif torpedoNum == 1: #fire torpedo 1
 			self.setPwm(2, 1700)
-		elif torpedo == 2: #fire torpedo 2
-			self.torpedoLauncher(1) #incase first has not been fired yet
+			print("Torpedo 1 fired")
+		elif torpedoNum == 2: #fire torpedo 2
+			self.torpedo(1) #incase first has not been fired yet
 			time.sleep(0.5)
 			self.setPwm(2, 1300)
+			print("Torpedo 2 fired")
 			time.sleep(1)
-			self.torpedoLauncher(0) #reset to load position now that both are fired
+			self.torpedo(0) #reset to load position now that both are fired
+		elif torpedoNum ==-1:
+			self.torpedoState+=1
+			self.torpedo(self.torpedoState)
 		else:
 			print("Invalid Arg in [torpedoLauncher]")
 
