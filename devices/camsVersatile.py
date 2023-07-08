@@ -21,6 +21,7 @@ onyx = ["platform-3610000.xhci-usb-0:2.2.4:1.0"]
 grey = ["platform-70090000.xusb-usb-0:2.3:1.0","platform-70090000.xusb-usb-0:2.4:1.0"]
 
 ogDev = []
+oaks = []
 newDev = []
 sub = False #default to grey
 
@@ -56,7 +57,7 @@ diff = difference(preDevices, postDevices)
 if(len(diff)==0):
     print("Failed to detect if any new v4l2loopback devices were made")
     exit(1)
-for i in range(camAmt-1, -1, -1):
+for i in range(camAmt+oakAmt-1, -1, -1):
     newDev.append(diff[i])
 
 #v4l2-ctl --list-devices
@@ -77,36 +78,99 @@ class camera():
         self.loop_rate = rospy.Rate(30)
         self.id = id
         self.oak = oak
-        self.cam = cv2.VideoCapture(ogDevice)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
-        self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
-        self.pub = rospy.Publisher('/auv/camera/videoUSBRaw'+str(id), Image,queue_size=10)
-        rospy.Subscriber("/auv/camera/videoUSBOutput"+str(id),Image,self.callbackMain)
+        if(not self.oak):
+            self.cam = cv2.VideoCapture(ogDevice)
+            self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
+            self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
+            self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
+            self.pub = rospy.Publisher('/auv/camera/videoUSBRaw'+str(id), Image,queue_size=10)
+            rospy.Subscriber("/auv/camera/videoUSBOutput"+str(id),Image,self.callbackMain)
+            print(ogDevice+" is available at " + newDevice)
+        else:
+            self.name = self.mxidToName(ogDevice)
+            pipeline = dai.Pipeline()
+            xoutRgb = pipeline.createXLinkOut()
+            xoutRgb.setStreamName("rgb")
+            controlIn = pipeline.create(dai.node.XLinkIn)
+            controlIn.setStreamName('control')
+            camRgb = pipeline.createColorCamera()
+            camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            camRgb.setIspScale(2,3)
+            camRgb.setPreviewSize(640, 480)
+            camRgb.setInterleaved(False)
+            camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
+            camRgb.preview.link(xoutRgb.input)
+            controlIn.out.link(camRgb.inputControl)
+            device_info = dai.DeviceInfo(ogDevice)
+            self.device = dai.Device(pipeline, device_info)
+            controlQueue = self.device.getInputQueue('control')
+            # Autofocus trigger (and disable continuous)
+            ctrl = dai.CameraControl()
+            ctrl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.AUTO)
+            ctrl.setAutoFocusTrigger()
+            controlQueue.send(ctrl)
+
+            # pipeline = dai.Pipeline()
+            # camRgb = pipeline.createColorCamera()
+            # xoutRgb = pipeline.createXLinkOut()
+            # xoutRgb.setStreamName("rgb")
+            # camRgb.preview.link(xoutRgb.input)
+            # device_info = dai.DeviceInfo(ogDevice)
+            # self.device = dai.Device(pipeline, device_info)
+
+            self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
+            self.pub = rospy.Publisher('/auv/camera/videoOAKdRaw'+self.name, Image,queue_size=10)
+            rospy.Subscriber("/auv/camera/videoOAKd"+self.name+"Model",Image,self.callbackModel)
+            rospy.Subscriber('/auv/camera/videoOAKdRaw'+self.name,Image,self.callbackMain)
+            print("Oak-D " + self.name + " is available at " + newDevice)
+
+    def mxidToName(self, mxid):
+        if(mxid=='18443010B1A0B01200'):
+            return 'Forward'
+        elif(mxid=='184430104161721200'):
+            return 'Bottom'
+        elif(mxid=='18443010D11AF50F00'):
+            return 'Poe'
+        else:
+            return 'Unknown'
 
     def callbackMain(self, msg):
         try:
             self.frame = cv2.cvtColor(self.br.imgmsg_to_cv2(msg), cv2.COLOR_BGR2RGB)
             self.fake.schedule_frame(self.frame)
         except Exception as e:
-            print("Camera "+str(self.id)+" Output Error, make sure running in Python2")
+            print("Camera "+str(self.id)+" Output Error, make sure running in correct python")
             print(e)
+    
+    def callbackModel(self, msg):
+        pass #need to implment blob file switching
     
     def runner(self):
         while not rospy.is_shutdown():
-            try:
-                ret, frame1 = self.cam.read()
-                msg = self.br.cv2_to_imgmsg(frame1)
-                self.pub.publish(msg)
-                pass
-            except Exception as e:
-                print("Camera "+str(self.id)+" Input Error")
-                print(e)
-
+            if(not self.oak):
+                try:
+                    ret, frame1 = self.cam.read()
+                    msg = self.br.cv2_to_imgmsg(frame1)
+                    self.pub.publish(msg)
+                    pass
+                except Exception as e:
+                    print("Camera "+str(self.id)+" Input Error")
+                    print(e)
+            else:
+                cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+                try:
+                    frame1 = cam.get().getCvFrame()
+                    msg = self.br.cv2_to_imgmsg(frame1)
+                    self.pub.publish(msg)
+                    pass
+                except Exception as e:
+                    print("Camera "+str(self.id)+" Input Error")
+                    print(e)
             self.loop_rate.sleep()
 
     def kill(self):
-        self.cam.release()
+        if(not self.oak):
+            self.cam.release()
 
     def start(self):
         rospy.loginfo("Starting Camera "+str(self.id)+" Stream...")
@@ -118,11 +182,16 @@ class cameraStreams():
     def __init__(self):
         rospy.loginfo("Initializing Camera Streams...")
         self.cams = []
+        self.oakCams = []
         for i in range(camAmt):
             self.cams.append(camera(i, ogDev[i], newDev[i]))
-        
+        for i in range(oakAmt-1):
+            self.oakCams.append(camera(i+camAmt, oaks[i], newDev[i+camAmt], True))
+
     def start(self):
         for i in self.cams:
+            i.start()
+        for i in self.oakCams:
             i.start()
         rospy.spin()
 

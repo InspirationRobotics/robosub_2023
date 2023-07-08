@@ -14,8 +14,7 @@ class Ping360(brping.Ping360):
     max_duration_ratio = 64e6
 
     max_samples = 1000
-    min_sample_period = 80
-    max_sample_period = 40000
+    min_sample_period = 200
 
     def __init__(
         self,
@@ -55,6 +54,7 @@ class Ping360(brping.Ping360):
         self._angle = self._angle_range[0]
         self._increment = self._angle_step
 
+        self.set_transmit_frequency(transmit_freq)
         self.set_max_range(max_range)
         self.set_gain_setting(gain)
 
@@ -97,7 +97,7 @@ class Ping360(brping.Ping360):
             int: distance set
         """
         if max_range < 1 or max_range > 50:
-            raise ValueError(f"invalid distance: {distance}")
+            raise ValueError(f"invalid distance: {max_range}")
 
         self._max_range = max_range
         self._number_of_samples = int(
@@ -122,10 +122,12 @@ class Ping360(brping.Ping360):
             )
         )
 
-        self._transmit_duration = int(max(
-            2.5 * self._sample_period * self.sample_period_tick_duration / 1000,
-            (8000 * self._max_range) / self.speed_of_sound,
-        ))
+        self._transmit_duration = int(
+            max(
+                self._sample_period * self.sample_period_tick_duration / 400,
+                (8000 * self._max_range) / self.speed_of_sound,
+            )
+        )
 
     def __next__(self):
         """Get a step scan from the sensor and return the current angle and distances"""

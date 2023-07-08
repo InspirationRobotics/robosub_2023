@@ -47,7 +47,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-step_angle = 2
+step_angle = 1
 max_range = 10
 
 # Create a Ping360 object and connect to the Ping360
@@ -79,7 +79,7 @@ while True:
         start_time = time.time()
 
         for ts, angle, points in p:
-            print(angle, points)
+            print(angle)
             r.write(ts, angle, points)
             utils.plot_to_polar_gray(
                 img,
