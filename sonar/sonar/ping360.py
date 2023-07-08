@@ -91,7 +91,7 @@ class Ping360(brping.Ping360):
 
         return points
 
-    def stream_full_scan(self):
+    def __iter__(self):
         """Stream full scans from the sensor, yielding the data as it receives it."""
 
         # reset angle to start of range

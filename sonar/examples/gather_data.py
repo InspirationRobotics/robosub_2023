@@ -78,9 +78,9 @@ while True:
     try:
         start_time = time.time()
 
-        for ts, angle, points in p.stream_full_scan():
+        for ts, angle, points in p:
             r.write(ts, angle, points)
-            utils.color_image_to_polar(img, angle, points, imsize=imsize)
+            utils.plot_to_polar_color(img, angle, points, imsize=imsize)
 
         end_time = time.time()
 

@@ -27,11 +27,28 @@ class Playback:
         self._filename = filename
         self._file = open(filename, "r")
 
-    def stream_full_scan(self):
-        """Read data from the file and yield it"""
+    def __del__(self):
+        self._file.close()
+
+    def __iter__(self):
+        """
+        Return an iterator that yields the next data point from the file
+        """
+
+        # read the file and yield each line
         for line in self._file:
             data = json.loads(line)
             yield data["timestamp"], data["angle"], data["data"]
 
-    def __del__(self):
-        self._file.close()
+    def __next__(self):
+        """
+        Return the next data point from the file
+        """
+
+        # read the file and return the next line
+        line = self._file.readline()
+        if line == "":
+            raise StopIteration
+
+        data = json.loads(line)
+        return data["timestamp"], data["angle"], data["data"]

@@ -7,5 +7,9 @@ setup(
     description="Wrapper for brping",
     author="Inspiration Robotics",
     py_modules=["sonar"],
-    install_requires=["bluerobotics-ping"],
+    install_requires=[
+        "bluerobotics-ping",
+        "numpy",
+        "opencv-python",
+    ],
 )

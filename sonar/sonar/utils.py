@@ -20,10 +20,9 @@ class Obstacle:
         return f"Obstacle({self.center}, {self.size})"
 
 
-def color_image_to_polar(img, angle, points, imsize=400):
+def plot_to_polar_color(img, angle, points, imsize=400):
     """
-    plot some points in cartesian coordinates on an image
-    then convert the image to polar
+    plot some points in polar coordinates on an image
     """
     if points is None:
         return
@@ -44,7 +43,32 @@ def color_image_to_polar(img, angle, points, imsize=400):
 
         color[1] = value
         cv2.circle(img, (x, y), thickness, color, -1)
+    return img
 
+
+def plot_to_polar_gray(img, angle, points, imsize=400):
+    """
+    plot some points in polar coordinates on an image
+    the image seam is at the angle pi (back of the sonar)
+    """
+    if points is None:
+        return
+
+    angle = (angle + 200) % 400
+    num_points = len(points)
+
+    norm_factor = imsize / num_points
+    thickness = int(norm_factor * 0.5 + 1)
+
+    for r, value in enumerate(points):
+        if value is None:
+            continue
+
+        x = int((r + 1) * norm_factor)
+        y = int(angle)
+
+        cv2.circle(img, (x, y), thickness, value, -1)
+    return img
 
 def cart_to_polar(img, imsize=400):
     return cv2.warpPolar(
@@ -116,26 +140,32 @@ def render_obstacles(img, obstacles):
     return img
 
 
-def object_detection(img: np.array):
+def object_detection(img: np.array, threshold=60):
     if img is None:
         return []
 
     if len(img.shape) == 3 and img.shape[2] == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
-        gray = img
+        gray = img.copy()
+
+    # blur the image
+    gray = cv2.blur(gray, (5, 5), 0)
+    cv2.imshow("gray", gray)
 
     # apply thresholding
-    ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+    ret, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
 
     # find contours
     contours, hierarchy = cv2.findContours(
         thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
     )
 
-    # img_contours = np.zeros(img.shape, dtype=np.uint8)
-    # cv2.drawContours(img_contours, contours, -1, 255, 3)
-    # cv2.imshow("contours", img_contours)
+    img_contours = np.zeros_like(img)
+    cv2.drawContours(img_contours, contours, -1, 255, 2)
+    cv2.imshow("contours", img_contours)
+
+    cv2.waitKey(0)
 
     objects = [Obstacle(contour) for contour in contours]
     return objects

@@ -9,7 +9,7 @@ def test_draw_polar():
     img = np.zeros((size, size, 3), dtype=np.uint8)
 
     for angle, points in enumerate([[i for i in range(1, 300)] for _ in range(400)]):
-        utils.color_image_to_polar(img, angle, points, imsize=size)
+        utils.plot_to_polar_color(img, angle, points, imsize=size)
         cartesian = utils.polar_to_cart(img)
 
     cv2.imshow("cart", cartesian)
