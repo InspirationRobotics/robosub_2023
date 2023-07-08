@@ -82,11 +82,22 @@ class Ping360(brping.Ping360):
     def __iter__(self):
         """Stream full scans from the sensor, yielding the data as it receives it."""
 
-        # reset angle to start of range
-        self._angle = self._angle_range[0]
+        if self._scan_mode == 0:
+            # reset angle to start of range
+            self._angle = self._angle_range[0]
 
-        while self._angle < self._angle_range[1]:
-            yield self.__next__()
+            while self._angle < self._angle_range[1]:
+                yield self.__next__()
+
+        elif self._scan_mode == 1:
+            if self._increment > 0:
+                self._angle = self._angle_range[0]
+            else:
+                self._angle = self._angle_range[1]
+
+            curr_increment = self._increment
+            while (curr_increment == self._increment):
+                yield self.__next__()
 
     def full_scan(self):
         """Get a full scan from the sensor and return the data as a point list of length 400."""
