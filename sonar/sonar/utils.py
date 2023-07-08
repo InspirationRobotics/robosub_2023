@@ -30,7 +30,7 @@ def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
     angle = angle % 400
     num_points = len(points)
 
-    x_factor = imsize[1] // num_points
+    x_factor = imsize[1] / num_points
 
     for r, value in enumerate(points):
         if value is None:
@@ -40,7 +40,7 @@ def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
         y = int(angle)
 
         # cv2.circle(img, (x, y), thickness, value, -1)
-        img[y : y + step_angle, x : x + x_factor] = value
+        img[y : y + step_angle, x : round(x + x_factor)] = value
 
     return img
 
