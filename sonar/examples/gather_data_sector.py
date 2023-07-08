@@ -47,19 +47,22 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+num_samples = 500
+step_angle = 2
+
 # Create a Ping360 object and connect to the Ping360
 p = Ping360(
     args.device,
     args.baudrate,
     scan_mode=1,
-    angle_range=(-45, 45),
-    angle_step=2,
+    angle_range=(150, 250),
+    angle_step=step_angle,
 )
 
 
 p.set_transmit_frequency(800)
 p.set_sample_period(600)  # 25ns units : 400*25ns = 10us
-p.set_number_of_samples(1000)
+p.set_number_of_samples(num_samples)
 p.set_gain_setting(2)
 
 d = p.get_device_data()
@@ -80,7 +83,9 @@ while True:
 
         for ts, angle, points in p:
             r.write(ts, angle, points)
-            utils.plot_to_polar_gray(img, angle, points, imsize=imsize)
+            utils.plot_to_polar_gray(
+                img, angle, points, imsize=imsize, step_angle=step_angle
+            )
 
         end_time = time.time()
 

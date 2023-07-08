@@ -45,7 +45,7 @@ def test_playback():
     filename = "test.txt"
     pb = Playback(filename)
 
-    data = list(pb.stream_full_scan())
+    data = list(pb)
 
     assert len(data) == 3
     assert data[0] == (1, 5, [255, 127, 1])

@@ -28,11 +28,22 @@ args = parser.parse_args()
 # Create a Playback object to simulate the Ping360
 p = Playback(args.input)
 
-t, a, d = next(p)
-size = len(d)
+# take the first two scans to get the step_angle and num_samples
+t, a0, d = next(p)
+t, a1, d = next(p)
+num_samples = len(d)
+step_angle = a1 - a0
 
-polar_img = np.zeros((400, size, 1), dtype=np.uint8)
-cart_img = np.zeros((size, size, 1), dtype=np.uint8)
+size = (400, num_samples)
+
+polar_img = np.zeros((size[0], size[1]), dtype=np.uint8)
+cart_img = np.zeros((size[1], size[1], 1), dtype=np.uint8)
+
+print("step_angle: ", step_angle)
+print("num_samples: ", num_samples)
+print("size: ", size)
+print("polar_img.shape: ", polar_img.shape)
+print("cart_img.shape: ", cart_img.shape)
 
 detection_every = 10
 detection_counter = 0
@@ -47,18 +58,23 @@ for timestamp, angle, data in p:
         angle,
         data,
         imsize=size,
+        step_angle=step_angle,
     )
 
     # Convert the polar image to a cartesian image
-    cart_img = utils.polar_to_cart(polar_img, imsize=size)
+    cart_img = utils.polar_to_cart(polar_img)
 
     # detect obstacles
     detection_counter += 1
     if detection_counter == detection_every: 
-        obstacles = utils.object_detection(polar_img, threshold=80)
+        obstacles = utils.object_detection(polar_img, threshold=100)
 
         # draw obstacles
-        obs_img = cv2.fillPoly(np.zeros_like(polar_img), [obs.points for obs in obstacles], 255)
+        # obs_img = cv2.fillPoly(np.zeros_like(polar_img), [obs.points for obs in obstacles], 255)
+        obs_img = np.zeros((size[0], size[1], 3), dtype=np.uint8)
+        for obs in obstacles:
+            cv2.fillPoly(obs_img, [obs.points], np.random.randint(0, 255, 3).tolist())
+
         cv2.imshow("Obstacles", obs_img)
         detection_counter = 0
 
