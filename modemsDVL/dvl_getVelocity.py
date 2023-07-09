@@ -65,6 +65,7 @@ while (state):
 		try:
 			rawOut = out.decode("utf-8")
 			packet = createPacket(out)
+			print(packet)
 			if(packet["isAUV_velocity_valid"]==True):
 				print(packet)
 		except:
