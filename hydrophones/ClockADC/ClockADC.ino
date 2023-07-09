@@ -59,15 +59,34 @@ void setup() {
   setClock(235);
 }
 
-int mic1Data = 0;
-int mic2Data = 0;
-int mic3Data = 0;
+int mic1Val = 0;
+int mic2Val = 0;
+int mic3Val = 0;
+
+int preMic1Val = 0;
+int preMic2Val = 0;
+int preMic3Val = 0;
+
+const int recordingSize = 500;
+uint16_t mic1Data[recordingSize];
+uint16_t mic2Data[recordingSize];
+uint16_t mic3Data[recordingSize];
 
 elapsedMicros timeMic_;
 elapsedMillis timeMil_;
 boolean state = false;
+boolean record = false;
+int count = 0;
 
-//unsigned long count;
+
+void analysis(uint16_t data1[], uint16_t data2[], uint16_t data3[]) {
+  for(int i = 0; i<recordingSize;i++) {
+    Serial.print(mic1Data[i]); Serial.print(", "); Serial.print(mic2Data[i]); Serial.print(", "); Serial.println(mic3Data[i]);
+    delay(10);
+  }
+  while(true){}
+}
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -80,24 +99,53 @@ void loop() {
   }
   adc->adc1->startSingleRead(mic3);
   while(!(adc->adc0->isComplete() && adc->adc1->isComplete())) {}
-  if(state) {mic1Data = adc->adc0->readSingle();}
-  else {mic2Data = adc->adc0->readSingle();}
-  mic3Data = adc->adc1->readSingle();
-  //count++;
+  if(state) {mic1Val = adc->adc0->readSingle();}
+  else {mic2Val = adc->adc0->readSingle();}
+  mic3Val = adc->adc1->readSingle();
 
-  /*if(timeMil_>=6000) {
-    double freq = count/(timeMil_/1000);
-    Serial.println(freq);
-    while(true) {}
-  }*/
-  if(mic1Data<120) {mic1Data = 0;}
-  else{Serial.println(mic1Data);}
-  if(mic2Data<120) {mic2Data = 0;}
-  else{Serial.println(mic2Data);}
-  if(mic3Data<120) {mic3Data = 0;}
-  else{Serial.println(mic3Data);}
+  if(((mic1Val > 120 && preMic1Val <= 120) || (mic2Val > 120 && preMic2Val <= 120) || (mic3Val > 120 && preMic3Val <= 120)) && !record) {
+    record = true;
+  }
   
-  //Serial.print(mic1Data); Serial.print(", "); Serial.print(mic2Data); Serial.print(", "); Serial.println(mic3Data);
-  //delay(1);
+  if(record) {
+    if(count==500) {
+      count = 0;
+      record = false;
+      Serial.println("Done recording data");
+      Serial.println("Right Middle Left");
+      analysis(mic1Data, mic2Data, mic3Data);
+    }
+    else {
+    mic1Data[count] = mic1Val;
+    mic2Data[count] = mic2Val;
+    mic3Data[count] = mic3Val;
+    count++;}
+  }
+
+  preMic1Val = mic1Val;
+  preMic2Val = mic2Val;
+  preMic3Val = mic3Val;
+
+
+  /*if (Serial.available()) {
+    String temp;
+    temp = Serial.readString();
+    Serial.print(temp); //Printing the Serial data
+    char tab1[3];
+    strcpy(tab1, temp.c_str());
+    int tab2 = atoi(tab1);
+    if (tab2 > 200 && tab2 < 900) {
+      setClock(tab2);
+    }
+  }*/
+  /*if(mic1Val<120) {mic1Val = 0;}
+  else{Serial.println(mic1Val);}
+  if(mic2Val<120) {mic2Val = 0;}
+  else{Serial.println(mic2Val);}
+  if(mic3Val<120) {mic3Val = 0;}
+  else{Serial.println(mic3Val);}
+  
+  Serial.print(mic1Val); Serial.print(", "); Serial.print(mic2Val); Serial.print(", "); Serial.println(mic3Val);
+  delay(1);*/
   
 }
