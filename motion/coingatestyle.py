@@ -1,7 +1,7 @@
 from robot_control import RobotControl
 import time
 import os
-from devices import servos as servo
+from motion import servos as servo
 
 # For july 3rd pool test, written on 7/1/2023 and 7/2/2023
 # Coin toss, gate, and style points with working computer vision, autonomously fire torpedoes and drop the markers

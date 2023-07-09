@@ -8,7 +8,7 @@ class Obstacle:
     def __init__(self, points: np.array):
         self.points = points
         self.center = np.mean(points, axis=0)[0]
-        
+
         self.distance = self.center[0]
         self.angle = self.center[1]
 
@@ -19,34 +19,7 @@ class Obstacle:
     def __repr__(self):
         return f"Obstacle({self.center}, {self.size})"
 
-
-def plot_to_polar_color(img, angle, points, imsize=400):
-    """
-    plot some points in polar coordinates on an image
-    """
-    if points is None:
-        return
-
-    angle = angle % 400
-    num_points = len(points)
-
-    norm_factor = imsize / num_points
-    thickness = int(norm_factor * 0.5 + 1)
-    color = [255, 0, (angle / 360) * 255]
-
-    for r, value in enumerate(points):
-        if value is None:
-            continue
-
-        x = int((r + 1) * norm_factor)
-        y = int(angle)
-
-        color[1] = value
-        cv2.circle(img, (x, y), thickness, color, -1)
-    return img
-
-
-def plot_to_polar_gray(img, angle, points, imsize=400):
+def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
     """
     plot some points in polar coordinates on an image
     the image seam is at the angle pi (back of the sonar)
@@ -54,21 +27,23 @@ def plot_to_polar_gray(img, angle, points, imsize=400):
     if points is None:
         return
 
-    angle = (angle + 200) % 400
+    angle = angle % 400
     num_points = len(points)
 
-    norm_factor = imsize / num_points
-    thickness = int(norm_factor * 0.5 + 1)
+    x_factor = imsize[1] / num_points
 
     for r, value in enumerate(points):
         if value is None:
             continue
 
-        x = int((r + 1) * norm_factor)
+        x = int((r + 1) * x_factor)
         y = int(angle)
 
-        cv2.circle(img, (x, y), thickness, value, -1)
+        # cv2.circle(img, (x, y), thickness, value, -1)
+        img[y : y + step_angle, x : round(x + x_factor)] = value
+
     return img
+
 
 def cart_to_polar(img, imsize=400):
     return cv2.warpPolar(
@@ -80,7 +55,8 @@ def cart_to_polar(img, imsize=400):
     )
 
 
-def polar_to_cart(img, imsize=400):
+def polar_to_cart(img):
+    imsize = img.shape[1]
     return cv2.warpPolar(
         img,
         (imsize, imsize),
@@ -90,11 +66,12 @@ def polar_to_cart(img, imsize=400):
     )
 
 
-def create_obstacle(min_size=25, max_size=75, min_points=10, max_points=20, imsize=400):
+def create_obstacle(min_size=25, max_size=75, min_points=10, max_points=20, imsize=(400, 400)):
     """Create random polygons shapes"""
     num_points = np.random.randint(min_points, max_points)
     object_size = np.random.randint(min_size, max_size)
-    position = np.random.randint(0, imsize, 2)
+
+    position = (np.random.randint(0, imsize[0]), np.random.randint(0, imsize[1]))
 
     # create random shape
     shape = np.random.rand(num_points, 2) * object_size
@@ -149,12 +126,15 @@ def object_detection(img: np.array, threshold=60):
     else:
         gray = img.copy()
 
+    # remove the first 8% of the points (sub own noise)
+    gray[:, : int(gray.shape[1] * 0.08)] = 0
+
     # blur the image
     gray = cv2.blur(gray, (5, 5), 0)
     cv2.imshow("gray", gray)
 
-    # apply thresholding
-    ret, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+    # threshold the image
+    _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
 
     # find contours
     contours, hierarchy = cv2.findContours(

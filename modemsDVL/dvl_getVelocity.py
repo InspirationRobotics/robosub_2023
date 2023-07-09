@@ -4,7 +4,7 @@ import signal
 
 
 ser = serial.Serial(
-	port='/dev/ttyUSB1',
+	port='/dev/ttyUSB0',
 	baudrate=115200,
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
@@ -65,12 +65,16 @@ while (state):
 		try:
 			rawOut = out.decode("utf-8")
 			packet = createPacket(out)
+			print(packet)
+			if(packet["isAUV_velocity_valid"]==True):
+				print(packet)
 		except:
 			pass
 
 def onExit(signum, frame):
 	try:
 		state = False
+		ser.close()
 		time.sleep(1)
 		exit(1)
 	except:

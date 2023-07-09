@@ -5,11 +5,13 @@ from sonar import utils
 
 
 def test_draw_polar():
-    size = 400
-    img = np.zeros((size, size, 3), dtype=np.uint8)
+    size = (400, 400)
+    img = np.zeros((size[0], size[1], 1), dtype=np.uint8)
 
-    for angle, points in enumerate([[i for i in range(1, 300)] for _ in range(400)]):
-        utils.plot_to_polar_color(img, angle, points, imsize=size)
+    step_angle = 2
+    for angle, points in enumerate([[i for i in range(0, 255)] for _ in range(400 // step_angle)]):
+        angle *= step_angle
+        img = utils.plot_to_polar_gray(img, angle, points, imsize=size, step_angle=step_angle)
         cartesian = utils.polar_to_cart(img)
 
     cv2.imshow("cart", cartesian)
@@ -18,8 +20,8 @@ def test_draw_polar():
 
 
 def test_dummy_obstacle():
-    size = 400
-    img = np.zeros((size, size, 1), dtype=np.uint8)
+    size = (400, 400)
+    img = np.zeros((size[0], size[1], 1), dtype=np.uint8)
     obstacles = [utils.create_obstacle(imsize=size) for _ in range(10)]
     img = utils.render_obstacles(img, obstacles)
 
@@ -35,8 +37,8 @@ def test_dummy_obstacle():
 
 
 def test_obstacles_detection():
-    size=400
-    img = np.zeros((size, size, 1), dtype=np.uint8)
+    size = (400, 400)
+    img = np.zeros((size[0], size[1], 1), dtype=np.uint8)
     obstacles = [utils.create_obstacle(imsize=size) for _ in range(7)]
     img = utils.render_obstacles(img, obstacles)
 
