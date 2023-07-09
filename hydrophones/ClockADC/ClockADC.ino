@@ -74,7 +74,7 @@ uint16_t mic3Data[recordingSize];
 
 elapsedMicros timeMic_;
 elapsedMillis timeMil_;
-boolean state = false;
+boolean state = true;
 boolean record = false;
 int count = 0;
 
@@ -84,7 +84,7 @@ void analysis(uint16_t data1[], uint16_t data2[], uint16_t data3[]) {
     Serial.print(mic1Data[i]); Serial.print(", "); Serial.print(mic2Data[i]); Serial.print(", "); Serial.println(mic3Data[i]);
     delay(10);
   }
-  while(true){}
+  //while(true){}
 }
 
 
@@ -103,7 +103,7 @@ void loop() {
   else {mic2Val = adc->adc0->readSingle();}
   mic3Val = adc->adc1->readSingle();
 
-  if(((mic1Val > 120 && preMic1Val <= 120) || (mic2Val > 120 && preMic2Val <= 120) || (mic3Val > 120 && preMic3Val <= 120)) && !record) {
+  /*if(((mic1Val > 120 && preMic1Val <= 120) || (mic2Val > 120 && preMic2Val <= 120) || (mic3Val > 120 && preMic3Val <= 120)) && !record) {
     record = true;
   }
   
@@ -114,6 +114,7 @@ void loop() {
       Serial.println("Done recording data");
       Serial.println("Right Middle Left");
       analysis(mic1Data, mic2Data, mic3Data);
+      delay(5000);
     }
     else {
     mic1Data[count] = mic1Val;
@@ -125,7 +126,7 @@ void loop() {
   preMic1Val = mic1Val;
   preMic2Val = mic2Val;
   preMic3Val = mic3Val;
-
+*/
 
   /*if (Serial.available()) {
     String temp;
@@ -138,14 +139,14 @@ void loop() {
       setClock(tab2);
     }
   }*/
-  /*if(mic1Val<120) {mic1Val = 0;}
-  else{Serial.println(mic1Val);}
-  if(mic2Val<120) {mic2Val = 0;}
-  else{Serial.println(mic2Val);}
-  if(mic3Val<120) {mic3Val = 0;}
-  else{Serial.println(mic3Val);}
+  if(mic1Val<115) {mic1Val = 0;}
+  //else{Serial.println(mic1Val);}
+  if(mic2Val<115) {mic2Val = 0;}
+  //else{Serial.println(mic2Val);}
+  if(mic3Val<115) {mic3Val = 0;}
+  //else{Serial.println(mic3Val);}
   
   Serial.print(mic1Val); Serial.print(", "); Serial.print(mic2Val); Serial.print(", "); Serial.println(mic3Val);
-  delay(1);*/
+  //delay(1);
   
 }
