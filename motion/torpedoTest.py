@@ -1,6 +1,9 @@
 import numpy as np
 import cv2 as cv
-from matplotlib import pyplot as plt
+
+
+
+
 img = cv.imread('testPhot.jpeg', cv.IMREAD_GRAYSCALE)
 # img = cv.GaussianBlur(img, (5, 5), 2, 2)
 

@@ -1,7 +1,11 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(1)
+#cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture("vid5.mp4")
+sensitivity1 = 1
+sensitivity2 = 150
+
 
 while(True):
     # Capture frame-by-frame
@@ -15,16 +19,24 @@ while(True):
     edges = cv2.Canny(gray, 0, 250)
     # Blurring may need to be removed
     edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
+    edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
+    #edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
+    #edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
 
-    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, 1, edges.shape[0] / 8, param1=100, param2=60, minRadius=5, maxRadius=60)
+
+
+    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, 1, edges.shape[0] / 8, param1=sensitivity1, param2=sensitivity2, minRadius=1, maxRadius=600)
 
 	# If we have extracted a circle, draw an outline
 	# Need to paint all circles
     if circles is not None:
         print (circles)
         circles = np.round(circles[0, :]).astype("int")
-        cv2.circle(output_frame, center=(circles[0, 0], circles[0, 1]), radius=circles[0, 2], color=(0, 255, 0), thickness=2)
-
+        i = 0
+        for circle in circles:
+            
+            cv2.circle(output_frame, center=(circles[i, 0], circles[i, 1]), radius=circles[i, 2], color=(0, 255, 0), thickness=20)
+            i += 1
     # Display the resulting frame, quit with q
     cv2.imshow('frame', output_frame)
     cv2.imshow('edges', edges)

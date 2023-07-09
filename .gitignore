@@ -9,3 +9,4 @@
 .vscode
 .pytest_cache
 sonar/examples/**/*.txt
+*.MOV
