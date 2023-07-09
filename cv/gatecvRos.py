@@ -4,8 +4,8 @@ import time
 import sys
 import math
 import signal
-import mavros_msg.msg
-import mavros_msg.srv
+import mavros_msgs.msg
+import mavros_msgs.srv
 import rospy
 from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
