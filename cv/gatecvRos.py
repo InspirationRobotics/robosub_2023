@@ -4,9 +4,10 @@ import time
 import sys
 import math
 import signal
-
+import mavros_msg.msg
+import mavros_msg.srv
 import rospy
-from std_msgs.msg import int32
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
