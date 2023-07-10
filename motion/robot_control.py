@@ -26,6 +26,9 @@ class RobotControl():
         self.thread_compass.start()
         print("RC Lib Initialized")
 
+        # stores previously set depth
+        self.previous_depth = 0.0
+
     # Constantly loop for checking compass values from /auv/devices/compass
     def get_compass(self):
         print("get compass running..")
@@ -52,6 +55,7 @@ class RobotControl():
             self.pubDepth.publish(depth) # publishing depth values to /auv/devices/setDepth where it will depth hold to given value
             time.sleep(0.1)
         print("successfully set depth")
+        self.previous_depth = d
 
     # abstract function for sending pwms to thrusters
     def movement(self, **array):
