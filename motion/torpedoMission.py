@@ -134,7 +134,7 @@ while(torpedo1 or torpedo2 == True):
     time.sleep(1)
 
     # Conditions to shoot torpedo
-    if (dist > 270 and dist < 300) and (x > 220 and x < 270)
+    if (dist > 270 and dist < 300) and (x > 220 and x < 270):
         if(torpedo1):
             print("Shooting torpedo 1")
             servo.torpedoLauncher(1) # shoots first torpedo
