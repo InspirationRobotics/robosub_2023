@@ -28,7 +28,7 @@ rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward)
 
 #cap = cv2.VideoCapture(1)
 # cap = cv2.VideoCapture(0)
-cap = forwardVideo
+#cap = forwardVideo
 
 sensitivity1 = 10           # Higher will 
 sensitivity2 = 100
@@ -39,7 +39,7 @@ lastMove = -1           # None = -1, CCW = 1, CW = 2, FWD = 3,
 torpedo1 = True # default torpedoes values are either loaded or unloaded
 torpedo2 = True
 
-rc = RobotControl()
+#rc = RobotControl()
 
 param1 = 1
 param2 = 325  # Higher is less lines in edges # Lower is More lines in edges
@@ -52,7 +52,7 @@ param2 = 325  # Higher is less lines in edges # Lower is More lines in edges
 
 while(torpedo1 or torpedo2 == True):
     # Capture frame-by-frame
-    ret, captured_frame = cap.read()
+    captured_frame = forwardVideo
     #output_frame = captured_frame.copy()
     output_frame = captured_frame
 
