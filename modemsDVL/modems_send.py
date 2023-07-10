@@ -1,9 +1,9 @@
 import time
 import serial
 
-# configure the serial connections (the parameters differs on the device you are connecting to)
+# configure the serial connections (the parameters differs on the device you are connecting to, need to update for graey and onyx so it works)
 ser = serial.Serial(
-	port='/dev/ttyUSB1',
+	port='/dev/ttyUSB0',
 	baudrate=9600,
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
