@@ -11,7 +11,7 @@ br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoOutput0', Image,queue_size=10)
 global forwardVideo
 forwardVideo = None
-rospy.init_node("MarkerCV", anonymous=True)
+#rospy.init_node("MarkerCV", anonymous=True)
 rospy.Rate(30)
 
 def callbackForward(msg):
