@@ -3,7 +3,7 @@ import cv2
 from robot_control import RobotControl
 import time
 import os
-from motion import servos as servo
+import servos as servo
 
 import sys
 #from robot_control import RobotControl
