@@ -99,7 +99,8 @@ while frame is None:
 # initialize some variables
 memory_edges = np.zeros_like(frame)
 memory_error = []
-memory_length = 60
+memory_length = 30
+sensivity = 2.0
 Done = False
 
 # start by going up to enlarge the range of the camera
@@ -126,8 +127,8 @@ while not Done:
         # strafe left/right and up/down
         # small adjustments to make sure the sub is centered
         rc.movement(
-            lateral=x_error,
-            forward=y_error,
+            lateral=x_error * sensivity,
+            forward=y_error * sensivity,
         )
 
         # append the error to the memory
