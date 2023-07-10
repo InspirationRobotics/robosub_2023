@@ -1,5 +1,5 @@
-from rosHelper.rospyHandler import RosHandler
-from rosHelper.topicService import TopicService
+from rospyHandler import RosHandler
+from topicService import TopicService
 
 import mavros_msgs.msg
 import mavros_msgs.srv
@@ -270,7 +270,7 @@ def main():
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_ALTHOLD)
+    auv.change_mode(MODE_MANUAL)
     auv.calibrateDepth()
     time.sleep(2)
     while not auv.armed:

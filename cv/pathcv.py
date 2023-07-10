@@ -46,6 +46,7 @@ kill = True
 while not rospy.is_shutdown():
     try:
         frame = forwardVideo
+        #print(frame)
         #frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
         L_limit=np.array([8, 100, 100]) 
@@ -105,17 +106,22 @@ while not rospy.is_shutdown():
             cv2.line(frame,(cols-1,righty),(0,lefty),(0,255,0),2)
             cv2.line(frame,(righty,cols-1),(lefty, 0),(0,255,0),2)
             slope = (lefty-righty)/(0-(cols-1))
-            slope = -1/slope
+            print(slope)
+            if(slope == 0):
+                slope = slope
+            
+            else:
+                slope = -1/slope
             #cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
             if(-20 < slope < 0):
                 print("yaw clockwise")
                 a = 18*[1500]
-                a[3] = 1525
+                a[3] = 1550
             elif (0 < slope < 20):
                 print("yaw counter-clockwise")
                 a = 18*[1500]
-                a[3] = 1475
-            elif:
+                a[3] = 1450
+            elif(slope == 0):
                 #strafe left or right to align
                 print("strafing now")
                 #range = [(width/2)-200, (width/2)+200]
@@ -125,8 +131,8 @@ while not rospy.is_shutdown():
                 #    a[5] = 1580
                 #elif(range[1] < (cols-1)):
                   #  print("strafe left")
-                 #   a = 18*[1500]
-                   # a[5] = 1420
+                a = 18*[1500]
+                a[4] = 1550
                 #else:
                  #   print("aligned, go forward")
                 #a = 18*[1500]
@@ -135,6 +141,7 @@ while not rospy.is_shutdown():
             
             pwm = mavros_msgs.msg.OverrideRCIn()
             pwm.channels = a
+            print(a)
             pubThrusters.publish(pwm)
         
    

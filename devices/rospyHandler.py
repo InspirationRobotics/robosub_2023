@@ -1,5 +1,5 @@
 import rospy
-from rosHelper.topicService import TopicService
+from topicService import TopicService
 
 
 class RosHandler:
