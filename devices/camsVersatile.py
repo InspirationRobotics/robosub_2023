@@ -12,8 +12,8 @@ import threading
 import platform
 #print(os.getcwd())
 #sys.path.insert(0, '/cams')
-from camsHelper import findCam
-import pyfakewebcam as pyfakewebcam
+from cams.camsHelper import findCam
+import cams.pyfakewebcam as pyfakewebcam
 
 
 if sys.version_info[0] == 3:
