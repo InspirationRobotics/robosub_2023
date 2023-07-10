@@ -3,10 +3,32 @@ import cv2
 from robot_control import RobotControl
 import time
 import os
-from motion import servos as servo
+import servos as servo
+
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
+br = CvBridge()
+pubForward = rospy.Publisher('/auv/camera/videoOutput0', Image,queue_size=10)
+global forwardVideo
+forwardVideo = None
+rospy.init_node("TorpedoCV", anonymous=True)
+rospy.Rate(30)
+
+def callbackForward(msg):
+        global forwardVideo
+        try:
+            forwardVideo = br.imgmsg_to_cv2(msg)
+        except Exception as e:
+            print("Forward Output Error, make sure running in Python2")
+            print(e)
+
+rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward)
 
 #cap = cv2.VideoCapture(1)
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+#cap = forwardVideo
 
 sensitivity1 = 10           # Higher will 
 sensitivity2 = 100
@@ -17,7 +39,7 @@ lastMove = -1           # None = -1, CCW = 1, CW = 2, FWD = 3,
 torpedo1 = True # default torpedoes values are either loaded or unloaded
 torpedo2 = True
 
-rc = RobotControl()
+#rc = RobotControl()
 
 param1 = 1
 param2 = 325  # Higher is less lines in edges # Lower is More lines in edges
@@ -30,7 +52,12 @@ param2 = 325  # Higher is less lines in edges # Lower is More lines in edges
 
 while(torpedo1 or torpedo2 == True):
     # Capture frame-by-frame
-    ret, captured_frame = cap.read()
+    captured_frame = forwardVideo
+
+    if captured_frame is None:
+        time.sleep(0.1)
+        continue
+
     #output_frame = captured_frame.copy()
     output_frame = captured_frame
 
@@ -76,27 +103,27 @@ while(torpedo1 or torpedo2 == True):
     # Horizontal adjustment on x variable
     if (x < 220 and lostSight < 10):   # Target is on the left side and need to rotate CCW
         if(dist < 250):  # need to rotate CW
-            rc.setHeading(rc.get_compass - 10)
+            #rc.setHeading(rc.get_compass - 10)
             lastMove = 1
             print("Turning CCW")
 
         if(dist > 250):
             # Strafe right
-            rc.lateralUni(-0.5, 0.5)
+            #rc.lateralUni(-0.5, 0.5)
             print("Strafe left")
 
 
     if (x > 280 and lostSight < 10):   # Target is on the right
             if(dist < 250):  # need to rotate CW
-                rc.setHeading(rc.get_compass + 10)
+                #rc.setHeading(rc.get_compass + 10)
                 lastMove = 2
                 print("Turning CW")
 
             if(dist > 250):
                 # Strafe right
-                rc.lateralUni(0.5, 0.5)
+                #rc.lateralUni(0.5, 0.5)
                 print("Strafe right")
-                rc.setHeading(rc.get_compass + 10)
+                #rc.setHeading(rc.get_compass + 10)
                 lastMove = 2
                 print("Turning CW")
 
@@ -104,10 +131,10 @@ while(torpedo1 or torpedo2 == True):
     if(lostSight):
         print("lost sight")
         if(lastMove == 1):
-            rc.setHeading(rc.get_compass + 2.5)
+            #rc.setHeading(rc.get_compass + 2.5)
             print("Lost - goingt CW")
         if(lastMove == 2):
-            rc.setHeading(rc.get_compass - 2.5)
+            #rc.setHeading(rc.get_compass - 2.5)
             print("Lost - going CCW")
             
 
@@ -120,13 +147,13 @@ while(torpedo1 or torpedo2 == True):
         # TODO
 
     if(dist < 270): # Need to move forward
-        rc.forwardDist(0.5, 1) 
+        #rc.forwardDist(0.5, 1) 
         print("Forward")
 
 
 
     if(dist > 300): # Need to move backwards
-        rc.forwardHeadingUni(-0.5, 1)
+        #rc.forwardHeadingUni(-0.5, 1)
         print("Backward")
 
 
