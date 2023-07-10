@@ -1,16 +1,20 @@
+#from __future__ import relative_import
 import cv2
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import os
 import time
-import cams.pyfakewebcam as pyfakewebcam
+import sys
 import numpy as np
 import signal
 import threading
 import platform
-from cams.camsHelper import findCam
-import sys
+#print(os.getcwd())
+#sys.path.insert(0, '/cams')
+from camsHelper import findCam
+import pyfakewebcam as pyfakewebcam
+
 
 if sys.version_info[0] == 3:
     #python3 meaning oak-d

@@ -14,7 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 # initializing publisher, will output cv image here
 br = CvBridge()
 
-camPub = rospy.Publisher('/auv/camera/videoOutput0', Image , queue_size=10)
+camPub = rospy.Publisher('/auv/camera/videoUSBOutput1', Image , queue_size=10)
 navPub = rospy.Publisher('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
 
 global forwardVideo
@@ -31,10 +31,11 @@ def callbackForward(msg):
             print("Forward Output Error, make sure running in Python2")
             print(e)
 
-rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward) # subscribing here
+rospy.Subscriber("/auv/camera/videoUSBRaw1",Image,callbackForward) # subscribing here
 
 def navigationPublishing(pwm):
-    navPub.publish(pwm)
+    #navPub.publish(pwm)
+    print(pwm)
 
 def onExit(signum, frame):
     try:
@@ -55,9 +56,10 @@ def putText(pic, x, y, text):
 while not rospy.is_shutdown():
     try:
         frame = forwardVideo
+        f = frame
         signal.signal(signal.SIGINT, onExit)
         # if frame is read correctly ret is True
-        frame = cv.resize(frame,(480, 270))
+        #frame = cv.resize(frame,(480, 270))
 
         frame = cv.GaussianBlur(frame, (7,7), 0)
 
@@ -170,7 +172,7 @@ while not rospy.is_shutdown():
             for i in range(270):
                 redLegs[i][int(sum/len(legs))] = [255,255,255]
                 redLegs[i][240] = [255,255,0]
-            angleVal = 90-round(math.acos(((sum/len(legs))-240)*math.cos(90-69/2)/240)*180/math.pi)
+            angleVal = 90-round(math.acos(((sum/len(legs))-320)*math.cos(90-69/2)/240)*180/math.pi)
             redLegs = cv.putText(redLegs,str(angleVal),(int(sum/len(legs)),50),cv.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2,cv.LINE_AA)
 
         if slope < 0:
@@ -186,12 +188,12 @@ while not rospy.is_shutdown():
         else:
             putText(redLegs,250, 250, 'GG' )
             
-            if mid > 240:
+            if mid > 320:
                 putText(redLegs, 250, 300, 'strafe left')
                 print('strafe left')
                 a = 18*[1500]
                 a[5] = 1420                
-            elif mid < 240:
+            elif mid < 320:
                 putText(redLegs, 250, 300, 'strafe right')
                 print("strafe right")
                 a = 18*[1500]
@@ -204,7 +206,7 @@ while not rospy.is_shutdown():
         
         print("a: " + str(a))
         
-        camPub.publish(br.cv2_to_imgmsg(frame)) #publishes processed images
+        camPub.publish(br.cv2_to_imgmsg(f)) #publishes processed images
 
             #navPub.publish(angleVal) #publishes the thing to the thing (this probably won't work rn)
 
