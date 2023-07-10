@@ -24,14 +24,16 @@ Pix_standalone- most important script in the repo, controlls most everything for
 
 subcribes all to all of the 
 
-auv/devices/compass 
-auv/devices/setDepth # PID control custom depth
+``` auv/devices/compass ``` 
+
+
+``` auv/devices/setDepth ``` # PID control custom depth
 
 Motion - second most important folder
 
 "robot_control.py" 
 
-# getting current heading of the compass, reads data from the pixahawk, mavros is the ros interface with the pixahawk
-rostopic echo /mavros/global_position/compass_hdg
+getting current heading of the compass, reads data from the pixahawk, mavros is the ros interface with the pixahawk
+``` rostopic echo /mavros/global_position/compass_hdg ```
 
 utilzie the motion folder, for the mission runs
