@@ -53,6 +53,11 @@ param2 = 325  # Higher is less lines in edges # Lower is More lines in edges
 while(torpedo1 or torpedo2 == True):
     # Capture frame-by-frame
     captured_frame = forwardVideo
+
+    if captured_frame is None:
+        time.sleep(0.1)
+        continue
+
     #output_frame = captured_frame.copy()
     output_frame = captured_frame
 
