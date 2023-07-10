@@ -10,11 +10,11 @@ class Ping360(brping.Ping360):
     sample_period_tick_duration = 25e-9  # seconds
 
     min_transmit_duration = 5
-    max_transmit_duration = 500
+    max_transmit_duration = 200
     max_duration_ratio = 64e6
 
     max_samples = 1000
-    min_sample_period = 200
+    min_sample_period = 400
 
     def __init__(
         self,

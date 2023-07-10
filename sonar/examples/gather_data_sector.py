@@ -48,7 +48,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 step_angle = 1
-max_range = 10
+max_range = 20
 
 # Create a Ping360 object and connect to the Ping360
 p = Ping360(
