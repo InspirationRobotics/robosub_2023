@@ -8,9 +8,9 @@ import servos as servo
 
 
 
-servo.torpedoLauncher(1) # shoots first torpedo
+servo.torpedo(1) # shoots first torpedo
 torpedo1 = False  
 time.sleep(1)
-servo.torpedoLauncher(2) # shoots second torpedo
+servo.torpedo(2) # shoots second torpedo
 torpedo2 = False
 time.sleep(1)
