@@ -3,6 +3,9 @@ import cv2
 import time
 import sys
 import signal
+import mavros_msgs.msg
+import mavros_msgs.srv
+
 #from robot_control import RobotControl
 import rospy
 from sensor_msgs.msg import Image
@@ -12,6 +15,7 @@ from cv_bridge import CvBridge, CvBridgeError
 br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoUSBOutput1', Image,queue_size=10)
 global forwardVideo
+pubThrusters = rospy.Publisher('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
 forwardVideo = None
 rospy.init_node("CV", anonymous=True)
 rospy.Rate(30)
@@ -42,13 +46,15 @@ kill = True
 while not rospy.is_shutdown():
     try:
         frame = forwardVideo
+        #frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
         L_limit=np.array([8, 100, 100]) 
         U_limit=np.array([50, 255, 255]) 
         signal.signal(signal.SIGINT, onExit)
         # L_limit=np.array([5, 25, 50]) 
         # U_limit=np.array([30, 255, 255]) 
-    
+        #L_limit = np.array([8, 100, 100])
+        #U_limit = np.array([60, 255, 255])
         # for more range
         # L_limit = np.array([3, 25, 20])
         # U_limit = np.array([50, 255, 255])
@@ -99,33 +105,40 @@ while not rospy.is_shutdown():
             cv2.line(frame,(cols-1,righty),(0,lefty),(0,255,0),2)
             cv2.line(frame,(righty,cols-1),(lefty, 0),(0,255,0),2)
             slope = (lefty-righty)/(0-(cols-1))
-            pslope = -1/slope
-            if(pslope < 0.01):
-                print("yaw counter-clockwise")
-                a = 18*[1500]
-                a[3] = 1450
-            elif (pslope > 0.01):
+            slope = -1/slope
+            #cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+            if(-20 < slope < 0):
                 print("yaw clockwise")
                 a = 18*[1500]
-                a[3] = 1550
-            else:
+                a[3] = 1525
+            elif (0 < slope < 20):
+                print("yaw counter-clockwise")
+                a = 18*[1500]
+                a[3] = 1475
+            elif:
                 #strafe left or right to align
-                range = [(width/2)-20, (width/2)+20]
-                if(range[0] > (cols-1)):
-                    print("strafe right")
-                    a = 18*[1500]
-                    a[5] = 1580
-                elif(range[1] < (cols-1)):
-                    print("strafe left")
-                    a = 18*[1500]
-                    a[5] = 1420
-                else:
-                    print("aligned, go forward")
-                    a = 18*[1500]
-                    a[4] = 1660
+                print("strafing now")
+                #range = [(width/2)-200, (width/2)+200]
+                #if(range[0] > (cols-1)):
+                #    print("strafe right")
+                #    a = 18*[1500]
+                #    a[5] = 1580
+                #elif(range[1] < (cols-1)):
+                  #  print("strafe left")
+                 #   a = 18*[1500]
+                   # a[5] = 1420
+                #else:
+                 #   print("aligned, go forward")
+                #a = 18*[1500]
+                #a[4] = 1550
     
-            print(a)
             
+            pwm = mavros_msgs.msg.OverrideRCIn()
+            pwm.channels = a
+            pubThrusters.publish(pwm)
+        
+   
+        #frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         pubForward.publish(br.cv2_to_imgmsg(frame))
         if cv2.waitKey(10) & 0xFF == ord('q'):
             cap.release()
