@@ -71,7 +71,7 @@ def get_error(center_x, center_y, shape):
 # initialize ROS subscribers and publishers
 rc = RobotControl()
 br = CvBridge()
-pubDown = rospy.Publisher("/auv/camera/videoOutput1", Image, queue_size=10)
+pubDown = rospy.Publisher("/auv/camera/videoUSBOutput1", Image, queue_size=10)
 global downVideo
 downVideo = None
 rospy.init_node("SurfacingCV", anonymous=True)
@@ -87,7 +87,7 @@ def callbackDown(msg):
         print(e)
 
 
-rospy.Subscriber("/auv/camera/videoRaw1", Image, callbackDown)
+rospy.Subscriber("/auv/camera/videoUSBRaw1", Image, callbackDown)
 
 # a small loop to wait for video input
 frame = None
@@ -161,7 +161,7 @@ while not Done:
 
 if Done:
     logging.warning("Surfacing mission succeeded, going to the surface")
-    rc.setDepth(0.0)
+    os.system("python3 /home/inspiration/auv/devices/disarm.py")
 else:
     logging.warning("Surfacing mission failed, going back to previous depth")
     rc.setDepth(previous_depth)
