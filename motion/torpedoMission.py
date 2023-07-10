@@ -5,21 +5,17 @@ import time
 import os
 import servos as servo
 
-import sys
-#from robot_control import RobotControl
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-# initializing publisher, will output cv image here
 br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoOutput0', Image,queue_size=10)
 global forwardVideo
 forwardVideo = None
-rospy.init_node("CV", anonymous=True)
+rospy.init_node("MarkerCV", anonymous=True)
 rospy.Rate(30)
 
-# initializing subscriber and callback to retrieve video feed, assigning to forwardVideo 
 def callbackForward(msg):
         global forwardVideo
         try:
@@ -28,10 +24,11 @@ def callbackForward(msg):
             print("Forward Output Error, make sure running in Python2")
             print(e)
 
-rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward) # subscribing here
+rospy.Subscriber("/auv/camera/videoRaw0",Image,callbackForward)
 
 #cap = cv2.VideoCapture(1)
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+cap = forwardVideo
 
 sensitivity1 = 10           # Higher will 
 sensitivity2 = 100
