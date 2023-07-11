@@ -1,4 +1,4 @@
-from __future__ import relative_import
+#from __future__ import relative_import
 
 import os
 import platform

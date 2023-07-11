@@ -3,7 +3,7 @@ import os
 #onyx = ["platform-3610000.xhci-usb-0:2.1.4:1.0"]
 #grey = ["platform-70090000.xusb-usb-0:2.2:1.0","platform-70090000.xusb-usb-0:2.1.1:1.0"]
 def findCam(ids):
-    bash = os.popen('bash /home/inspiration/auv/devices/cams/camsLink.sh').read()
+    bash = os.popen('bash /home/inspiration/auv/auv/device/cams/camsLink.sh').read()
     bash = bash.split("\n")
     result = []
     for id in enumerate(ids):

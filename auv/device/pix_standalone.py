@@ -270,7 +270,7 @@ def main():
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_ALTHOLD)
+    auv.change_mode(MODE_MANUAL)
     auv.calibrateDepth()
     time.sleep(2)
     while not auv.armed:
