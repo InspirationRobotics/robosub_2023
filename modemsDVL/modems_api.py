@@ -2,8 +2,15 @@ import time
 import serial
 import os
 import threading
+import platform
 
-modemsPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.3.4:1.0').read().replace("\n", "")
+if("nx" in platform.node()):
+    id = "platform-3610000.xhci-usb-0:2.3.4:1.0"
+else:
+    id = "platform-70090000.xusb-usb-0:2.1:1.0"
+
+
+modemsPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py '+id).read().replace("\n", "")
 
 # configure the serial connections
 ser = serial.Serial(
@@ -119,7 +126,7 @@ class Modem():
 
 modem = Modem()
 
-#modem.transmit("Hello World!")
+modem.transmit("Hello World!")
 #modem.startReceive()
 #while True:
 #    pass
