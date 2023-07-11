@@ -12,9 +12,12 @@ try:
     from cv_bridge import CvBridge, CvBridgeError
     from sensor_msgs.msg import Image
     from std_msgs.msg import Float32MultiArray
+
+    ROS = True
 except ImportError:
     # if you are not on the auv, you can still run this file
     # but you won't be able to use the ROS stuff
+    ROS = False
     pass
 
 logger = logging.getLogger(__name__)
@@ -55,7 +58,7 @@ def get_octogon_center(self):
 
     # draw contours
     self.frame = cv2.drawContours(self.frame, contours, -1, (0, 255, 0), 2)
-    self.frame = cv2.drawContours(frame, [largest_contour], -1, (0, 255, 255), 2)
+    self.frame = cv2.drawContours(self.frame, [largest_contour], -1, (0, 255, 255), 2)
 
     # find the center of the contour
     M = cv2.moments(largest_contour)
@@ -65,7 +68,7 @@ def get_octogon_center(self):
 
     x_center = int(M["m10"] / M["m00"])
     y_center = int(M["m01"] / M["m00"])
-    self.frame = cv2.circle(frame, (x_center, y_center), 5, (0, 0, 255), -1)
+    self.frame = cv2.circle(self.frame, (x_center, y_center), 5, (0, 0, 255), -1)
     return (x_center, y_center)
 
 
@@ -89,18 +92,21 @@ class SurfacingCV:
         self.next_frame = None
         self.memory_edges = None
 
-        # Create a bridge to convert ROS Image format to OpenCV
-        self.bridge = CvBridge()
+        if ROS:
+            # Create a bridge to convert ROS Image format to OpenCV
+            self.bridge = CvBridge()
 
-        # Create a node
-        rospy.init_node("surfacing_cv", anonymous=True)
+            # Create a node
+            rospy.init_node("surfacing_cv", anonymous=True)
 
-        # Create a subscriber to get the frames from the camera
-        self.sub = rospy.Subscriber("/auv/camera/videoUSBRaw1", Image, self.callback)
-        # Create a publisher to publish back a vizualization of the CV
-        self.pub_cv = rospy.Publisher("/auv/camera/videoUSBOutput1", Image)
-        # Create a publisher to publish the result of the CV
-        self.pub = rospy.Publisher("/auv/cv/surfacing", Float32MultiArray)
+            # Create a subscriber to get the frames from the camera
+            self.sub = rospy.Subscriber(
+                "/auv/camera/videoUSBRaw1", Image, self.callback
+            )
+            # Create a publisher to publish back a vizualization of the CV
+            self.pub_cv = rospy.Publisher("/auv/camera/videoUSBOutput1", Image)
+            # Create a publisher to publish the result of the CV
+            self.pub = rospy.Publisher("/auv/cv/surfacing", Float32MultiArray)
 
         logger.info("Surfacing CV init")
 
@@ -143,7 +149,24 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.cv.template"
 
     # Create a CV object with arguments
-    cv = TemplateCV(arg1="value1", arg2="value2")
+    cv = SurfacingCV()
 
-    # run the center detection
-    get_octogon_center(cv)
+    cap = cv2.VideoCapture("testing_data\\octogon.mp4")
+    cv.memory_edges = np.zeros((640, 480, 1), dtype=np.uint8)
+
+    while True:
+        ret, img = cap.read()
+        if not ret:
+            break
+
+        # set the frame
+        img = cv2.resize(img, (480, 640))
+        cv.frame = img
+
+        # run the center detection
+        get_octogon_center(cv)
+
+        # show the result
+        cv2.imshow("frame", cv.frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
