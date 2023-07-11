@@ -5,7 +5,8 @@ import numpy as np
 class Obstacle:
     """Stores information about an obstacle detected by the sonar"""
 
-    def __init__(self, points: np.array):
+    def __init__(self, points):
+        # type: (np.ndarray) -> None
         self.points = points
         self.center = np.mean(points, axis=0)[0]
 
@@ -17,7 +18,7 @@ class Obstacle:
         self.perimeter = cv2.arcLength(points, True)
 
     def __repr__(self):
-        return f"Obstacle({self.center}, {self.size})"
+        return "Obstacle({}, {})".format(self.distance, self.angle)
 
 def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
     """
@@ -40,7 +41,7 @@ def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
         y = int(angle)
 
         # cv2.circle(img, (x, y), thickness, value, -1)
-        img[y : y + step_angle, x : round(x + x_factor)] = value
+        img[y : y + step_angle, x : int(round(x + x_factor))] = value
 
     return img
 
@@ -117,7 +118,8 @@ def render_obstacles(img, obstacles):
     return img
 
 
-def object_detection(img: np.array, threshold=60):
+def object_detection(img, threshold=60):
+    # type: (np.array, int) -> list[Obstacle]
     if img is None:
         return []
 

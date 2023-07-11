@@ -93,7 +93,7 @@ while True:
         cv2.imwrite(str(imcount) + "_cart.png", cartesian)
         cv2.imwrite(str(imcount) + "_polar.png", img)
 
-        logging.info(f"Full scan complete in {end_time - start_time} seconds")
+        logging.info("Full scan complete in {} seconds".format(end_time - start_time))
 
         imcount += 1
 

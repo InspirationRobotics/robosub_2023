@@ -22,7 +22,7 @@ argparser.add_argument(
 
 args = argparser.parse_args()
 
-RTSP_URL = f"rtsp://{args.host}/test"
+RTSP_URL = "rtsp://{}/test".format(args.host)
 # H265 codec
 cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)

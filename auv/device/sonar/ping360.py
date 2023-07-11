@@ -58,7 +58,7 @@ class Ping360(brping.Ping360):
         self.set_max_range(max_range)
         self.set_gain_setting(gain)
 
-        logger.debug(f"Ping360 initialized")
+        logger.debug("Ping360 initialized")
 
     def set_scan_mode(self, scan_mode):
         if scan_mode != 0 and scan_mode != 1:
@@ -73,7 +73,7 @@ class Ping360(brping.Ping360):
             or angle_range[1] > 399
             or angle_range[0] > angle_range[1]
         ):
-            raise ValueError(f"invalid angle range: {angle_range}")
+            raise ValueError("invalid angle range: {}".format(angle_range))
 
         self._angle_range = (angle_range[0] % 400, angle_range[1] % 400)
         self._angle = self._angle_range[0]
@@ -81,7 +81,7 @@ class Ping360(brping.Ping360):
 
     def set_angle_step(self, angle_step):
         if angle_step < 1 or angle_step > 20:
-            raise ValueError(f"invalid angle step: {angle_step}")
+            raise ValueError("invalid angle step: {}".format(angle_step))
 
         self._angle_step = angle_step
         self._increment = angle_step
@@ -97,7 +97,7 @@ class Ping360(brping.Ping360):
             int: distance set
         """
         if max_range < 1 or max_range > 50:
-            raise ValueError(f"invalid distance: {max_range}")
+            raise ValueError("invalid max range: {}".format(max_range))
 
         self._max_range = max_range
         self._number_of_samples = int(

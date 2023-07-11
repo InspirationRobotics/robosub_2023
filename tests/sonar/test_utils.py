@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from sonar import utils
+from auv.device.sonar import utils
 
 
 def test_draw_polar():
