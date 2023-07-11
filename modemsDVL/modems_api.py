@@ -124,9 +124,9 @@ class Modem():
     def stopReceive(self):
         self.receiveActive = False
 
-modem = Modem()
+#modem = Modem()
 
-modem.transmit("Hello World!")
+#modem.transmit("Hello World!")
 #modem.startReceive()
 #while True:
 #    pass

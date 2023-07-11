@@ -6,7 +6,7 @@ import sys
 
 import numpy as np
 #import pyfakewebcam.v4l2 as _v4l2
-import v4l2 as _v4l2
+import cams.v4l2 as _v4l2
 
 cv2_imported = False
 try:

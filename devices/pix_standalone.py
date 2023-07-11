@@ -43,7 +43,7 @@ class AUV(RosHandler):
         self.limNeu = [200,1475] #grey
         if("nx" in platform.node()):
             self.sub  = False #onyx
-            self.limNeu = [300,1450] #onyx
+            self.limNeu = [300,1480] #onyx
         self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.65) #in meters
         self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
 
@@ -270,7 +270,7 @@ def main():
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_MANUAL)
+    auv.change_mode(MODE_ALTHOLD)
     auv.calibrateDepth()
     time.sleep(2)
     while not auv.armed:
