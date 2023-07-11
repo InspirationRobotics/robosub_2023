@@ -7,7 +7,6 @@ import os
 
 import cv2
 import numpy as np
-import rtsp
 
 logging.basicConfig(level=logging.INFO)
 
