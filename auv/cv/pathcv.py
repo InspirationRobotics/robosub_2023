@@ -6,7 +6,6 @@ import signal
 import mavros_msgs.msg
 import mavros_msgs.srv
 
-#from robot_control import RobotControl
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError

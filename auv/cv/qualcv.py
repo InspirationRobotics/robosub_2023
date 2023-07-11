@@ -1,11 +1,11 @@
-import numpy as np
-import cv2
-import time
 import sys
-#from robot_control import RobotControl
+import time
+
+import cv2
+import numpy as np
 import rospy
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
 
 # initializing publisher, will output cv image here
 br = CvBridge()

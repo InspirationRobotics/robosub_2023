@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import time
 import sys
-#from robot_control import RobotControl
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError

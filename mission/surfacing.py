@@ -8,7 +8,7 @@ import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
-from robot_control import RobotControl
+from auv.motion.robot_control import RobotControl
 
 logging.basicConfig(level=logging.DEBUG)
 
