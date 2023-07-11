@@ -1,5 +1,6 @@
 from ..utils.rospyHandler import RosHandler
 from ..utils.topicService import TopicService
+from . import statusLed
 
 import mavros_msgs.msg
 import mavros_msgs.srv
@@ -18,7 +19,6 @@ from simple_pid import PID
 
 import threading
 from statistics import mean
-import statusLed
 
 MODE_MANUAL = "MANUAL"
 MODE_STABILIZE = "STABILIZE"

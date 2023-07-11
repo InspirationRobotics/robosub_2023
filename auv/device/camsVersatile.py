@@ -55,7 +55,7 @@ if "nx" in platform.node():
     oakAmt = len(oaks)
     print(oaks)
 else:
-    ogDev = findCam(grey)
+    ogDev = camsHelper.findCam(grey)
     oakAmt = 0
 camAmt = len(ogDev)
 print(ogDev)
