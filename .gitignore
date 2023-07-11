@@ -1,7 +1,25 @@
-devices/__pycache__
-motion/__pycache__
+# images and videos
 *.mp4
+*.MOV
+*.png
+*.jpg
+*.jpeg
+
+# logs
+*.log
+*.csv
+*.txt
+
+# swap, pycache and egg-info
 *.pyc
 *.swp
+*__pycache__
+*.egg-info
+
+# IDE
 *.save
 *.DS_Store
+.vscode
+
+# pytest
+.pytest_cache
