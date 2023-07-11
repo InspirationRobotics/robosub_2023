@@ -1,20 +1,21 @@
 import time
 import serial
+import os
 
 #to send commands to DVL based off documentation, type "break" first
 #to start pings send "CS"
 
+dvlPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.3.1:1.0').read().replace("\n", "")
+
 # configure the serial params for the DVL
 ser = serial.Serial(
-	port='/dev/ttyUSB0', #platform-3610000.xhci-usb-0:2.3.1:1.0
+	port=dvlPort, #platform-3610000.xhci-usb-0:2.3.1:1.0
 	baudrate=115200, #default is 9600 but DVL is set to 115200
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
 	bytesize=serial.EIGHTBITS
 )
 
-#ser.close()
-#ser.open()
 ser.isOpen()
 
 print('Enter your commands below.\r\nInsert "exit" to leave the application.')
