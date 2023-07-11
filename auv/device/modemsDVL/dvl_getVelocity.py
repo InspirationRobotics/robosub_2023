@@ -1,10 +1,12 @@
 import time
 import serial
 import signal
+import os
 
+dvlPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.3.1:1.0').read().replace("\n", "")
 
 ser = serial.Serial(
-	port='/dev/ttyUSB0',
+	port=dvlPort,
 	baudrate=115200,
 	parity=serial.PARITY_NONE,
 	stopbits=serial.STOPBITS_ONE,
@@ -65,9 +67,9 @@ while (state):
 		try:
 			rawOut = out.decode("utf-8")
 			packet = createPacket(out)
-			print(packet)
+			#print(packet)
 			if(packet["isAUV_velocity_valid"]==True):
-				print(packet)
+				print(packet["AUV_velocity"])
 		except:
 			pass
 

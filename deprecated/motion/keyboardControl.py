@@ -8,7 +8,7 @@ servo = Servo()
 rc = RobotControl()
 time.sleep(1)
 
-rc.setDepth(0.65)
+rc.setDepth(0.35)
 
 forward = 0
 lateral = 0
