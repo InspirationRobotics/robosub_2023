@@ -42,6 +42,7 @@ python3 -m pip install -e .
 ```bash
 git clone git@github.com:InspirationRobotics/robosub_2023.git 
 mv robosub_2023 auv && cd auv
+python3 -m pip install -e .
 python2 -m pip install -e .
 ```
 
