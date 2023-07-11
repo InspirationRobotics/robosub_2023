@@ -1,12 +1,25 @@
+# images and videos
 *.mp4
+*.MOV
 *.png
+*.jpg
+*.jpeg
+
+# logs
+*.log
+*.csv
+*.txt
+
+# swap, pycache and egg-info
 *.pyc
 *.swp
-*.save
-*.egg-info
-*.DS_Store
 *__pycache__
+*.egg-info
+
+# IDE
+*.save
+*.DS_Store
 .vscode
+
+# pytest
 .pytest_cache
-sonar/examples/**/*.txt
-*.MOV

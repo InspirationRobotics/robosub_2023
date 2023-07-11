@@ -8,6 +8,7 @@
 import rospy
 from std_msgs.msg import String
 
+
 def current_pos_lat_callback(data):
     rospy.loginfo(data.data)
     # write what you will be doing with the callback function in a comment so we can keep track of what we are using
