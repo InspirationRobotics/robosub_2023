@@ -4,19 +4,29 @@ Template file to create a mission class
 
 # import what you need from within the package
 
+import json
 import logging
 
-from ..cv.template import TemplateCV
+import rospy
+from std_msgs.msg import String
 
 
 class TemplateMission:
-    def __init__(self, **kwargs):
+    def __init__(self, robot_control, **kwargs):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
-        kwargs is a dict containing the key arguments you give to the mission
+        kwargs is a dict containing the settings you give to the mission
         """
+        self.rc = robot_control
+
+        self.pub = rospy.Publisher("auv/cv_handler/cmd", String, queue_size=1)
+        self.sub = rospy.Subscriber("auv/cv_handler/output", String, self.callback)
         logging.info("Template mission init")
+
+    def callback(self, data):
+        """Callback for the cv_handler output"""
+        # TODO
 
     def run(self):
         """
@@ -27,9 +37,9 @@ class TemplateMission:
         logging.info("Template mission run")
         return True
 
-    def terminate(self):
+    def cleanup(self):
         """
-        Here should be all the code required to terminate the mission.
+        Here should be all the code required after the run fonction.
         This could be cleanup, saving data, closing files, etc.
         Return True if everything went well, False otherwise (ideally)
         """
@@ -42,11 +52,10 @@ if __name__ == "__main__":
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.mission.template"
     # You can also import it in a mission file outside of the package
-    
-    # Create a mission object with arguments
-    mission = TemplateMission(arg1="value1", arg2="value2")
-    # Run the mission
-    mission.run()
-    # Terminate the mission
-    mission.terminate()
 
+    # Create a mission object with arguments
+    # (usually you should pass the robot_control object to the mission)
+    mission = TemplateMission(None, arg1="value1", arg2="value2")
+
+    # run the mission
+    mission.run()

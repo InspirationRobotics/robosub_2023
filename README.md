@@ -70,13 +70,13 @@ robosub_2023
 │   │   ├── # TODO
 │   ├── mission 
 │   │   ├── # Mission classes
-│   │   ├── # see auv/mission/template.py for an example
+│   │   ├── # see auv/mission/template_mission.py for an example
 │   ├── motion
 │   │   ├── # Actuators code
 │   │   ├── # each actuator should have its own file/folder
 │   ├── cv
 │   │   ├── # All CV classes and functions
-│   │   ├── # see auv/cv/template.py for an example
+│   │   ├── # see auv/cv/template_cv.py for an example
 │   ├── utils
 │   │   ├── # utility functions
 ├── scripts

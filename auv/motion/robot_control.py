@@ -90,7 +90,6 @@ class RobotControl:
         yaw=None,
         pitch=None,
         roll=None,
-        depth=None,
     ):
         # provided an kwargs of values from -5 to 5 for each degree of freedom
         pwm = mavros_msgs.msg.OverrideRCIn()
