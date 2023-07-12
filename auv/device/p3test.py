@@ -144,3 +144,22 @@
 #     return dataPacket
 
 # print(createPacket(SA))
+
+# import json
+# import glob
+# folderPath = "/Users/eeshvij/Desktop/Code/robosub_2023/auv/device/cams/models/dhdModel/"
+# jsonFile = glob.glob(folderPath+"*.json")[0]
+# blobFile = glob.glob(folderPath+"*.blob")[0]
+# jsonFile = open(jsonFile)
+
+# data = json.load(jsonFile)
+
+# NN_params = data["nn_config"]["NN_specific_metadata"]
+
+# nnBlobPath = blobFile
+# classAmt = NN_params["classes"]
+# anchors = NN_params["anchors"]
+# anchorMasks = NN_params["anchor_masks"]
+# labelMap = data["mappings"]["labels"]
+
+# print(labelMap)
