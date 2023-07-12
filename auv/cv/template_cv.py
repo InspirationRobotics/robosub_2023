@@ -17,8 +17,8 @@ logger.setLevel(logging.INFO)
 
 class CV:
     """Template CV class, don't change the name of the class"""
+
     camera = "/auv/camera/videoUSBRaw0"
-    
 
     def __init__(self, **config):
         """
@@ -37,14 +37,14 @@ class CV:
         """
         logging.info("Template CV run")
 
-        return {"lateral": 0, "forward": 0}, self.frame
-
+        return {"lateral": 0, "forward": 0, "end": False}, self.frame
 
 
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.template"
+    logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV(arg1="value1", arg2="value2")

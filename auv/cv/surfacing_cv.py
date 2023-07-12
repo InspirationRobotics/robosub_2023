@@ -22,6 +22,9 @@ class CV:
 
         self.frame = None
         self.memory_edges = None
+        self.error_buffer = []
+
+        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 2.0)
 
         logger.info("Surfacing CV init")
 
@@ -68,10 +71,11 @@ class CV:
         self.frame = cv2.circle(self.frame, (x_center, y_center), 5, (0, 0, 255), -1)
         return (x_center, y_center)
 
-    def get_error(center_x, center_y, shape):
+    def get_error(self, center_x, center_y, shape):
         """Returns the error in x and y, normalized to the frame size."""
-        x_error = (center_x - shape[1] / 2) / (shape[1] / 2)
-        y_error = (center_y - shape[0] / 2) / (shape[0] / 2)
+        max_size = max(shape[0], shape[1]) / 2
+        x_error = (shape[1] / 2 - center_x) / max_size
+        y_error = (shape[0] / 2 - center_y) / max_size
         return (x_error, y_error)
 
     def run(self, frame):
@@ -80,31 +84,38 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         self.frame = frame
+        if self.memory_edges is None:
+            self.memory_edges = np.zeros((frame.shape[0], frame.shape[1], 1), dtype=np.uint8)
+
         (x_center, y_center) = self.get_octogon_center()
 
         if x_center is None or y_center is None:
-            return {}
+            return {}, self.frame
 
         (x_error, y_error) = self.get_error(x_center, y_center, self.frame.shape)
+        self.error_buffer.append((x_error, y_error))
+        if len(self.error_buffer) > 20:
+            self.error_buffer.pop(0)
 
-        return {"lateral": 0, "forward": 0}, self.frame
+        avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
+        if avg_error < 0.05:
+            return {"end": True}, self.frame
 
-    def terminate(self):
-        # Stop the node
-        rospy.signal_shutdown("End of CV surfacing")
-        logger.info("Surfacing CV terminate")
+        x_error *= self.surfacing_sensitivity
+        y_error *= self.surfacing_sensitivity
+        return {"lateral": x_error, "forward": y_error}, self.frame
 
 
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.template"
+    logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV()
 
     cap = cv2.VideoCapture("testing_data\\octogon.mp4")
-    cv.memory_edges = np.zeros((640, 480, 1), dtype=np.uint8)
 
     while True:
         ret, img = cap.read()
@@ -113,12 +124,12 @@ if __name__ == "__main__":
 
         # set the frame
         img = cv2.resize(img, (480, 640))
-        cv.frame = img
 
-        # run the center detection
-        get_octogon_center(cv)
+        # run the CV
+        result, img_viz = cv.run(img)
+        logger.info(result)
 
         # show the result
-        cv2.imshow("frame", cv.frame)
+        cv2.imshow("frame", img_viz)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
