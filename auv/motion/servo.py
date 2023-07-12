@@ -1,6 +1,7 @@
 import os
 import time
 import serial
+from ..utils.deviceHelper import findDevice
 
 #torpedo channel 2:
 #load: 2400
@@ -19,10 +20,11 @@ import serial
 
 class Servo:
 	def __init__(self):
-		self.USB = serial.Serial(port="/dev/ttyACM0")
+		self.USB = serial.Serial(port=findDevice("")) #need to find id
 		self.USB.isOpen()
 		self.gripState = True
 		self.torpedoState = 0
+		self.ballState=0
 		self.torpedo(0)
 		self.dropper(0)
 		print("Initialized...")
@@ -73,9 +75,10 @@ class Servo:
 		else:
 			print("Invalid Arg in [torpedoLauncher]")
 
-	def dropper(self, ball): #0,1,2 : load, drop 1, drop 2
+	def dropper(self, ball=-1): #0,1,2 : load, drop 1, drop 2
 		if ball==0: #load balls
 			self.setPwm(1, 1600)
+			self.ballState=0
 		elif ball==1: #Drop first ball
 			self.setPwm(1,1200) 
 		elif ball==2: #Drop second ball
@@ -84,5 +87,8 @@ class Servo:
 			self.setPwm(1,700)
 			time.sleep(1)
 			self.dropper(0) #resets to load position now that its empty
+		elif ball==-1:
+			self.ballState+=1
+			self.dropper(self.ballState)
 		else:
 			print("Invalid Arg in [dropper]")

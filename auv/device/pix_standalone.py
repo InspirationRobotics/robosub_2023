@@ -1,6 +1,6 @@
 from ..utils.rospyHandler import RosHandler
 from ..utils.topicService import TopicService
-from . import statusLed
+from ..utils import statusLed
 
 import mavros_msgs.msg
 import mavros_msgs.srv

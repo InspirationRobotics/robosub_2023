@@ -3,7 +3,7 @@ import sys
 import platform
 
 def findDevice(ids):
-    bash = os.popen('bash /home/inspiration/auv/devices/cams/camsLink.sh').read()
+    bash = os.popen('bash /home/inspiration/auv/auv/utils/usbLink.sh').read()
     bashSplit = bash.split("\n")
     result = []
     for id in enumerate(ids):
@@ -19,13 +19,14 @@ def findDevice(ids):
     if len(result)==0:
         print(bash)
         return ["Device not found, above is list of all available devices"]
-    return result
+    return result[0].replace("\n", "")
 
-if len(sys.argv)>1:
-    print(findDevice([sys.argv[1]])[0])
-else:
-    if("nx" in platform.node()):
-        ID = ["platform-3610000.xhci-usb-0:2.3.3:1.0"]
+if __name__ == '__main__':
+    if len(sys.argv)>1:
+        print(findDevice([sys.argv[1]])[0])
     else:
-        ID = None #need to check on graey what id is
-    print(findDevice(ID)[0])
+        if("nx" in platform.node()):
+            ID = ["platform-3610000.xhci-usb-0:2.3.3:1.0"]
+        else:
+            ID = None #need to check on graey what id is for pixhawk
+        print(findDevice(ID)[0])

@@ -4,7 +4,7 @@ PRODUCT=$(sudo lshw -json | jq '.product') || PRODUCT=$(sudo lshw -json | jq '.[
 
 if [[ $PRODUCT == *"Xavier"* ]]; then
   echo "Detected $PRODUCT setting to Xavier init"
-  POLULU=$(/usr/bin/python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.1.1:1.0)
+  POLULU=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py platform-3610000.xhci-usb-0:2.1.1:1.0)
   echo "Found Polulu Servo driver at $POLULU"
   screen -dmS polulu bash -c "sudo bash /home/inspiration/auv/maestro-linux/clearPoluluErrors.sh $POLULU"
   DISTRO="noetic"
@@ -14,7 +14,7 @@ if [[ $PRODUCT == *"Nano"* ]]; then
   DISTRO="melodic"
 fi
 
-OUTPUT=$(/usr/bin/python3 /home/inspiration/auv/scripts/deviceHelper.py)
+OUTPUT=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py)
 
 echo "Found pixhawk on "${OUTPUT}
 screen -dmS roscore bash -c "source /opt/ros/$DISTRO/setup.bash ; roscore"

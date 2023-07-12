@@ -51,9 +51,9 @@ python2 -m pip install -e .
 ```bash
 git clone git clone git@github.com:InspirationRobotics/robosub_2023.git 
 cd robosub_2023
-python3 -m pip install -e .[cv,dev]
+python3 -m pip install -e ."[cv,dev]"
 # or 
-python2 -m pip install -e .[cv,dev]
+python2 -m pip install -e ."[cv,dev]"
 ```
 
 ### Repo Structure

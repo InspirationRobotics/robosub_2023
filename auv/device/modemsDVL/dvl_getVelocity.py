@@ -1,9 +1,9 @@
 import time
 import serial
 import signal
-import os
+from ...utils.deviceHelper import findDevice
 
-dvlPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.3.1:1.0').read().replace("\n", "")
+dvlPort = findDevice("platform-3610000.xhci-usb-0:2.3.1:1.0")
 
 ser = serial.Serial(
 	port=dvlPort,
@@ -59,27 +59,30 @@ def createPacket(SA):
 		dataPacket["Time_since_valid"] = float(BD[5])
 		return dataPacket
 
-state = True
-while (state):
-	out = b''
-	out = ser.readline()
-	if out != b'':
+
+
+if __name__ == '__main__':
+	state = True
+	while (state):
+		out = b''
+		out = ser.readline()
+		if out != b'':
+			try:
+				rawOut = out.decode("utf-8")
+				packet = createPacket(out)
+				#print(packet)
+				if(packet["isAUV_velocity_valid"]==True):
+					print(packet["AUV_velocity"])
+			except:
+				pass
+
+	def onExit(signum, frame):
 		try:
-			rawOut = out.decode("utf-8")
-			packet = createPacket(out)
-			#print(packet)
-			if(packet["isAUV_velocity_valid"]==True):
-				print(packet["AUV_velocity"])
+			state = False
+			ser.close()
+			time.sleep(1)
+			exit(1)
 		except:
 			pass
 
-def onExit(signum, frame):
-	try:
-		state = False
-		ser.close()
-		time.sleep(1)
-		exit(1)
-	except:
-		pass
-
-signal.signal(signal.SIGINT, onExit)
+	signal.signal(signal.SIGINT, onExit)

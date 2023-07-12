@@ -1,12 +1,12 @@
 import time
 import serial
 import os
+from ...utils.deviceHelper import findDevice
 
 #to send commands to DVL based off documentation, type "break" first
 #to start pings send "CS"
 
-dvlPort = os.popen('python3 /home/inspiration/auv/scripts/deviceHelper.py platform-3610000.xhci-usb-0:2.3.1:1.0').read().replace("\n", "")
-
+dvlPort = findDevice("platform-3610000.xhci-usb-0:2.3.1:1.0")
 # configure the serial params for the DVL
 ser = serial.Serial(
 	port=dvlPort, #platform-3610000.xhci-usb-0:2.3.1:1.0
