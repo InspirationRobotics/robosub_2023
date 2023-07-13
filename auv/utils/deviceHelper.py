@@ -19,7 +19,7 @@ def findDevice(ids):
     if len(result)==0:
         print(bash)
         return ["Device not found, above is list of all available devices"]
-    return result[0]
+    return result
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
