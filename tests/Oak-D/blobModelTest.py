@@ -6,7 +6,7 @@ import depthai as dai
 import numpy as np
 import time
 
-nnBlobPath = str((Path(__file__).parent / Path('gate3shave.blob')).resolve().absolute())
+nnBlobPath = str((Path(__file__).parent / Path('dummy3shave.blob')).resolve().absolute())
 
 IMG_H = 480
 IMG_W = 640
@@ -17,10 +17,9 @@ if not Path(nnBlobPath).exists():
 
 # What are the classes you looking for? Only targets in our case
 labelMap = [
-            "Face",
-            "Dummy1"
+            "Class_0",
+            "Class_1"
         ]
-
 
 classAmt = len(labelMap)
 confidence = 0.5
