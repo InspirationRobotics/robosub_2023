@@ -1,9 +1,9 @@
 import time
 import serial
 import threading
-from ...utils.deviceHelper import findFromName
+from ...utils.deviceHelper import dataFromConfig
 
-modemsPort = findFromName("modem")
+modemsPort = dataFromConfig("modem")
 
 # configure the serial connections
 ser = serial.Serial(

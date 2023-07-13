@@ -29,13 +29,37 @@ def findFromId(ids):
         return ["Device not found, above is list of all available devices"]
     return result[0]
 
-def findFromName(name):
+def findCam(ids):
+    bash = os.popen('bash /home/inspiration/auv/auv/utils/usbLink.sh').read()
+    bash = bash.split("\n")
+    result = []
+    for id in enumerate(ids):
+        result.append("")
+        minVal = 100
+        for line in bash:
+            if "/dev/video" in line:
+                line = line.split(" - ")
+                if id[1] in line[1]:
+                    val = int(line[0][10:])
+                    if val < minVal:
+                        minVal = val
+                        result[id[0]] = line[0]
+                else:
+                    if(line[1] not in ids):
+                        ids.append(line[1])
+    for i in reversed(result):
+        if i == '':
+            result.remove(i)
+    return result
+
+def dataFromConfig(name):
+    data = None
     if(name=="forwardOak"):
-        usbID = variables.get("forwardOak_camera_mxid")
+        data = variables.get("forwardOak_camera_mxid")
     elif(name=="bottomOak"):
-        usbID = variables.get("bottomOak_camera_mxid")
+        data = variables.get("bottomOak_camera_mxid")
     elif(name=="poeOak"):
-        usbID = variables.get("poeOak_camera_mxid")
+        data = variables.get("poeOak_camera_mxid")
     elif(name=="forwardUSB"):
         usbID = variables.get("forward_camera_port")
     elif(name=="bottomUSB"):
@@ -51,12 +75,16 @@ def findFromName(name):
     elif(name=="teensy"):
         usbID = variables.get("teensy_port")
     else:
-        raise Exception("Invalid Name")
-    findFromId([usbID])
+        data = variables.get(name)
+        if(data==None):
+            raise Exception("Invalid Name")
+    if(data!=None):
+        return data
+    return findFromId([usbID])
     
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
-        print(findFromName([sys.argv[1]]))
+        print(dataFromConfig([sys.argv[1]]))
     else:
-        print(findFromName("pixhawk"))
+        print(dataFromConfig("pixhawk"))

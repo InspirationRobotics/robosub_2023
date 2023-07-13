@@ -10,7 +10,8 @@ import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
-from .cams import camsHelper, pyfakewebcam, usbCams, oakCams
+from .cams import pyfakewebcam, usbCams, oakCams
+from ..utils import deviceHelper
 
 if sys.version_info[0] == 3:
     # python3 meaning oak-d
@@ -45,12 +46,12 @@ def difference(string1, string2):
 preDevices = os.popen("ls /dev/video*").read()
 if "nx" in platform.node():
     sub = True
-    ogDev = camsHelper.findCam(onyx)
+    ogDev = deviceHelper.findCam(onyx)
     oaks = list_devices()
     oakAmt = len(oaks)
     print(oaks)
 else:
-    ogDev = camsHelper.findCam(grey)
+    ogDev = deviceHelper.findCam(grey)
     oakAmt = 0
 camAmt = len(ogDev)
 print(ogDev)

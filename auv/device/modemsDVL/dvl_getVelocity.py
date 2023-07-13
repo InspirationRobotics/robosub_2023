@@ -1,9 +1,9 @@
 import time
 import serial
 import signal
-from ...utils.deviceHelper import findFromName
+from ...utils.deviceHelper import dataFromConfig
 
-dvlPort = findFromName("dvl")
+dvlPort = dataFromConfig("dvl")
 
 ser = serial.Serial(
 	port=dvlPort,

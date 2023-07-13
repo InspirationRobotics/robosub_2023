@@ -1,7 +1,7 @@
 import os
 import time
 import serial
-from ..utils.deviceHelper import findFromName
+from ..utils.deviceHelper import dataFromConfig
 
 #torpedo channel 2:
 #load: 2400
@@ -20,7 +20,7 @@ from ..utils.deviceHelper import findFromName
 
 class Servo:
 	def __init__(self):
-		self.USB = serial.Serial(port=findFromName("polulu")) #need to find id
+		self.USB = serial.Serial(port=dataFromConfig("polulu")) #need to find id
 		self.USB.isOpen()
 		self.gripState = True
 		self.torpedoState = 0
