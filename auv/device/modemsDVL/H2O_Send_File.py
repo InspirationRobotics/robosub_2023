@@ -18,8 +18,7 @@ from multiprocessing import Lock
 
 import serial
 
-# update serial port based on your device. Also make sure to add permissions for that port file.
-# e.g.: sudo chmod 777 /dev/cu.usbserial-xyz 
+
 SERIAL_PORT='/dev/h2observe'
 
 ser = serial.Serial(

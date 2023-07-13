@@ -2,8 +2,6 @@
 
 DEVICE=$1
 
-sudo chmod 666 $DEVICE
-
 byte() {
   printf "\\x$(printf "%x" $1)"
 }

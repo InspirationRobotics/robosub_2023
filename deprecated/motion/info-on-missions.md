@@ -10,7 +10,6 @@ In order to get the AUV to do something (move), create a new program under missi
 
 [1]
 `roscore`
-`chmod 666 /dev/ttyACM0`
 `roslaunch mavros apm.launch`
 `rosrun mavros mavparam set SYSID_MYGCS 1`
 
