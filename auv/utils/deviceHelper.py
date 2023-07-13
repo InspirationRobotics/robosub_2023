@@ -1,8 +1,16 @@
 import os
 import sys
 import platform
+from dotenv import dotenv_values
 
-def findDevice(ids):
+if("nx" in platform.node()):
+    onyx=True
+    variables = dotenv_values("/home/inspiration/auv/config/onyx.env")
+else:
+    onyx=False
+    variables = dotenv_values("/home/inspiration/auv/config/graey.env")
+
+def findFromId(ids):
     bash = os.popen('bash /home/inspiration/auv/auv/utils/usbLink.sh').read()
     bashSplit = bash.split("\n")
     result = []
@@ -19,14 +27,36 @@ def findDevice(ids):
     if len(result)==0:
         print(bash)
         return ["Device not found, above is list of all available devices"]
-    return result
+    return result[0]
+
+def findFromName(name):
+    if(name=="forwardOak"):
+        usbID = variables.get("forwardOak_camera_mxid")
+    elif(name=="bottomOak"):
+        usbID = variables.get("bottomOak_camera_mxid")
+    elif(name=="poeOak"):
+        usbID = variables.get("poeOak_camera_mxid")
+    elif(name=="forwardUSB"):
+        usbID = variables.get("forward_camera_port")
+    elif(name=="bottomUSB"):
+        usbID = variables.get("bottom_camera_port")
+    elif(name=="pixhawk"):
+        usbID = variables.get("pixhawk_port")
+    elif(name=="modem"):
+        usbID = variables.get("modem_port")
+    elif(name=="dvl"):
+        usbID = variables.get("dvl_port")
+    elif(name=="polulu"):
+        usbID = variables.get("polulu_port")
+    elif(name=="teensy"):
+        usbID = variables.get("teensy_port")
+    else:
+        raise Exception("Invalid Name")
+    findFromId([usbID])
+    
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
-        print(findDevice([sys.argv[1]])[0])
+        print(findFromName([sys.argv[1]]))
     else:
-        if("nx" in platform.node()):
-            ID = ["platform-3610000.xhci-usb-0:2.3.3:1.0"]
-        else:
-            ID = None #need to check on graey what id is for pixhawk
-        print(findDevice(ID)[0])
+        print(findFromName("pixhawk"))

@@ -4,7 +4,7 @@ PRODUCT=$(sudo lshw -json | jq '.product') || PRODUCT=$(sudo lshw -json | jq '.[
 
 if [[ $PRODUCT == *"Xavier"* ]]; then
   echo "Detected $PRODUCT setting to Xavier init"
-  POLULU=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py platform-3610000.xhci-usb-0:2.1.1:1.0)
+  POLULU=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py polulu)
   echo "Found Polulu Servo driver at $POLULU"
   screen -dmS polulu bash -c "sudo bash /home/inspiration/auv/maestro-linux/clearPoluluErrors.sh $POLULU"
   DISTRO="noetic"

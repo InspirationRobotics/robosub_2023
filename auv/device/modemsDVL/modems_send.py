@@ -1,15 +1,9 @@
 import time
 import serial
 import platform
-from ...utils.deviceHelper import findDevice
+from ...utils.deviceHelper import findFromName
 
-
-if("nx" in platform.node()):
-    id = "platform-3610000.xhci-usb-0:2.3.4:1.0"
-else:
-    id = "platform-70090000.xusb-usb-0:2.1:1.0"
-
-modemsPort = findDevice(id)
+modemsPort = findFromName("modem")
 
 # configure the serial connections
 ser = serial.Serial(

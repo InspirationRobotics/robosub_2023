@@ -1,9 +1,9 @@
 import time
 import serial
 import signal
-from ...utils.deviceHelper import findDevice
+from ...utils.deviceHelper import findFromName
 
-dvlPort = findDevice("platform-3610000.xhci-usb-0:2.3.1:1.0")
+dvlPort = findFromName("dvl")
 
 ser = serial.Serial(
 	port=dvlPort,

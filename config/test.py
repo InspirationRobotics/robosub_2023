@@ -1,8 +1,6 @@
 import os
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
-load_dotenv("onyx.env")
+result = dotenv_values("onyx.env")
 
-bottomMXID = os.getenv('bottomOak_camera_mxid')
-
-print(bottomMXID)
+print(result.get("sub"))
