@@ -48,8 +48,16 @@ ISO_STEP = 50
 LENS_STEP = 3
 WB_STEP = 200
 
+def list_devices():
+    available_devices = []
+    for device in dai.Device.getAllAvailableDevices():
+        available_devices.append(device.getMxId())
+    return available_devices
+
 def clamp(num, v0, v1):
     return max(v0, min(num, v1))
+
+print(list_devices())
 
 # Create pipeline
 pipeline = dai.Pipeline()

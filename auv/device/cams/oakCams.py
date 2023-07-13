@@ -116,7 +116,7 @@ class oakCamera:
         self.initialized = True
 
     def mxidToName(self, mxid):
-        if mxid == "18443010B1A0B01200":
+        if mxid == "18443010B1F9840E00":  #18443010B1A0B01200
             return "Forward"
         elif mxid == "184430104161721200":
             return "Bottom"
