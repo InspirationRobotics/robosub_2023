@@ -10,7 +10,7 @@ import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
-from . import pyfakewebcam
+from auv.device.cams import pyfakewebcam
 
 class USBCamera:
     def __init__(self, rospy, id, ogDevice, newDevice):

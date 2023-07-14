@@ -14,7 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
-from . import pyfakewebcam
+from auv.device.cams import pyfakewebcam
 
 class oakCamera:
     def __init__(self, rospy, id, mxid, newDevice):

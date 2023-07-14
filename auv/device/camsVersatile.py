@@ -10,16 +10,16 @@ import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
-from .cams import pyfakewebcam, usbCams, oakCams
-from ..utils import deviceHelper
+from auv.device.cams import pyfakewebcam, usbCams, oakCams
+from auv.utils import deviceHelper
 
 if sys.version_info[0] == 3:
     # python3 meaning oak-d
     import depthai as dai
 
 # order is forward, down
-onyx = ["platform-3610000.xhci-usb-0:2.2.4:1.0"]
-grey = ["platform-70090000.xusb-usb-0:2.3:1.0", "platform-70090000.xusb-usb-0:2.4:1.0"]
+onyx = [deviceHelper.dataFromConfig("forwardUSB")]
+grey = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
 
 ogDev = []
 oaks = []
@@ -72,8 +72,8 @@ class cameraStreams:
         self.cams = []
         for i in range(camAmt):
             self.cams.append(usbCams.USBCamera(rospy, i, ogDev[i], newDev[i]))
-        for i in range(oakAmt - 1):
-            self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt], True))
+        for i in range(oakAmt):
+            self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt]))
 
     def start(self):
         for i in self.cams:
