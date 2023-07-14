@@ -23,6 +23,7 @@ class ScriptHandler:
         self.camera_topic = camera_topic
         self.file_name = file_name
 
+        # Create the ROS node, the subscribers and the publishers
         self.br = CvBridge()
         self.sub_cv = rospy.Subscriber(self.camera_topic, Image, self.callback_cam)
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
@@ -95,8 +96,8 @@ class CVHandler:
         """Init of CV Handler"""
         self.config = config
 
-        # Create the cv bridge, the ROS node, the subscriber and the publishers
-        self.rospy = rospy.init_node("cv_handler", anonymous=True)
+        # Create the ROS node and the cmd subscriber
+        rospy.init_node("cv_handler", anonymous=True)
         self.sub_cmd = rospy.Subscriber("auv/cv_handler/cmd", String, self.callback_cmd)
         
         # stores the running cv scripts keyed by file name
