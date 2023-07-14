@@ -43,7 +43,7 @@ class CV:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.cv.template"
+    # you can run this file independently using: "python -m auv.cv.template_cv"
     logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
