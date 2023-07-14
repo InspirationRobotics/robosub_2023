@@ -5,15 +5,18 @@
 # this should be able to run on computer, just script that takes inputs and outputs graph 
 # take input from wasd for forward, left, back, right and +/- for yaw (rotation of heading 0 to 360)
 
-import math 
-import time
+import matplotlib.pyplot as plt
+import math  
 
-# variable names for the raw dvl velocity data 
-vx = 0    # positive values is moving right, negative is for moving left
-vy = 0    # positive values is moving forward, negative is for moving back 
+# start with the sub at (0,0)
+vxforgraph = [0] 
+vyforgraph = [0] 
 
 mvmt = input("Enter direction of movment (w, a, s, or d): ")
 # wasd input temporarilly assign each to have and arbitrary value of 100 mm per second for each input
+# for the actual raw dvl velocity data as input have it take in vx, vy 
+# positive values is moving right, negative is for moving left
+# positive values is moving forward, negative is for moving back 
 if choice == 'w':
   vy = 1 # move forward mm/s
 elif choice == 'a':
@@ -37,4 +40,18 @@ vywhead = math.degrees(math.cos(heading)) * vy
 
 print("x velocity taking into account the heading:",vxwhead,"| y velocity taking into account the heading:",vywhead) 
 
+# to graph it have the vxwheading and vywheading value pairs into a and x value and y value array to plot  
+vxforgraph.append(vxwhead) 
+vyforgraph.append(vywhead) 
 
+# plotting the line 2 points 
+plt.plot(vxforgraph, vyforgraph)
+  
+# naming the x axis
+plt.xlabel('x-axis in mm') # may want to figure out how to convert in meters
+# naming the y axis
+plt.ylabel('y-axis in mm')
+# giving a title to my graph
+plt.title('Velocity Tracking')
+# function to show the plot
+plt.show()
