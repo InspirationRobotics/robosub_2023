@@ -9,40 +9,66 @@ import matplotlib.pyplot as plt
 import math  
 
 # start with the sub at (0,0)
+vxin = [0]
+vyin = [0]
 vxforgraph = [0] 
 vyforgraph = [0] 
+mvmntinput = [0]
+headingin = [0]
+hforgraph = [0]
 
 mvmt = input("Enter direction of movment (w, a, s, or d): ")
 # wasd input temporarilly assign each to have and arbitrary value of 100 mm per second for each input
-# for the actual raw dvl velocity data as input have it take in vx, vy 
+# for the actual raw dvl velocity data as input have it take in vx, vy so maybe 2 seperate arrays
 # positive values is moving right, negative is for moving left
 # positive values is moving forward, negative is for moving back 
-if choice == 'w':
-  vy = 1 # move forward mm/s
-elif choice == 'a':
-  vx = -1 # move left 100 mm/s
-elif choice == 's':
-  vy = -1 # move back mm/s
-elif choice == 'd':
-  vx = 1 # move right 100 mm/s
-else:
-    print("Invalid choice")
-  
+mvmntinput.append(mvmt)
+vxcounter = 0
+vycounter = 0
+for inputs in mvmntinput:
+    if mvmntinput[counter] == 'w':
+        vyin.append(1) # move forward mm/s
+        vycounter += 1
+    elif mvmntinput[counter] == 'a':
+        vxin.append(-1) # move left 100 mm/s
+        vxcounter += 1
+    elif mvmntinput[counter] == 's':
+        vyin.append(-1) # move back mm/s
+        vycounter += 1
+    elif mvmntinput[counter] == 'd':
+        vxin.append(1) # move right 100 mm/s
+        vxcounter += 1
+    else:
+        print("Invalid input, check for capitalization")
+
 # variable name for the heading +/- for yaw (rotation of heading 0 to 360)
 heading = input("Enter heading direction (+/- 0 to 360): ")
+headingin.append(heading)
+hcounter = 0
+for inputs in headingin:
+  degreeheading = headingin[hcounter] * (math.pi/180)
+  hforgraph.append(degreeheading)
+  hcounter += 1
+# heading_fl = float(heading) # was getting errors about this, think it was trying to process the input before there was any input
 # convert the degree values to radians so the math function can handle, should be an angle mentioned in terms of radians (pi/2, pi/3/ pi/6, etc)
-heading = heading*(math.pi/180)
   
 # creating variables that will output the velocity with heading accounted for in meters
 # math function returns values in radians 
-vxwhead = math.degrees(math.sin(heading)) * vx
-vywhead = math.degrees(math.cos(heading)) * vy
+# iterate through every item in each array
+gxcounter = 0
+for inputs in vxin
+  vxwhead = math.degrees(math.sin(hforgraph[])) * vxin[gcounter]
+  vxforgraph.append(vxwhead) 
+  vywhead = math.degrees(math.cos(degreeheading)) * vyin[gcounter]
+  gxcounter += 1
 
+gycounter = 0
+for inputs in vxin
+  vywhead = math.degrees(math.cos(degreeheading)) * vyin[gcounter]
+  vyforgraph.append(vywhead) 
+  gycounter += 1
 print("x velocity taking into account the heading:",vxwhead,"| y velocity taking into account the heading:",vywhead) 
-
 # to graph it have the vxwheading and vywheading value pairs into a and x value and y value array to plot  
-vxforgraph.append(vxwhead) 
-vyforgraph.append(vywhead) 
 
 # plotting the line 2 points 
 plt.plot(vxforgraph, vyforgraph)
