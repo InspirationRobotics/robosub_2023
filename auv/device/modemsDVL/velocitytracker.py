@@ -6,7 +6,6 @@
 # take input from wasd for forward, left, back, right and +/- for yaw (rotation of heading 0 to 360)
 
 import matplotlib.pyplot as plt
-import numpy
 import math  
 
 # start with the sub at (0,0)
