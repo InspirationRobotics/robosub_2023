@@ -1,4 +1,5 @@
-
+import rospy
+from sensor_msgs.msg import Image
 from pathlib import Path
 import sys
 import os
@@ -8,7 +9,7 @@ import numpy as np
 import time
 import serial
 import math
-
+from cv_bridge import CvBridge, CvBridgeError
 
 
 
@@ -18,9 +19,11 @@ middle_width = 19  #The center of the target will not be perfectly aligned with 
 
 ## Return what needs to be done 
 
-
+br = CvBridge()
+pubForward = rospy.Publisher('/auv/camera/videoUSBOutput0', Image, queue_size=10)
 #Read the blob file. Copied from the code from Oak D Lite creators
-
+rospy.init_node("CV", anonymous=True)
+rospy.Rate(30)
 
 
 nnBlobPath = str((Path(__file__).parent / Path('smallestmodel_openvino_2022.1_6shave.blob')).resolve().absolute())
@@ -202,7 +205,9 @@ with dai.Device(pipeline) as device:
                 print("Amount needed to turn:" + str(headingAngle))
             #Look at the bouding boxes. Find the bigest one - Biggest target.
         cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-        cv2.imshow("rgb", frame)
+        #print(frame)
+        pubForward.publish(br.cv2_to_imgmsg(frame))
+        #cv2.imshow("rgb", frame)
 
         if cv2.waitKey(1) == ord('q'):
             break
