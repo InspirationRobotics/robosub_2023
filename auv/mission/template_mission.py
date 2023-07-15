@@ -29,6 +29,7 @@ class TemplateMission:
         self.config = config
         self.data = {} # dict to store the data from the cv handlers
 
+        rospy.init_node("template_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler()
 
