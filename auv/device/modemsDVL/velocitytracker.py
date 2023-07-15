@@ -6,37 +6,38 @@
 # take input from wasd for forward, left, back, right and +/- for yaw (rotation of heading 0 to 360)
 
 import matplotlib.pyplot as plt
+import numpy
 import math  
 
 # start with the sub at (0,0)
+mvmntinput = [0]
 vxin = [0]
 vyin = [0]
-vxforgraph = [0] 
-vyforgraph = [0] 
-mvmntinput = [0]
+vxforgraph = [0]
+vyforgraph = [0]
 headingin = [0]
 hforgraph = [0]
 
 mvmt = input("Enter direction of movment (w, a, s, or d): ")
-# wasd input temporarilly assign each to have and arbitrary value of 100 mm per second for each input
-# for the actual raw dvl velocity data as input have it take in vx, vy so maybe 2 seperate arrays
-# positive values is moving right, negative is for moving left
-# positive values is moving forward, negative is for moving back 
+# wasd input temporarilly assign each to have and arbitrary value of 10 mm per second for each input
+# for the actual raw dvl velocity data as input have it take in vx, vy so 2 seperate arrays
+# vxin positive values is moving right, negative is for moving left
+# vyin positive values is moving forward, negative is for moving back 
 mvmntinput.append(mvmt)
 vxcounter = 0
 vycounter = 0
 for inputs in mvmntinput:
-    if mvmntinput[counter] == 'w':
-        vyin.append(1) # move forward mm/s
+    if mvmntinput[vycounter] == 'w':
+        vyin.append(10) # move forward mm/s
         vycounter += 1
-    elif mvmntinput[counter] == 'a':
-        vxin.append(-1) # move left 100 mm/s
+    elif mvmntinput[vxcounter] == 'a':
+        vxin.append(-10) # move left 100 mm/s
         vxcounter += 1
-    elif mvmntinput[counter] == 's':
-        vyin.append(-1) # move back mm/s
+    elif mvmntinput[vycounter] == 's':
+        vyin.append(-10) # move back mm/s
         vycounter += 1
-    elif mvmntinput[counter] == 'd':
-        vxin.append(1) # move right 100 mm/s
+    elif mvmntinput[vxcounter] == 'd':
+        vxin.append(10) # move right 100 mm/s
         vxcounter += 1
     else:
         print("Invalid input, check for capitalization")
@@ -56,15 +57,14 @@ for inputs in headingin:
 # math function returns values in radians 
 # iterate through every item in each array
 gxcounter = 0
-for inputs in vxin
-  vxwhead = math.degrees(math.sin(hforgraph[])) * vxin[gcounter]
+for inputs in vxin:
+  vxwhead = math.degrees(math.cos(hforgraph[gxcounter])) * vxin[gxcounter]
   vxforgraph.append(vxwhead) 
-  vywhead = math.degrees(math.cos(degreeheading)) * vyin[gcounter]
   gxcounter += 1
 
 gycounter = 0
-for inputs in vxin
-  vywhead = math.degrees(math.cos(degreeheading)) * vyin[gcounter]
+for inputs in vyin:
+  vywhead = math.degrees(math.sin(hforgraph[gycounter])) * vyin[gycounter]
   vyforgraph.append(vywhead) 
   gycounter += 1
 print("x velocity taking into account the heading:",vxwhead,"| y velocity taking into account the heading:",vywhead) 
