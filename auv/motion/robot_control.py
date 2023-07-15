@@ -22,7 +22,6 @@ class RobotControl:
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
-        self.channels = [1500] * 18  # initializing channels to idle (1500)
 
         # init some variables
         self.previous_depth = 0.0
