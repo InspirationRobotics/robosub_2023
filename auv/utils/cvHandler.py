@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class __ScriptHandler:
+class _ScriptHandler:
     def __init__(self, file_name, cv_object, camera_topic):
         self.cv_object = cv_object
         self.camera_topic = camera_topic
@@ -69,7 +69,7 @@ class __ScriptHandler:
             logger.error(e)
             return
 
-    def run(self, frame):
+    def run(self):
         self.running = True
 
         while self.running:
@@ -155,7 +155,7 @@ class CVHandler:
             camera_topic = "/auv/camera/videoUSBRaw0"
 
         # Init individual cv script handler
-        self.active_cv_scripts[file_name] = __ScriptHandler(cv_class(**self.config), camera_topic)
+        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config), camera_topic)
         self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
 
     def stop_cv(self, file_name):
@@ -187,8 +187,12 @@ class CVHandler:
 
 
 if __name__ == "__main__":
-    # spinup the cv handler with the surfacing cv
+    # some small testings for CVHandler, requires camVersatile to run before
 
-    from auv.cv import surfacing_cv, template_cv
+    logging.basicConfig()
+
+    def dummy_callback(msg):
+        logger.info("received: {}".format(msg.data))
 
     cv = CVHandler()
+    cv.start_cv("template_cv")

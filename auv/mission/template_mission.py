@@ -35,7 +35,7 @@ class TemplateMission:
 
         # init the cv handlers
         for file_name in self.cv_files:
-            self.cv_handler.init_cv(file_name, self.callback)
+            self.cv_handler.start_cv(file_name, self.callback)
 
         logger.info("Template mission init")
 
@@ -76,9 +76,13 @@ if __name__ == "__main__":
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
+    import time
+    logging.basicConfig(level=logging.DEBUG)
 
     # Create a mission object with arguments
     mission = TemplateMission()
 
     # Run the mission
     mission.run()
+    time.sleep(2)
+    mission.cleanup()
