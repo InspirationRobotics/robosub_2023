@@ -64,15 +64,10 @@ class TemplateMission:
         Here should be all the code required after the run fonction.
         This could be cleanup, saving data, closing files, etc.
         """
-
         for file_name in self.cv_files:
             self.cv_handler.stop_cv(file_name)
 
         logger.info("Template mission terminate")
-
-    def __del__(self):
-        """This is called when the object is deleted"""
-        self.cleanup()
 
 
 if __name__ == "__main__":
@@ -90,3 +85,4 @@ if __name__ == "__main__":
     mission.run()
     time.sleep(2)
     mission.cleanup()
+    

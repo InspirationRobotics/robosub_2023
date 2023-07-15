@@ -97,8 +97,6 @@ class _ScriptHandler:
                 logger.error("CV returned invalid type")
                 continue
 
-            # if 
-
             # Publish the result
             self.pub_out.publish(json.dumps(result))
 
@@ -113,10 +111,6 @@ class _ScriptHandler:
         self.pub_viz.unregister()
         self.pub_out.unregister()
         self.closed = True
-
-    def __del__(self):
-        if not self.closed:
-            self.stop()
 
 
 class CVHandler:
