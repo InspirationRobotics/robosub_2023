@@ -70,6 +70,10 @@ class TemplateMission:
 
         logger.info("Template mission terminate")
 
+    def __del__(self):
+        """This is called when the object is deleted"""
+        self.cleanup()
+
 
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
