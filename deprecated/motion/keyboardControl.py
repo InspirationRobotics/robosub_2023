@@ -1,8 +1,10 @@
-from auv.motion.robot_control import RobotControl
-from auv.motion.servo import Servo
+import os
 import threading
 import time
-import os
+
+from robot_control import RobotControl
+
+from auv.motion.servo import Servo
 
 servo = Servo()
 rc = RobotControl()

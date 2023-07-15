@@ -36,7 +36,7 @@ class oakCamera:
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
         self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
-        self.rospy.Subscriber("/auv/camera/videoOAKd" + self.name + "Model", String, self.callbackModel)
+        self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
         self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
         self.time = time.time()
         print("Oak-D " + self.name + " is available at " + newDevice)

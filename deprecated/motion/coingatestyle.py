@@ -1,7 +1,8 @@
 import os
 import time
 
-from auv.motion.robot_control import RobotControl
+from robot_control import RobotControl
+
 from auv.motion.servo import Servo
 
 # For july 3rd pool test, written on 7/1/2023 and 7/2/2023
