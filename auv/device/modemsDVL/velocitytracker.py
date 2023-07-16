@@ -9,45 +9,69 @@ import matplotlib.pyplot as plt
 import math  
 
 # start with the sub at (0,0)
-mvmntinput = [0]
-vxin = [0]
-vyin = [0]
-vxforgraph = [0]
-vyforgraph = [0]
-headingin = [0]
-hforgraph = [0]
+mvmntxinput = []
+mvmntyinput = []
+vxin = []
+vyin = []
+headingin = []
+hforgraphcalc = []
+sumx = []
+sumy = []
+times = []
+x = []
+y = []
+#xgraph = []
+#ygraph = []
 
-mvmt = input("Enter direction of movment (w, a, s, or d): ")
+count = 0
+while (count < 5):
+    count = count + 1
+    mvmtx, mvmty, strheading, currtime = input("Enter x and y velocity seperated with a space (w, a, s, or d), heading (+/- 0 to 360), and time in seconds: ").split()
 # wasd input temporarilly assign each to have and arbitrary value of 10 mm per second for each input
 # for the actual raw dvl velocity data as input have it take in vx, vy so 2 seperate arrays
 # vxin positive values is moving right, negative is for moving left
 # vyin positive values is moving forward, negative is for moving back 
-mvmntinput.append(mvmt)
+# also will be getting a time stamp when get actual data 
+    mvmntxinput.append(mvmtx)
+    mvmntyinput.append(mvmty)
+    heading = int(strheading)
+    headingin.append(heading)
+    numtime = int(currtime)
+    times.append(numtime)
+
+#convert the input to a number 
 vxcounter = 0
 vycounter = 0
-for inputs in mvmntinput:
-    if mvmntinput[vycounter] == 'w':
-        vyin.append(10) # move forward mm/s
-        vycounter += 1
-    elif mvmntinput[vxcounter] == 'a':
-        vxin.append(-10) # move left 100 mm/s
+for inputs in mvmntxinput:
+    if mvmntxinput[vxcounter] == 'a':
+        vxin.append(-100) # move left 100 mm/s
+        print("vxin values:", vxin)
         vxcounter += 1
-    elif mvmntinput[vycounter] == 's':
-        vyin.append(-10) # move back mm/s
-        vycounter += 1
-    elif mvmntinput[vxcounter] == 'd':
-        vxin.append(10) # move right 100 mm/s
+    elif mvmntxinput[vxcounter] == 'd':
+        vxin.append(100) # move right 100 mm/s
+        print("vxin values:", vxin)
         vxcounter += 1
     else:
         print("Invalid input, check for capitalization")
 
-# variable name for the heading +/- for yaw (rotation of heading 0 to 360)
-heading = input("Enter heading direction (+/- 0 to 360): ")
-headingin.append(heading)
+for inputs in mvmntyinput:
+    if mvmntyinput[vycounter] == 'w':
+        vyin.append(100) # move forward 100 mm/s
+        print("vyin values:", vyin)
+        vycounter += 1
+    elif mvmntyinput[vycounter] == 's':
+        vyin.append(-100) # move back 100 mm/s
+        print("vyin values:", vyin)
+        vycounter += 1
+    else:
+        print("Invalid input, check for capitalization")
+
+
 hcounter = 0
 for inputs in headingin:
-  degreeheading = headingin[hcounter] * (math.pi/180)
-  hforgraph.append(degreeheading)
+  radheading = math.radians(headingin[hcounter])
+  hforgraphcalc.append(radheading)
+  print("hforgraphcalc values:", hforgraphcalc)
   hcounter += 1
 # heading_fl = float(heading) # was getting errors about this, think it was trying to process the input before there was any input
 # convert the degree values to radians so the math function can handle, should be an angle mentioned in terms of radians (pi/2, pi/3/ pi/6, etc)
@@ -55,22 +79,33 @@ for inputs in headingin:
 # creating variables that will output the velocity with heading accounted for in meters
 # math function returns values in radians 
 # iterate through every item in each array
-gxcounter = 0
+gxycounter = 0
+gcounter = 1 
 for inputs in vxin:
-  vxwhead = math.degrees(math.cos(hforgraph[gxcounter])) * vxin[gxcounter]
-  vxforgraph.append(vxwhead) 
-  gxcounter += 1
+  vxwhead = math.cos(hforgraphcalc[gxycounter]) * vxin[gxycounter]
+  #vxwhead = math.degrees(vxwheadrad)
+  sumx += vxwhead * (times[gcounter] - times[gxycounter])
+  x.append(sumx) 
+  vywhead = math.sin(hforgraphcalc[gxycounter]) * vyin[gxycounter]
+  #vywhead = math.degrees(vywheadrad)
+  sumy += vywhead * (times[gcounter] - times[gxycounter])
+  y.append(sumy) 
+  print("sumx values:", sumx, "sumy values:", sumy)
+  gxycounter += 1
+  gcounter += 1 
 
-gycounter = 0
-for inputs in vyin:
-  vywhead = math.degrees(math.sin(hforgraph[gycounter])) * vyin[gycounter]
-  vyforgraph.append(vywhead) 
-  gycounter += 1
-print("x velocity taking into account the heading:",vxwhead,"| y velocity taking into account the heading:",vywhead) 
-# to graph it have the vxwheading and vywheading value pairs into a and x value and y value array to plot  
+#gcounter = 1 # does this start at second timestamp
+#while gcounter < len(times):
+#for inputs in times:
+#    x = sumx[gcounter] * (times[gcounter] - times[gcounter - 1])
+#    xgraph.append(x)
+#    y = sumy[gcounter] * (times[gcounter] - times[gcounter - 1])
+#    ygraph.append(y)
+#    print(x, y)
+#    gcounter += 1
 
-# plotting the line 2 points 
-plt.plot(vxforgraph, vyforgraph)
+# to graph it have the x and y value pairs into a and x value and y value array to plot  
+plt.plot(x, y)
   
 # naming the x axis
 plt.xlabel('x-axis in mm') # may want to figure out how to convert in meters
