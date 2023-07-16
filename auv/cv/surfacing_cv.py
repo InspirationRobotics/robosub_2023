@@ -21,55 +21,42 @@ class CV:
         """
 
         self.viz_frame = None
-        self.memory_edges = None
         self.error_buffer = []
 
         self.surfacing_sensitivity = config.get("surfacing_sensitivity", 2.0)
 
         logger.info("Surfacing CV init")
 
-    def get_octogon_center(self):
+    def get_octogon_center(self, frame):
         """
         Returns the center of the octogon in the frame
         using a contours detection approach
         """
 
-        # convert to grayscale
-        gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        # equalize channels
+        frame_b, frame_g, frame_r = cv2.split(frame)
+        frame_g = cv2.equalizeHist(frame_g)
+        frame_b = cv2.equalizeHist(frame_b)
+        frame_r = cv2.equalizeHist(frame_r)
+        frame = cv2.merge((frame_b, frame_g, frame_r))
 
-        # apply Canny edge detection
-        edges = cv2.Canny(image=gray, threshold1=0, threshold2=200)
-        edges = cv2.dilate(edges, np.ones((5, 5), np.uint8), iterations=2)
+        # filter the image to red objects, filters what is white
+        gray = cv2.inRange(frame, (0, 0, 200), (10, 10, 255))
+        cv2.imshow("mask", gray)
 
-        # combine with memory edges
-        self.memory_edges = cv2.addWeighted(self.memory_edges, 0.85, edges, 0.15, 0)
-        _, edges = cv2.threshold(self.memory_edges, 60, 255, cv2.THRESH_BINARY)
-
-        # find contours, convex hull, and approx poly
-        contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
-        contours = [cv2.convexHull(contour) for contour in contours]
-        contours = [contour for contour in contours if cv2.contourArea(contour) > 1000]
-
-        if contours is None or len(contours) == 0:
-            return (None, None)
-
-        # find the largest contour
-        largest_contour = max(contours, key=cv2.contourArea)
-
-        # draw contours
-        self.frame = cv2.drawContours(self.frame, contours, -1, (0, 255, 0), 2)
-        self.frame = cv2.drawContours(self.frame, [largest_contour], -1, (0, 255, 255), 2)
-
-        # find the center of the contour
-        M = cv2.moments(largest_contour)
-
+        # get the centroid of the red points
+        M = cv2.moments(gray)
         if M["m00"] == 0:
-            return (None, None)
-
+            return None, None
         x_center = int(M["m10"] / M["m00"])
         y_center = int(M["m01"] / M["m00"])
-        self.frame = cv2.circle(self.frame, (x_center, y_center), 5, (0, 0, 255), -1)
-        return (x_center, y_center)
+
+        # get standard deviation of the red points
+        std = np.std(gray)
+
+        cv2.circle(self.viz_frame, (x_center, y_center), int(640 / std), (0, 0, 255), 2)
+
+        return x_center, y_center
 
     def get_error(self, center_x, center_y, shape):
         """Returns the error in x and y, normalized to the frame size."""
@@ -84,10 +71,8 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         self.viz_frame = frame
-        if self.memory_edges is None:
-            self.memory_edges = np.zeros((frame.shape[0], frame.shape[1], 1), dtype=np.uint8)
 
-        (x_center, y_center) = self.get_octogon_center()
+        (x_center, y_center) = self.get_octogon_center(frame)
 
         if x_center is None or y_center is None:
             return {}, self.viz_frame
@@ -109,7 +94,7 @@ class CV:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.cv.template"
+    # you can run this file independently using: "python -m auv.cv.surfacing_cv"
     logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
