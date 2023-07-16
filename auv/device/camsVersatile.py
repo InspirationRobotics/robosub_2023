@@ -1,3 +1,5 @@
+import ctypes
+libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 import os
 import platform
 import signal
@@ -33,7 +35,6 @@ def list_devices():
         available_devices.append(device.getMxId())
     return available_devices
 
-
 def difference(string1, string2):
     string1 = string1.split()
     string2 = string2.split()
@@ -52,7 +53,10 @@ if "nx" in platform.node():
     print(oaks)
 else:
     ogDev = deviceHelper.findCam(grey)
-    oakAmt = 0
+    oaks = list_devices()
+    oakAmt = len(oaks)
+    print(oaks)
+#oakAmt = 0
 camAmt = len(ogDev)
 print(ogDev)
 os.system("sudo modprobe v4l2loopback devices=" + str(camAmt + oakAmt))
