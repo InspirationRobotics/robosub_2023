@@ -10,8 +10,8 @@ import time
 import serial
 import math
 from cv_bridge import CvBridge, CvBridgeError
-
-
+import mavros_msgs.msg
+import mavros_msgs.srv
 
 offset = 0      #if the camera is not in the center of the shooter, you can make an offset so that the center of the target is a bit to the right or to the left
 middle_width = 19  #The center of the target will not be perfectly aligned with the center of the camera, so this is a wiggle-room. How wide do you want the center to count? (+- 19 pixels in this case)
@@ -21,6 +21,7 @@ middle_width = 19  #The center of the target will not be perfectly aligned with 
 
 br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoUSBOutput0', Image, queue_size=10)
+pubThrusters = rospy.Publisher('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
 #Read the blob file. Copied from the code from Oak D Lite creators
 rospy.init_node("CV", anonymous=True)
 rospy.Rate(30)
@@ -251,11 +252,13 @@ with dai.Device(pipeline) as device:
                 #frame = cv2.putText(frame, str(headingAngle), (abydosGate, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                # print("Amount needed to turn:" + str(headingAngle))
             #Look at the bouding boxes. Find the bigest one - Biggest target.
+        
+        pwm = mavros_msgs.msg.OverrideRCIn()
+        pwm.channels = a
         print(a)
         cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-        #print(frame)
         pubForward.publish(br.cv2_to_imgmsg(frame))
-        #cv2.imshow("rgb", frame)
+        #pubThrusters.publish(pwm)
 
         if cv2.waitKey(1) == ord('q'):
             break
