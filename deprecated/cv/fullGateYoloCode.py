@@ -251,6 +251,7 @@ with dai.Device(pipeline) as device:
                 #frame = cv2.putText(frame, str(headingAngle), (abydosGate, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                # print("Amount needed to turn:" + str(headingAngle))
             #Look at the bouding boxes. Find the bigest one - Biggest target.
+        print(a)
         cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
         #print(frame)
         pubForward.publish(br.cv2_to_imgmsg(frame))
