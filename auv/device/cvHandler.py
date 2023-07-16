@@ -62,8 +62,8 @@ class _ScriptHandler:
         """Callback for the oakd data subscriber"""
         try:
             data = json.loads(msg.data)
-            # TODO: do something with the data
-            logger.warning("OAK-D data received but not implemented yet")
+            self.cv_object.oakd_data = data
+            self.cv_object.oakd_data_received = True
         except Exception as e:
             logger.error("Error while converting oakd data to json")
             logger.error(e)

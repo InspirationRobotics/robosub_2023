@@ -28,6 +28,11 @@ class CV:
         """
 
         self.frame = None
+        
+        # only applies for oakd cameras, if using USB, ignore this
+        self.oakd_data = None
+        self.oakd_data_received = False
+
         logger.info("Template CV init")
 
     def run(self, frame):
