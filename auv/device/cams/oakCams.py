@@ -143,7 +143,19 @@ class oakCamera:
             print(e)
 
     def callbackModel(self, msg):
-        pass  # need to implment blob file switching
+        if(not self.initialized):
+            return
+        modelName = msg.data
+        if(modelName=="gate"):
+            modelPath = "~/auv/auv/device/cams/models/gateModel/"
+        elif(modelName=="dhd"):
+            modelPath = "~/auv/auv/device/cams/models/dhdModel/"
+        elif(modelName=="raw"):
+            modelPath==None
+        else:
+            return
+        self.createPipeline(modelPath)
+        pass  #need to implment blob file switching
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
