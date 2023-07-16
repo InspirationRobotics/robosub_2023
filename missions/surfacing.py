@@ -1,4 +1,4 @@
-from auv.mission import gate_mission
+from auv.mission import surfacing_mission
 
 import logging
 
@@ -7,13 +7,13 @@ logger.setLevel(logging.INFO)
 
 
 # create the mission object
-gateMission = gate_mission.GateMission()
+surfacingMission = surfacing_mission.SurfacingMission()
 
 # run the mission
-gateMission.run()
+surfacingMission.run()
 
 # terminate the mission
-gateMission.terminate()
+surfacingMission.cleanup()
 
 # end
 logger.info("Mission ended")
