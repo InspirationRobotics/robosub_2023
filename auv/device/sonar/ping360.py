@@ -1,6 +1,7 @@
 import brping
 import logging
 import time
+import numpy as np
 
 from . import utils
 
