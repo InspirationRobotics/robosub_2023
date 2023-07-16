@@ -167,6 +167,7 @@ with dai.Device(pipeline) as device:
             startTime = current_time
 
         detections = inDet.detections
+        a = 18*[1500]
         if(len(detections)!=0):
             # If the frame is available, draw bounding boxes on it and show the frame
             height = frame.shape[0]
@@ -206,8 +207,10 @@ with dai.Device(pipeline) as device:
                     if(centerOfGate!=-1):
                         if(centerOfGate<320-tolerance):
                             print("strafe right")
+                            a[5]=1580
                         elif(centerOfGate>320+tolerance):
                             print("strafe left")
+                            a[5]=1420
                         else:
                             print("aligned, continue")
                             stepOne = True 
@@ -217,8 +220,10 @@ with dai.Device(pipeline) as device:
                             frame[i][abydosGate] = (0,0,255)
                             if(abydosGate<320-tolerance):
                                 print("turn left")
+                                a[3]=1450
                             elif(abydosGate>320+tolerance):
                                 print("turn right")
+                                a[3]=1550
                             else:
                                 print("aligned, continue")
                             lengthOfGlyph = x2-x1
@@ -230,13 +235,16 @@ with dai.Device(pipeline) as device:
                     if(abydosGate!=-1):
                         if(abydosGate<320-tolerance):
                             print("strafe right")
+                            a[5]=1580
                         elif(abydosGate>320+tolerance):
                             print("strafe left")
+                            a[5]=1420
                         else:
                             print("aligned, continue")
                             stepThree = True
                 if(stepThree):
                     print("go forward")
+                    a[4]=1580
                 #Absolute Heading
                 #hfov = 69
                 #headingAngle = 90 - round(math.degrees(math.acos(((abydosGate - width/2) * math.cos(math.radians(90-hfov/2)) / (width/2)))))
