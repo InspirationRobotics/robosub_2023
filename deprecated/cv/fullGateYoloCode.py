@@ -143,7 +143,7 @@ with dai.Device(pipeline) as device:
     detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
     xoutBoundingBoxDepthMappingQueue = device.getOutputQueue(name="boundingBoxDepthMapping", maxSize=4, blocking=False)
     
-    networkQueue = device.getOutputQueue(name="nnNetwork", maxSize=4, blocking=False);
+    networkQueue = device.getOutputQueue(name="nnNetwork", maxSize=4, blocking=False)
 
     startTime = time.monotonic()
     counter = 0
