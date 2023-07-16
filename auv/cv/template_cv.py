@@ -28,6 +28,7 @@ class CV:
         """
 
         self.frame = None
+        self.oakd_data = None
         logger.info("Template CV init")
 
     def run(self, frame):
