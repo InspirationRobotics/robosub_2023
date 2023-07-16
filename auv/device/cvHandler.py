@@ -37,6 +37,8 @@ class _ScriptHandler:
             self.sub_oakd_data = rospy.Subscriber(
                 self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
             )
+            # set default model to raw
+            self.pub_oakd_model.publish("raw")
         else:
             self.is_oakd = False
             self.pub_oakd_model = None
