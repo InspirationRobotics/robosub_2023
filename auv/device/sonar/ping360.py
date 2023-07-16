@@ -2,6 +2,8 @@ import brping
 import logging
 import time
 
+from . import utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -172,3 +174,30 @@ class Ping360(brping.Ping360):
             curr_increment = self._increment
             while curr_increment == self._increment:
                 yield self.__next__()
+
+    def get_polar_image(self):
+        """Get a polar image from the sensor
+
+        Returns:
+            numpy.ndarray: polar image
+        """
+        size = (400, self._number_of_samples)
+        img = np.zeros((size[0], size[1], 1), dtype=np.uint8)
+
+        # do a full scan for the given range
+        for ts, angle, points in self:
+            img = utils.plot_to_polar_gray(img, angle, points, imsize=size, step_angle=self._angle_step)
+
+        return img
+
+    def get_obstacles(self):
+        """Get a list of obstacles by doing a sweep of the sonar
+
+        Returns:
+            list: list of obstacles
+        """
+        img = self.get_polar_image()
+
+        # object detection
+        obstacles = utils.object_detection(img, threshold=60)
+        return obstacles
