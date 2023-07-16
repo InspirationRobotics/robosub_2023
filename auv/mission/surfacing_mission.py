@@ -4,12 +4,14 @@ Surfacing mission class
 
 import json
 import logging
+import os
 
 import rospy
 from std_msgs.msg import String
 
 from auv.device import cvHandler
 from auv.motion import robot_control
+from auv.utils import disarm
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -53,6 +55,10 @@ class TemplateMission:
         Here should be all the code required to run the mission.
         This could be a loop, a finite state machine, etc.
         """
+
+        # move the sub up
+        self.robot_control.setDepth(0.6)
+
         while not rospy.is_shutdown():
             try:
                 if not self.received:
@@ -99,6 +105,9 @@ class TemplateMission:
 
         # idle the robot (just in case something went wrong)
         self.robot_control.movement()
+
+        # disarm sub (to surface)
+        disarm.disarm()
 
         logger.info("Template mission terminate")
 
