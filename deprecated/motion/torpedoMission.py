@@ -7,10 +7,9 @@ import mavros_msgs.msg
 import mavros_msgs.srv
 import numpy as np
 import cv2
-from robot_control import RobotControl
 import time
 import os
-from servos import servos
+from servo import Servo
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
