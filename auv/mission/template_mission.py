@@ -10,7 +10,7 @@ import logging
 import rospy
 from std_msgs.msg import String
 
-from auv.utils import cvHandler
+from auv.device import cvHandler
 from auv.motion import robot_control
 
 logger = logging.getLogger(__name__)
