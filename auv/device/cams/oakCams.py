@@ -96,7 +96,7 @@ class oakCamera:
             camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-            camRgb.setFps(40)
+            camRgb.setFps(30)
 
             # Network specific settings
             detectionNetwork.setConfidenceThreshold(confidence)
