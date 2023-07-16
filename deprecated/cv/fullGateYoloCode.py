@@ -1,4 +1,5 @@
-
+import rospy
+from sensor_msgs.msg import Image
 from pathlib import Path
 import sys
 import os
@@ -8,9 +9,9 @@ import numpy as np
 import time
 import serial
 import math
-
-
-
+from cv_bridge import CvBridge, CvBridgeError
+import mavros_msgs.msg
+import mavros_msgs.srv
 
 offset = 0      #if the camera is not in the center of the shooter, you can make an offset so that the center of the target is a bit to the right or to the left
 middle_width = 19  #The center of the target will not be perfectly aligned with the center of the camera, so this is a wiggle-room. How wide do you want the center to count? (+- 19 pixels in this case)
@@ -18,9 +19,12 @@ middle_width = 19  #The center of the target will not be perfectly aligned with 
 
 ## Return what needs to be done 
 
-
+br = CvBridge()
+pubForward = rospy.Publisher('/auv/camera/videoUSBOutput0', Image, queue_size=10)
+pubThrusters = rospy.Publisher('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn, queue_size=10)
 #Read the blob file. Copied from the code from Oak D Lite creators
-
+rospy.init_node("CV", anonymous=True)
+rospy.Rate(30)
 
 
 nnBlobPath = str((Path(__file__).parent / Path('smallestmodel_openvino_2022.1_6shave.blob')).resolve().absolute())
@@ -139,13 +143,17 @@ with dai.Device(pipeline) as device:
     detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
     xoutBoundingBoxDepthMappingQueue = device.getOutputQueue(name="boundingBoxDepthMapping", maxSize=4, blocking=False)
     
-    networkQueue = device.getOutputQueue(name="nnNetwork", maxSize=4, blocking=False);
+    networkQueue = device.getOutputQueue(name="nnNetwork", maxSize=4, blocking=False)
 
     startTime = time.monotonic()
     counter = 0
     fps = 0
     color = (255, 255, 255)
     printOutputLayersOnce = False
+    stepOne = False
+    maxGlyphLength = 0
+    stepTwo = False
+    stepThree = False
     while True:
         inPreview = previewQueue.get()
         inDet = detectionNNQueue.get()
@@ -160,13 +168,16 @@ with dai.Device(pipeline) as device:
             startTime = current_time
 
         detections = inDet.detections
+        a = 18*[1500]
         if(len(detections)!=0):
             # If the frame is available, draw bounding boxes on it and show the frame
             height = frame.shape[0]
             width  = frame.shape[1]
-            centerOfGate = 0
+            centerOfGate = -1
             abydosGate = -1
             sumOfDets = 0
+            abydosConfidences = []
+            maxConfidence = 0
             for detection in detections:
                 x1 = int(detection.xmin * width)
                 x2 = int(detection.xmax * width)
@@ -179,30 +190,75 @@ with dai.Device(pipeline) as device:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
                 if(detection.label == 0):
                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0,0,255), cv2.FONT_HERSHEY_SIMPLEX)
-                   abydosGate = x1
+                   abydosConfidences.append((detection.confidence,x1))
+            for confidence in abydosConfidences:
+                if confidence[0]>maxConfidence:
+                    maxConfidence = confidence[0]
+                    abydosGate = confidence[1]
             if(len(detections)!=0):
                 centerOfGate = int(sumOfDets/len(detections))
                 for i in range(300):
                     frame[i][centerOfGate] = (255,255,255)
                 #Feedback Loop
+                #strafe until we hit the center of the gate (ensure that we don't lose teh image)
+                #parallel to abydos (yaw until the length of highesgt confidence detection is longest, continue moving until it gets smaller)
+                #strafe until we hit the center of the highest confidence glyph
                 tolerance = 10
-                if(abydosGate<320-tolerance):
-                    print("turn/strafe right")
-                elif(abydosGate>320+tolerance):
-                    print("turn/strafe left")
-                else:
-                    print("aligned, go forward")
-            if(abydosGate!=-1):
-                for i in range(300):
-                    frame[i][abydosGate] = (0,0,255)
+                if(stepOne== False):
+                    if(centerOfGate!=-1):
+                        if(centerOfGate<320-tolerance):
+                            print("strafe right")
+                            a[5]=1580
+                        elif(centerOfGate>320+tolerance):
+                            print("strafe left")
+                            a[5]=1420
+                        else:
+                            print("aligned, continue")
+                            stepOne = True 
+                if(stepOne):
+                    if(abydosGate!=-1):
+                        for i in range(300):
+                            frame[i][abydosGate] = (0,0,255)
+                            if(abydosGate<320-tolerance):
+                                print("turn left")
+                                a[3]=1450
+                            elif(abydosGate>320+tolerance):
+                                print("turn right")
+                                a[3]=1550
+                            else:
+                                print("aligned, continue")
+                            lengthOfGlyph = x2-x1
+                            if(lengthOfGlyph<maxGlyphLength):
+                                stepTwo = True
+                            else:
+                                maxGlyphLength = lengthOfGlyph
+                if(stepTwo):
+                    if(abydosGate!=-1):
+                        if(abydosGate<320-tolerance):
+                            print("strafe right")
+                            a[5]=1580
+                        elif(abydosGate>320+tolerance):
+                            print("strafe left")
+                            a[5]=1420
+                        else:
+                            print("aligned, continue")
+                            stepThree = True
+                if(stepThree):
+                    print("go forward")
+                    a[4]=1580
                 #Absolute Heading
-                hfov = 69
-                headingAngle = 90 - round(math.degrees(math.acos(((abydosGate - width/2) * math.cos(math.radians(90-hfov/2)) / (width/2)))))
-                frame = cv2.putText(frame, str(headingAngle), (abydosGate, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                print("Amount needed to turn:" + str(headingAngle))
+                #hfov = 69
+                #headingAngle = 90 - round(math.degrees(math.acos(((abydosGate - width/2) * math.cos(math.radians(90-hfov/2)) / (width/2)))))
+                #frame = cv2.putText(frame, str(headingAngle), (abydosGate, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+               # print("Amount needed to turn:" + str(headingAngle))
             #Look at the bouding boxes. Find the bigest one - Biggest target.
+        
+        pwm = mavros_msgs.msg.OverrideRCIn()
+        pwm.channels = a
+        print(a)
         cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-        cv2.imshow("rgb", frame)
+        pubForward.publish(br.cv2_to_imgmsg(frame))
+        #pubThrusters.publish(pwm)
 
         if cv2.waitKey(1) == ord('q'):
             break

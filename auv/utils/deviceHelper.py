@@ -54,6 +54,7 @@ def findCam(ids):
 
 def dataFromConfig(name):
     data = None
+    usbID = None
     if(name=="forwardOak"):
         data = variables.get("forwardOak_camera_mxid")
     elif(name=="bottomOak"):
@@ -61,9 +62,9 @@ def dataFromConfig(name):
     elif(name=="poeOak"):
         data = variables.get("poeOak_camera_mxid")
     elif(name=="forwardUSB"):
-        usbID = variables.get("forward_camera_port")
+        data = variables.get("forward_camera_port")
     elif(name=="bottomUSB"):
-        usbID = variables.get("bottom_camera_port")
+        data = variables.get("bottom_camera_port")
     elif(name=="pixhawk"):
         usbID = variables.get("pixhawk_port")
     elif(name=="modem"):
@@ -80,6 +81,8 @@ def dataFromConfig(name):
             raise Exception("Invalid Name")
     if(data!=None):
         return data
+    if(usbID==None):
+        return None #id is not on sub so leave it
     return findFromId([usbID])
     
 

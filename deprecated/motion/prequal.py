@@ -1,6 +1,7 @@
-from auv.motion.robot_control import RobotControl
-import time
 import os
+import time
+
+from robot_control import RobotControl
 
 start = 331
 rc = RobotControl()

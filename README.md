@@ -31,6 +31,8 @@ Please don't use any python 3.8 features (f-strings, walrus operator, etc.) and 
 
 #### For Onyx
 
+(for the following, you can also use the https link instead of the ssh link)
+
 ```bash
 git clone git@github.com:InspirationRobotics/robosub_2023.git 
 mv robosub_2023 auv && cd auv
@@ -49,7 +51,7 @@ python2 -m pip install -e .
 #### On your own computer
 
 ```bash
-git clone git clone git@github.com:InspirationRobotics/robosub_2023.git 
+git clone git@github.com:InspirationRobotics/robosub_2023.git 
 cd robosub_2023
 python3 -m pip install -e ."[cv,dev]"
 # or 

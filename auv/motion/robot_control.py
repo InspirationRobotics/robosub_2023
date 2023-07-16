@@ -1,3 +1,4 @@
+import logging
 import signal
 import threading
 import time
@@ -9,123 +10,82 @@ import rospy
 import sensor_msgs.msg
 from std_msgs.msg import Float64, Int32MultiArray
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 class RobotControl:
-    # initialize AUV state to idle (1500) and get initial compass heading
-    def __init__(self):
-        self.compass = None
+    """Class to control the robot"""
+
+    def __init__(self, **config):
         # establishing thrusters and depth publishers
-        self.pubThrusters = rospy.Publisher(
-            "auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10
-        )
-        self.pubDepth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
-        rospy.init_node(
-            "robotcontrol", anonymous=True
-        )  # initializing robotcontrol node
-        self.channels = [
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-            1500,
-        ]
-        # initializing compass
+        self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
+        self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
+        self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
-        # beginning separate threading for compass sensor readings
-        self.thread_compass = threading.Timer(0, self.get_compass)
-        self.thread_compass.daemon = True
-        self.thread_compass.start()
-        print("RC Lib Initialized")
-
-        # stores previously set depth
+        # init some variables
         self.previous_depth = 0.0
+        self.compass = None
 
-    # Constantly loop for checking compass values from /auv/devices/compass
-    def get_compass(self):
-        print("get compass running..")
-        rospy.Subscriber("/auv/devices/compass", Float64, self.compass_cb)
-        rospy.spin()  # infinitely checking compass reading until program has ended
-
-    # Retrieves current compass heading from mavros output to rostopic /auv/devices/compass
-    def compass_cb(self, data):
-        self.compass = data.data  # assigns self.compass current heading
-
-    # have not used mapping at all yet, possibly for localization
-    def mapping(self, x, in_min, in_max, out_min, out_max):
-        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
-
-    # returns compass heading
-    def return_compass(self):
-        return self.compass
+    def callback_compass(self, data):
+        """Get compass heading from /auv/devices/compass topic"""
+        self.compass = data.data
 
     # setting depth for depth holding to specific input
     def setDepth(self, d):
+        """Set depth to a given value"""
         depth = Float64()
         depth.data = d
         for i in range(5):
-            # publishing depth values to /auv/devices/setDepth where it will depth hold to given value
-            self.pubDepth.publish(depth)
+            self.pub_depth.publish(depth)
             time.sleep(0.1)
-        print("successfully set depth")
+
         self.previous_depth = d
+        logger.info("Depth set to {}".format(d))
 
     def movement(
         self,
-        throttle=None,
+        vertical=None,
+        yaw=None,
         forward=None,
         lateral=None,
-        yaw=None,
         pitch=None,
         roll=None,
     ):
         # provided an kwargs of values from -5 to 5 for each degree of freedom
         pwm = mavros_msgs.msg.OverrideRCIn()
-        channels = self.channels
-        # translating -5 to 5 to 1100-1900 pwm values
-        if throttle:
-            channels[2] = (throttle * 80) + 1500
-        if forward:
-            channels[4] = (lateral * 80) + 1500
-        if lateral:
-            channels[5] = (lateral * 80) + 1500
-        if yaw:
-            channels[3] = (yaw * 80) + 1500
-        if pitch:
-            channels[6] = (pitch * 80) + 1500
-        if roll:
-            channels[7] = (roll * 80) + 1500
-        pwm.channels = channels
-        # publishing pwms to /auv/devices/thrusters; sending commands to thrusters
-        self.pubThrusters.publish(pwm)
 
-    # set heading is a function that yaws until reaches desired heading input integer
+        channels = [1500] * 18
+        channels[2] = (vertical * 80) + 1500 if vertical else 1500
+        channels[3] = (yaw * 80) + 1500 if yaw else 1500
+        channels[4] = (forward * 80) + 1500 if forward else 1500
+        channels[5] = (lateral * 80) + 1500 if lateral else 1500
+        channels[6] = (pitch * 80) + 1500 if pitch else 1500
+        channels[7] = (roll * 80) + 1500 if roll else 1500
+        pwm.channels = channels
+
+        # publishing pwms to /auv/devices/thrusters
+        self.pub_thrusters.publish(pwm)
+
     def setHeading(self, target: int):
+        """Yaw to target heading, heading is absolute, blocking function"""
+
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
         target = (target) % 360
-        # dir variable is direction; clockwise and counterclockwise
+
+        logger.info("Setting heading to {}".format(target))
+
+        # direct variable is direction; clockwise and counterclockwise
         while not rospy.is_shutdown():
             current = int(self.compass)
-            print(current)
-            dir = 1  # cw
             diff = abs(target - current)
+            direct = 1  # cw
+
             if diff >= 180:
-                dir *= -1
+                direct *= -1
             if current > target:
-                dir *= -1
+                direct *= -1
             if diff >= 180:
                 diff = 360 - diff
             # if farther from desired heading, speed will be faster, if closer to heading, speed will decrease
@@ -139,19 +99,17 @@ class RobotControl:
                 self.pubThrusters.publish(pwm)  # publishing pwms to stop yawing
                 break
             else:
-                pwm.channels[3] = 1500 + (dir * speed)
+                pwm.channels[3] = 1500 + (direct * speed)
                 self.pubThrusters.publish(pwm)  # publishing pwms to continue yawing
 
-        print("Heading is set")
+        logger.info("Finished setting heading to {}".format(target))
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
         # Power 2: 21t+0.00952
         # Power 3: 32.1t-18.7
         forwardPower = (power * 80) + 1500  # calculating power for forward thrusters
-        if (
-            t > 3
-        ):  # designating time for backstopping function to prevent inertia from increasing distance travelled
+        if t > 3:  # designating time for backstopping function to prevent inertia from increasing distance travelled
             timeStop = t / 6
         else:
             timeStop = 0.5
@@ -163,12 +121,10 @@ class RobotControl:
         pwm.channels[4] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(
-                pwm
-            )  # publishing pwms for forward commands to thrusters
+            self.pubThrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
             time.sleep(0.1)
 
-        print("finished forward")
+        logger.info("finished forward")
         # calculating gradual decrease for thruster power
         gradDec = int((forwardPower - powerStop) / (timeStop * 10))
         startTime = time.time()
@@ -180,14 +136,14 @@ class RobotControl:
             time.sleep(0.1)
 
         t2 = 0
-        print("finished backstopping")
+        logger.info("finished backstopping")
         pwm.channels = [1500] * 18
         startTime = time.time()
         # publishing idle pwms to sub to stop moving
         while time.time() - startTime <= 0.5:
             self.pubThrusters.publish(pwm)
             time.sleep(0.05)
-        print("finished forward heading")
+        logger.info("finished forward heading")
 
     # incorporates universal backstop function for lateral movement
     def lateralUni(self, power, t):
@@ -245,7 +201,7 @@ class RobotControl:
         while time.time() - startTime <= 0.5:
             self.pubThrusters.publish(pwm)
             time.sleep(0.05)
-        print("finished backstopping")
+        logger.info("finished backstopping")
 
     # uses functions from testing to correlate pwms and time to distance and then utilizes forwardHeadingUni commmand to send pwms to thrusters for calculated pwms and time
     def forwardDist(self, dist, power):
@@ -262,17 +218,3 @@ class RobotControl:
         elif power == 1:
             time = (inches - 3.4) / 7.8
             self.forwardHeadingUni(1, time)
-        print("completed forward with distance!")
-
-    def onExit(signum, frame):
-        try:
-            print("\nDisarming and exiting...")
-            rospy.signal_shutdown("Rospy Exited")
-            while not rospy.is_shutdown():
-                pass
-            print("\n\nCleanly Exited")
-            exit(1)
-        except:
-            pass
-
-    signal.signal(signal.SIGINT, onExit)

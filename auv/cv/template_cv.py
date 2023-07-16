@@ -27,17 +27,22 @@ class CV:
         config is a dictionnary containing the config of the sub
         """
 
-        self.frame = None
+        self.this_is_a_variable = config.get("this_is_a_variable", 42)
+
         logger.info("Template CV init")
 
-    def run(self, frame):
+    def run(self, frame, target, oakd_data):
         """
+        frame: the frame from the camera
+        target: could be any type of information, for example the thing to look for
+        oakd_data: only applies for oakd cameras, this is the list of detections
+
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
         logging.info("Template CV run")
 
-        return {"lateral": 0, "forward": 0, "end": False}, self.frame
+        return {"lateral": 0, "forward": 0, "end": False}, frame
 
 
 if __name__ == "__main__":
@@ -59,7 +64,7 @@ if __name__ == "__main__":
             break
 
         # run the cv
-        result = cv.run(frame)
+        result = cv.run(frame, "some_info", None)
 
         # do something with the result
         logger.info(result)

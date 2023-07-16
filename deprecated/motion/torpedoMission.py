@@ -1,8 +1,9 @@
-import numpy as np
-import cv2
-import time
-import sys
+import os
 import signal
+import sys
+import time
+
+import cv2
 import mavros_msgs.msg
 import mavros_msgs.srv
 import numpy as np
@@ -10,9 +11,6 @@ import cv2
 import time
 import os
 from servo import Servo
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
 
 br = CvBridge()
 pubForward = rospy.Publisher('/auv/camera/videoUSBOutput0', Image,queue_size=10)

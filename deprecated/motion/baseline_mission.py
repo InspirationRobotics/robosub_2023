@@ -1,5 +1,6 @@
-from auv.motion.robot_control import RobotControl
 import time
+
+from robot_control import RobotControl
 
 rc = RobotControl()
 time.sleep(1)

@@ -20,7 +20,7 @@ class CV:
         Init of surfacing CV
         """
 
-        self.frame = None
+        self.viz_frame = None
         self.memory_edges = None
         self.error_buffer = []
 
@@ -78,32 +78,32 @@ class CV:
         y_error = (shape[0] / 2 - center_y) / max_size
         return (x_error, y_error)
 
-    def run(self, frame):
+    def run(self, frame, target, oakd_data):
         """
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        self.frame = frame
+        self.viz_frame = frame
         if self.memory_edges is None:
             self.memory_edges = np.zeros((frame.shape[0], frame.shape[1], 1), dtype=np.uint8)
 
         (x_center, y_center) = self.get_octogon_center()
 
         if x_center is None or y_center is None:
-            return {}, self.frame
+            return {}, self.viz_frame
 
-        (x_error, y_error) = self.get_error(x_center, y_center, self.frame.shape)
+        (x_error, y_error) = self.get_error(x_center, y_center, frame.shape)
         self.error_buffer.append((x_error, y_error))
         if len(self.error_buffer) > 20:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.05:
-            return {"end": True}, self.frame
+            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
         x_error *= self.surfacing_sensitivity
         y_error *= self.surfacing_sensitivity
-        return {"lateral": x_error, "forward": y_error}, self.frame
+        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
 
 
 if __name__ == "__main__":
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         img = cv2.resize(img, (480, 640))
 
         # run the CV
-        result, img_viz = cv.run(img)
+        result, img_viz = cv.run(img, None, None)
         logger.info(result)
 
         # show the result

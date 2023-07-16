@@ -9,12 +9,17 @@ import cv2
 import json
 import glob
 import numpy as np
-import depthai as dai
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
 from auv.device.cams import pyfakewebcam
+
+
+if sys.version_info[0] == 3:
+    # python3 meaning oak-d
+    import depthai as dai
+
 
 class oakCamera:
     def __init__(self, rospy, id, mxid, newDevice):
@@ -31,7 +36,7 @@ class oakCamera:
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
         self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
-        self.rospy.Subscriber("/auv/camera/videoOAKd" + self.name + "Model", String, self.callbackModel)
+        self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
         self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
         self.time = time.time()
         print("Oak-D " + self.name + " is available at " + newDevice)
@@ -39,7 +44,7 @@ class oakCamera:
     def createPipeline(self, modelPath=None, confidence=0.5):
         self.initialized = False
         self.modelPath = modelPath
-        if(self.modelPath==None):
+        if self.modelPath == None:
             pipeline = dai.Pipeline()
             xoutRgb = pipeline.createXLinkOut()
             xoutRgb.setStreamName("rgb")
@@ -62,9 +67,9 @@ class oakCamera:
             ctrl.setAutoFocusTrigger()
             controlQueue.send(ctrl)
         else:
-            #setup json parse for .blob file and parameters
-            jsonFile = glob.glob(modelPath+"*.json")[0]
-            blobFile = glob.glob(modelPath+"*.blob")[0]
+            # setup json parse for .blob file and parameters
+            jsonFile = glob.glob(modelPath + "*.json")[0]
+            blobFile = glob.glob(modelPath + "*.blob")[0]
             jsonFile = open(jsonFile)
             data = json.load(jsonFile)
             NN_params = data["nn_config"]["NN_specific_metadata"]
@@ -73,7 +78,7 @@ class oakCamera:
             anchors = NN_params["anchors"]
             anchorMasks = NN_params["anchor_masks"]
             self.labelMap = data["mappings"]["labels"]
-            
+
             # Create pipeline
             pipeline = dai.Pipeline()
 
@@ -91,7 +96,7 @@ class oakCamera:
             camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-            camRgb.setFps(40)
+            camRgb.setFps(30)
 
             # Network specific settings
             detectionNetwork.setConfidenceThreshold(confidence)
@@ -101,7 +106,7 @@ class oakCamera:
             detectionNetwork.setAnchorMasks(anchorMasks)
             detectionNetwork.setIouThreshold(0.5)
             detectionNetwork.setBlobPath(nnBlobPath)
-            #detectionNetwork.setNumInferenceThreads(2) needed?
+            # detectionNetwork.setNumInferenceThreads(2) needed?
             detectionNetwork.input.setBlocking(False)
 
             # Linking
@@ -109,14 +114,14 @@ class oakCamera:
             detectionNetwork.passthrough.link(xoutRgb.input)
             detectionNetwork.out.link(nnOut.input)
 
-            #Initializing Oak-D with pipeline
+            # Initializing Oak-D with pipeline
             device_info = dai.DeviceInfo(self.mxid)
             self.device = dai.Device(pipeline, device_info)
 
         self.initialized = True
 
     def mxidToName(self, mxid):
-        if mxid == "18443010B1F9840E00":  #18443010B1A0B01200
+        if mxid == "18443010B1F9840E00":  # 18443010B1A0B01200
             return "Forward"
         elif mxid == "184430104161721200":
             return "Bottom"
@@ -138,19 +143,31 @@ class oakCamera:
             print(e)
 
     def callbackModel(self, msg):
-        pass  # need to implment blob file switching
+        if(not self.initialized):
+            return
+        modelName = msg.data
+        if(modelName=="gate"):
+            modelPath = "~/auv/auv/device/cams/models/gateModel/"
+        elif(modelName=="dhd"):
+            modelPath = "~/auv/auv/device/cams/models/dhdModel/"
+        elif(modelName=="raw"):
+            modelPath==None
+        else:
+            return
+        self.createPipeline(modelPath)
+        pass  #need to implment blob file switching
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         while not self.rospy.is_shutdown():
-            if(self.modelPath!=None):
-                if(not self.initialized):
+            if self.modelPath != None:
+                if not self.initialized:
                     continue
                 qDet = self.device.getOutputQueue(name="nn", maxSize=4, blocking=False)
             while self.initialized:
                 try:
                     frame1 = cam.get().getCvFrame()
-                    if(self.modelPath!=None):
+                    if self.modelPath != None:
                         inDet = qDet.get()
                         detections = inDet.detections
                         for detection in detections:
@@ -164,12 +181,21 @@ class oakCamera:
                             except:
                                 label = detection.label
                             cv2.putText(frame1, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                            cv2.putText(frame1, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                            cv2.rectangle(frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX) #change for multiple colors?
+                            cv2.putText(
+                                frame1,
+                                "{:.2f}".format(detection.confidence * 100),
+                                (x1 + 10, y1 + 35),
+                                cv2.FONT_HERSHEY_TRIPLEX,
+                                0.5,
+                                255,
+                            )
+                            cv2.rectangle(
+                                frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
+                            )  # change for multiple colors?
                         self.pubData.publish(str(detections))
                     msg = self.br.cv2_to_imgmsg(frame1)
                     self.pubFrame.publish(msg)
-                    if(time.time()-self.time>3): #no new CV output frames recieved, default to cam view
+                    if time.time() - self.time > 3:  # no new CV output frames recieved, default to cam view
                         self.sendFakeFrame(frame1)
                     pass
                 except Exception as e:
@@ -178,7 +204,7 @@ class oakCamera:
                 self.loop_rate.sleep()
 
     def kill(self):
-        pass #todo
+        pass  # todo
 
     def start(self):
         self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
