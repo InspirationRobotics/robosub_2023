@@ -1,4 +1,4 @@
-from auv.mission import gate_mission
+from auv.mission import gate_mission, surfacing_mission
 
 import logging
 
@@ -13,7 +13,7 @@ gateMission = gate_mission.GateMission()
 gateMission.run()
 
 # terminate the mission
-gateMission.terminate()
+gateMission.cleanup()
 
 # end
 logger.info("Mission ended")

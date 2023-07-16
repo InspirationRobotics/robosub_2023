@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class TemplateMission:
+class SurfacingMission:
     cv_files = ["surfacing_cv"]
 
     def __init__(self, **config):
