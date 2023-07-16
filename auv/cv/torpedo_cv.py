@@ -6,9 +6,14 @@ Author: Kyle Jacob
 
 import logging
 import time
-
 import cv2
 import numpy as np
+import argparse
+import logging
+import os
+import time
+
+from auv.device.sonar import Ping360, utils, io
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -26,7 +31,40 @@ class CV:
         self.lostSight = 0
         logger.info("Torpedo CV init")
 
-    def get_cricles (self):
+        self.target_center_x = 210      # Where we want the center of the circle
+        self.target_center_y = 350      # to be when close to mission
+
+        self.center_x = 240             # True center of screen which will be
+        self.center_y = 320             # used to align the sub when far away
+
+        self.threshold_far = 30         # Margin of error when far
+        self.threshold_near = 50        # "      "      " when near
+        self.scan_timer = 0
+        self.distance_to_target = None
+
+        # TODO Fill with distance boundary that we will get from ping 360 to
+        # switch from center the center of the sub the the largest circle, to
+        # then centering the torpedo zone
+        self.far_near_boundary = 250    # if radius > ; means near, else > means far
+        self.fire_distance = 280        # if radius of largest circle is > than, fire
+
+
+        step_angle = 1
+        max_range = 20
+
+        p = Ping360(
+            "/dev/ttyUSB0",
+            115200,
+            scan_mode=1,
+            angle_range=(150, 250),
+            angle_step=step_angle,
+            max_range=max_range,
+            gain=2,
+            transmit_freq=800,
+    )
+
+
+    def get_circles (self):
         """
         Returns the center and radius of the detected circle in the frame
         using a Hough circle detection on Canny edge detection
@@ -82,19 +120,8 @@ class CV:
         # video is 480 by 640, at end we want the point (210, 350)
         self.frame = frame
 
-        self.target_center_x = 210      # Where we want the center of the circle
-        self.target_center_y = 350      # to be when close to mission
-
-        self.center_x = 240             # True center of screen which will be
-        self.center_y = 320             # used to align the sub when far away
-
-        self.threshold_far = 30         # Margin of error when far
-        self.threshold_near = 50        # "      "      " when near
-
-        self.far_near_boundary = 250    # if radius > ; means near, else > means far
-        self.fire_distance = 280        # if radius of largest circle is > than, fire
-
-        circles = self.get_cricles()
+       
+        circles = self.get_circles()
 
 
 
@@ -103,8 +130,8 @@ class CV:
         if circles is not None:             # Circles detected
             self.lostSight = 0
 
-            if len(circle) <= 2:        # Can be in firing position
-                if 
+            if len(circles) <= 2:        # Can be in firing position
+                print("None") 
 
 
             # State 1: Only one circle detected
