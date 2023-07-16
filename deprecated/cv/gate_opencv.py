@@ -123,7 +123,7 @@ class CV:
 
 
 
-    def run(self, frame):
+    def run(self, frame, target, oakd_data):
         """
         CV gate detection based on bounding box detection and ratio
         """
@@ -199,7 +199,7 @@ if __name__ == "__main__":
             break
 
         # run the cv
-        result, frame = cv.run(frame)
+        result, frame = cv.run(frame, None, None)
         logger.info(result)
 
         # debug the frame

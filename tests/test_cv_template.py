@@ -17,5 +17,5 @@ def test_cv_function():
 
     # creates a cv template object to test the function
     cv = template_cv.CV()
-    result, img_viz = cv.run(None)
-    assert isinstance(result, dict) and img_viz is None 
+    result, img_viz = cv.run("this_is_some_data", None, None)
+    assert isinstance(result, dict) and img_viz == "this_is_some_data" 

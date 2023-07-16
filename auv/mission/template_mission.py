@@ -70,6 +70,10 @@ class TemplateMission:
             self.next_data = {}
 
             # TODO: do something with the data
+
+            # here is an example of how to set a target
+            self.cv_handler.set_target("template_cv", "albedo")
+
             break  # TODO: remove this line when making your mission
 
         logger.info("Template mission run")

@@ -34,12 +34,16 @@ class _ScriptHandler:
         if "OAKd" in self.camera_topic:
             self.is_oakd = True
             self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String)
-            self.sub_oakd_data = rospy.Subscriber(self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data)
+            self.sub_oakd_data = rospy.Subscriber(
+                self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
+            )
         else:
             self.is_oakd = False
             self.pub_oakd_model = None
             self.sub_oakd_data = None
 
+        self.target = "main"
+        self.oakd_data = None
         self.next_frame = None
         self.running = False
         self.closed = False
@@ -62,8 +66,7 @@ class _ScriptHandler:
         """Callback for the oakd data subscriber"""
         try:
             data = json.loads(msg.data)
-            self.cv_object.oakd_data = data
-            self.cv_object.oakd_data_received = True
+            self.oakd_data = data
         except Exception as e:
             logger.error("Error while converting oakd data to json")
             logger.error(e)
@@ -83,7 +86,7 @@ class _ScriptHandler:
             # Run the CV
             frame = self.next_frame
             try:
-                ret = self.cv_object.run(frame)
+                ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
                 logger.error("Error while running CV {} {}".format(self.file_name, e))
                 continue
@@ -164,7 +167,7 @@ class CVHandler:
         self.subs[file_name].unregister()
         del self.subs[file_name]
 
-    def change_oakd_model(self, file_name, model_name):
+    def set_oakd_model(self, file_name, model_name):
         if file_name not in self.active_cv_scripts:
             logger.error("Cannot change model of a script that is not running")
             return
@@ -178,6 +181,13 @@ class CVHandler:
             return
 
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
+
+    def set_target(self, file_name, target):
+        if file_name not in self.active_cv_scripts:
+            logger.error("Cannot change target of a script that is not running")
+            return
+
+        self.active_cv_scripts[file_name].target = target
 
 
 if __name__ == "__main__":
