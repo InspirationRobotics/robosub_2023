@@ -48,7 +48,7 @@ class CV:
         height = frame.shape[0]
         width  = frame.shape[1]
         target_x = -1
-        confidenceGate = -1
+        #confidenceGate = -1
         sumOfDets = 0
         targetConfidences = []
         end = False

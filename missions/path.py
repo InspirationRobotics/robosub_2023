@@ -1,4 +1,4 @@
-from auv.mission import gate_mission
+from auv.mission import path_mission
 
 import logging
 
@@ -7,13 +7,13 @@ logger.setLevel(logging.INFO)
 
 
 # create the mission object
-gateMission = gate_mission.GateMission()
+pathMission = path_mission.PathMission()
 
 # run the mission
-gateMission.run()
+pathMission.run()
 
 # terminate the mission
-gateMission.cleanup()
+pathMission.cleanup()
 
 # end
 logger.info("Mission ended")
