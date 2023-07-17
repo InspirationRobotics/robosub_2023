@@ -5,13 +5,13 @@ import numpy as np
 class Obstacle:
     """Stores information about an obstacle detected by the sonar"""
 
-    def __init__(self, points):
+    def __init__(self, points, dist_factor=1):
         # type: (np.ndarray) -> None
         self.points = points
         self.center = np.mean(points, axis=0)[0]
 
-        self.distance = self.center[0]
-        self.angle = self.center[1]
+        self.distance = self.center[0] * dist_factor
+        self.angle = (self.center[1] / 400) * 360
 
         self.size = np.max(points, axis=0) - np.min(points, axis=0)
         self.area = cv2.contourArea(points)
@@ -118,7 +118,7 @@ def render_obstacles(img, obstacles):
     return img
 
 
-def object_detection(img, threshold=60):
+def object_detection(img, dist_factor=1, threshold=60):
     # type: (np.array, int) -> list[Obstacle]
     if img is None:
         return []
@@ -149,5 +149,5 @@ def object_detection(img, threshold=60):
 
     cv2.waitKey(0)
 
-    objects = [Obstacle(contour) for contour in contours]
+    objects = [Obstacle(contour, dist_factor=dist_factor) for contour in contours]
     return objects

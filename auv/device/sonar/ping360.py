@@ -71,11 +71,7 @@ class Ping360(brping.Ping360):
         return self._scan_mode
 
     def set_angle_range(self, angle_range):
-        if (
-            angle_range[0] < 0
-            or angle_range[1] > 399
-            or angle_range[0] > angle_range[1]
-        ):
+        if angle_range[0] < 0 or angle_range[1] > 399 or angle_range[0] > angle_range[1]:
             raise ValueError("invalid angle range: {}".format(angle_range))
 
         self._angle_range = (angle_range[0] % 400, angle_range[1] % 400)
@@ -106,23 +102,11 @@ class Ping360(brping.Ping360):
         self._number_of_samples = int(
             min(
                 self.max_samples,
-                2
-                * self._max_range
-                / (
-                    self.sample_period_tick_duration
-                    * self.min_sample_period
-                    * self.speed_of_sound
-                ),
+                2 * self._max_range / (self.sample_period_tick_duration * self.min_sample_period * self.speed_of_sound),
             )
         )
         self._sample_period = int(
-            2
-            * self._max_range
-            / (
-                self._number_of_samples
-                * self.sample_period_tick_duration
-                * self.speed_of_sound
-            )
+            2 * self._max_range / (self._number_of_samples * self.sample_period_tick_duration * self.speed_of_sound)
         )
 
         self._transmit_duration = int(
@@ -131,6 +115,8 @@ class Ping360(brping.Ping360):
                 (8000 * self._max_range) / self.speed_of_sound,
             )
         )
+
+        self.norm_dist_factor = self._max_range / self._number_of_samples
 
     def __next__(self):
         """Get a step scan from the sensor and return the current angle and distances"""
@@ -191,7 +177,7 @@ class Ping360(brping.Ping360):
 
         return img
 
-    def get_obstacles(self):
+    def get_obstacles(self, threshold=60):
         """Get a list of obstacles by doing a sweep of the sonar
 
         Returns:
@@ -200,5 +186,8 @@ class Ping360(brping.Ping360):
         img = self.get_polar_image()
 
         # object detection
-        obstacles = utils.object_detection(img, threshold=60)
-        return obstacles
+        return utils.object_detection(
+            img,
+            dist_factor=self.norm_dist_factor,
+            threshold=threshold,
+        )
