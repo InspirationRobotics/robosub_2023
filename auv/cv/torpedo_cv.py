@@ -61,16 +61,20 @@ class CV:
         step_angle = 1
         max_range = 20
 
-        self.p = (Ping360(
-            "/dev/ttyUSB0",
-            115200,
-            scan_mode=1,
-            angle_range=(150, 250),
-            angle_step=step_angle,
-            max_range=max_range,
-            gain=2,
-            transmit_freq=800,
-        ) if self.deploy else None )
+        self.p = (
+            Ping360(
+                "/dev/ttyUSB0",
+                115200,
+                scan_mode=1,
+                angle_range=(150, 250),
+                angle_step=step_angle,
+                max_range=max_range,
+                gain=2,
+                transmit_freq=800,
+            )
+            if self.deploy
+            else None
+        )
 
     def get_circles(self, frame):
         """
@@ -106,10 +110,28 @@ class CV:
             for circle in circles:
                 x, y = circles[i, 0], circles[i, 1]
                 dist = circles[i, 2]
-                cv2.circle(self.frame, center=(x, y), radius=dist, color=(0, 255, 0), thickness=20)
-                cv2.circle(self.frame, center=(circles[i, 0], circles[i, 1]), radius=2, color=(0, 0, 255), thickness=2)
+                cv2.circle(
+                    self.frame,
+                    center=(x, y),
+                    radius=dist,
+                    color=(0, 255, 0),
+                    thickness=20,
+                )
+                cv2.circle(
+                    self.frame,
+                    center=(circles[i, 0], circles[i, 1]),
+                    radius=2,
+                    color=(0, 0, 255),
+                    thickness=2,
+                )
                 i += 1
-        cv2.circle(self.frame, center=(self.center_x, self.center_y), radius=2, color=(255,0,0), thickness=3)
+        cv2.circle(
+            self.frame,
+            center=(self.center_x, self.center_y),
+            radius=2,
+            color=(255, 0, 0),
+            thickness=3,
+        )
 
         # Return list containing all circles in the frame
         return circles
@@ -119,7 +141,7 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        #logging.info("Torpedo CV run")
+        # logging.info("Torpedo CV run")
 
         if self.fired_torpedo_1 and self.fired_torpedo_2:
             logging.info("Mission complete!!")
@@ -145,7 +167,7 @@ class CV:
             self.lostSight = 0
 
             # Get distance with ping 360
-            obstacles = (self.p.get_obstacles() if self.deploy else None)
+            obstacles = self.p.get_obstacles() if self.deploy else None
 
             if obstacles is not None:
                 # Sort obstacles by size
@@ -164,7 +186,6 @@ class CV:
             x, y = circles[0, 0], circles[0, 1]
             logging.info("X: " + str(np.round(x).astype("int")))
             logging.info("Y: " + str(np.round(y).astype("int")))
-
 
             if self.distance_to_target < self.fire_distance:
                 if not self.fired_torpedo_1:
@@ -212,7 +233,12 @@ class CV:
 
                 # Print motors and return commands
                 print(a)
-                return {"lateral": a[5], "forward": a[4], "vertical": self.depth, "end": False}, frame
+                return {
+                    "lateral": a[5],
+                    "forward": a[4],
+                    "vertical": self.depth,
+                    "end": False,
+                }, frame
 
             else:
                 # Aligning near the target
@@ -234,7 +260,12 @@ class CV:
 
                 # Print motors and return commands
                 print(a)
-                return {"lateral": a[5], "forward": a[4], "vertical": self.depth, "end": False}, frame
+                return {
+                    "lateral": a[5],
+                    "forward": a[4],
+                    "vertical": self.depth,
+                    "end": False,
+                }, frame
 
         else:  # No circles detected
             # Potentially can resort to scanning sonar with 180 degree sweep
@@ -243,16 +274,31 @@ class CV:
 
             if self.lostSight > 300:
                 # Target has been lost for too long and mission needs to terminate
-                return {"lateral": 0, "forward": 0, "vertical": 0, "end": True}, self.frame
+                return {
+                    "lateral": 0,
+                    "forward": 0,
+                    "vertical": 0,
+                    "end": True,
+                }, self.frame
 
             elif self.lostSight > 3000:
                 # No circles detected and need to back up looking any
                 a[4] = 1450
-                return {"lateral": 0, "forward": a[4], "vertical": 0, "end": False}, self.frame
+                return {
+                    "lateral": 0,
+                    "forward": a[4],
+                    "vertical": 0,
+                    "end": False,
+                }, self.frame
             else:
                 # Lost image for a short duration so waiting to see
                 # if the image will detect another circle
-                return {"lateral": 0, "forward": 0, "vertical": 0, "end": False}, self.frame
+                return {
+                    "lateral": 0,
+                    "forward": 0,
+                    "vertical": 0,
+                    "end": False,
+                }, self.frame
 
         # return {"lateral": 0, "forward": 0, "vertical": 0, "end": False}, self.frame
 
@@ -274,7 +320,7 @@ if __name__ == "__main__":
         ret, frame = cap.read()
         if not ret:
             break
-        
+
         time.sleep(0.15)
         # run the cv
         result, img_viz = cv.run(frame)
