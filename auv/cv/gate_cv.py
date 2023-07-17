@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 class CV:
     """Template CV class, don't change the name of the class"""
 
-    camera = "/auv/camera/videoOAKdRaw0"
+    camera = "/auv/camera/videoOAKdRawForward"
 
     def __init__(self, **config):
         """
@@ -32,7 +32,7 @@ class CV:
         self.CENTER_FRAME_X = 320
         logger.info("Template CV init")
 
-    def run(self, frame, detections):
+    def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
