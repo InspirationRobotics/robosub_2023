@@ -85,42 +85,35 @@ class TemplateMission:
                     self.robot_control.movement()
                     break
 
-                lateral  = self.data["torpedo_cv"].get("lateral" , 0)
-                forward  = self.data["torpedo_cv"].get("forward" , 0)
+                lateral = self.data["torpedo_cv"].get("lateral", 0)
+                forward = self.data["torpedo_cv"].get("forward", 0)
                 vertical = self.data["torpedo_cv"].get("vertical", 0)
 
                 torpedo1 = self.data["torpedo_cv"].get("fire1", False)
                 torpedo2 = self.data["torpedo_cv"].get("fire2", False)
 
-                if(torpedo1 and self.torpedo_1_fired):
+                if torpedo1 and self.torpedo_1_fired:
                     # Fire torpedo 2
                     servo.torpedo()
                     self.torpedo_1_fired = True
 
-                if(torpedo2 and self.torpedo_2_fired):
+                if torpedo2 and self.torpedo_2_fired:
                     # Fire torpedo 2
                     servo.torpedo()
                     self.torpedo_2_fired = True
 
-
-
                 # direcly feed the cv output to the robot control
-                self.robot_control.movement(
-                    lateral=lateral, 
-                    forward=forward, 
-                    vertical=vertical)
-
-                # TODO: do something with the data
+                self.robot_control.movement(lateral=lateral, forward=forward)
+                self.robot_control.setDepth(vertical)
 
                 # here is an example of how to set a target
-                #self.cv_handler.set_target("torpedo_cv", "albedo")
+                # self.cv_handler.set_target("torpedo_cv", "albedo")
 
-            except:
+            except Exception as e:
                 logger.error(e)
                 # idle the robot (just in case something went wrong)
                 self.robot_control.movement()
                 break
-
 
     def cleanup(self):
         """
