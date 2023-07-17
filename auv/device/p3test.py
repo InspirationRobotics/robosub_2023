@@ -163,3 +163,13 @@
 # labelMap = data["mappings"]["labels"]
 
 # print(labelMap)
+
+# import lsb_release
+# if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+#     print(True)
+
+# from auv.utils import deviceHelper
+
+# usbIDS = [deviceHelper.dataFromConfig("bottomOak"), None]
+# ogDev = deviceHelper.findCam(usbIDS)
+# print(ogDev)

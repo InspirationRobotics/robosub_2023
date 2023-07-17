@@ -9,16 +9,13 @@ import cv2
 import json
 import glob
 import numpy as np
+import depthai as dai
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
 from auv.device.cams import pyfakewebcam
-
-
-if sys.version_info[0] == 3:
-    # python3 meaning oak-d
-    import depthai as dai
+from auv.utils import deviceHelper
 
 
 class oakCamera:
@@ -32,14 +29,14 @@ class oakCamera:
         self.frame = None
         self.br = CvBridge()
         self.loop_rate = self.rospy.Rate(30)
-        self.createPipeline()
+        self.isKilled = True
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
         self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
         self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
         self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
         self.time = time.time()
-        print("Oak-D " + self.name + " is available at " + newDevice)
+        print("Camera ID "+str(id)+": " + "Oak-D " + self.name + " is available at " + newDevice)
 
     def createPipeline(self, modelPath=None, confidence=0.5):
         self.initialized = False
@@ -121,16 +118,18 @@ class oakCamera:
         self.initialized = True
 
     def mxidToName(self, mxid):
-        if mxid == "18443010B1F9840E00" or mxid == "1844301031F7930F00":  # 18443010B1A0B01200
+        if mxid == deviceHelper.dataFromConfig("forwardOak"): 
             return "Forward"
-        elif mxid == "184430104161721200":
+        elif mxid == deviceHelper.dataFromConfig("bottomOak"):
             return "Bottom"
-        elif mxid == "18443010D11AF50F00":
+        elif mxid == deviceHelper.dataFromConfig("poeOak"):
             return "Poe"
         else:
             return "Unknown"
 
     def callbackMain(self, msg):
+        if(self.isKilled):
+            return
         self.time = time.time()
         self.sendFakeFrame(self.br.imgmsg_to_cv2(msg))
 
@@ -143,7 +142,7 @@ class oakCamera:
             print(e)
 
     def callbackModel(self, msg):
-        if(not self.initialized):
+        if(not self.initialized or self.isKilled):
             return
         modelName = msg.data
         if(modelName=="gate"):
@@ -159,12 +158,12 @@ class oakCamera:
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-        while not self.rospy.is_shutdown():
+        while not self.rospy.is_shutdown() and not self.isKilled:
             if self.modelPath != None:
                 if not self.initialized:
                     continue
                 qDet = self.device.getOutputQueue(name="nn", maxSize=4, blocking=False)
-            while self.initialized:
+            while self.initialized and not self.isKilled:
                 try:
                     frame1 = cam.get().getCvFrame()
                     if self.modelPath != None:
@@ -204,10 +203,19 @@ class oakCamera:
                 self.loop_rate.sleep()
 
     def kill(self):
+        if(self.isKilled):
+            return
+        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
+        self.isKilled = True
+        self.oakThread.join()
+        del self.device
+        self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
         pass  # todo
 
     def start(self):
+        self.createPipeline()
+        self.isKilled = False
         self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
-        self.thread_param_updater = threading.Timer(0, self.runner)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
+        self.oakThread = threading.Timer(0, self.runner)
+        self.oakThread.daemon = True
+        self.oakThread.start()
