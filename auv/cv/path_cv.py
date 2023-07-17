@@ -29,7 +29,7 @@ class CV:
 
         logger.info("Template CV init")
 
-    def run(self, frame):
+    def run(self, frame, target, oakdData=None):
         """
         frame: the frame from the camera
         target: could be any type of information, for example the thing to look for
@@ -39,7 +39,6 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         logging.info("Template CV run")
-        #print(frame)
         #frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
         L_limit=np.array([8, 100, 100]) 

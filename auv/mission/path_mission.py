@@ -39,7 +39,7 @@ class PathMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        logger.info("Path mission init")
+        print("Path mission init")
 
     def callback(self, msg):
         """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
@@ -48,7 +48,7 @@ class PathMission:
         self.next_data[file_name] = data
         self.received = True
         
-        logger.debug("Received data from {}".format(file_name))
+        print("Received data from {}".format(file_name))
 
     def run(self):
         """
@@ -58,7 +58,7 @@ class PathMission:
 
         # move the sub up
         self.robot_control.setDepth(0.6)
-
+        print(self.robot_control)
         while not rospy.is_shutdown():
             try:
                 if not self.received:
@@ -80,10 +80,11 @@ class PathMission:
                     self.robot_control.movement()
                     break
                 
+                print("starting movement")
                 # get the lateral and forward values from the cv (if they exist)
                 yaw = self.data["path_cv"].get("yaw", 0)
                 forward = self.data["path_cv"].get("forward", 0)
-
+                print(yaw, forward)
                 # direcly feed the cv output to the robot control
                 self.robot_control.movement(yaw=yaw, forward=forward)
 
@@ -93,7 +94,7 @@ class PathMission:
                 self.robot_control.movement()
                 break
         
-        logger.info("Path mission finished")
+        print("Path mission finished")
 
     def cleanup(self):
         """

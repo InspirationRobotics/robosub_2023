@@ -111,7 +111,7 @@ class _ScriptHandler:
 
         if "OAKd" in self.camera_topic:
             self.is_oakd = True
-            self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String)
+            self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String, queue_size=10)
             self.sub_oakd_data = rospy.Subscriber(
                 self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
             )
@@ -139,6 +139,7 @@ class _ScriptHandler:
             self.next_frame = self.br.imgmsg_to_cv2(msg)
             self.last_received = time.time()
         except Exception as e:
+            print(e)
             logger.error("Error while converting image to cv2")
             logger.error(e)
 
@@ -169,6 +170,7 @@ class _ScriptHandler:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
                 logger.error("Error while running CV {} {}".format(self.file_name, e))
+                print(e)
                 continue
 
             if isinstance(ret, tuple) and len(ret) == 2:
