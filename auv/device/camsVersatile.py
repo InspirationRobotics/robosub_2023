@@ -1,5 +1,5 @@
 import lsb_release
-if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+if(lsb_release.get_distro_information()['RELEASE']=="18.04"):
     import ctypes
     libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 import os
@@ -9,10 +9,12 @@ import sys
 import time
 import rospy
 import json
+import re
+import depthai as dai
 from std_msgs.msg import String
 from auv.device.cams import pyfakewebcam, usbCams, oakCams
 from auv.utils import deviceHelper
-import depthai as dai
+
 
 # order is forward, down
 usbIDS = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
@@ -35,6 +37,8 @@ def difference(string1, string2):
     str_diff = A.symmetric_difference(B)
     return list(str_diff)
 
+def num_sort(test_string):
+    return list(map(int, re.findall(r'\d+', test_string)))[0]
 
 preDevices = os.popen("ls /dev/video*").read()
 ogDev = deviceHelper.findCam(usbIDS)
@@ -51,6 +55,8 @@ if len(diff) == 0:
     exit(1)
 for i in range(camAmt + oakAmt - 1, -1, -1):
     newDev.append(diff[i])
+
+newDev.sort(key=num_sort)
 
 # v4l2-ctl --list-devices
 
