@@ -1,7 +1,7 @@
-'''
+"""
 COINTOSS MISSION:
 turns to the desired heading
-'''
+"""
 
 import time
 import json
@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class TemplateMission:
-    cv_files = ["template_cv"]
+class CoinTossMission:
+    cv_files = []
 
     def __init__(self, **config):
         """
@@ -27,33 +27,14 @@ class TemplateMission:
         config is a dict containing the settings you give to the mission
         """
         self.config = config
-        self.data = {}  # dict to store the data from the cv handlers
-        self.next_data = {}  # dict to store the data from the cv handlers
-        self.received = False
 
-        rospy.init_node("template_mission", anonymous=True)
+        rospy.init_node("coin_toss", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
 
-        # init the cv handlers
-        for file_name in self.cv_files:
-            self.cv_handler.start_cv(file_name, self.callback)
-
-        logger.info("Template mission init")
-
-    def callback(self, msg):
-        """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
-        file_name = msg._connection_header["topic"].split("/")[-1]
-        data = json.loads(msg.data)
-        self.data[file_name] = data
-        self.next_data[file_name] = data
-        self.received = True
-
-        logger.debug("Received data from {}".format(file_name))
+        logger.info("Coin Toss mission init")
 
     def run(self, heading, depth):
-        
-        #the coin toss mission takes two parameters: heading and depth, which it will set accordingly
+        # the coin toss mission takes two parameters: heading and depth, which it will set accordingly
 
         while not rospy.is_shutdown():
             if not self.received:
@@ -69,22 +50,19 @@ class TemplateMission:
 
         logger.info("Coin Toss")
 
-        rc = RobotControl()
         time.sleep(1)
-        rc.setDepth(depth) #setting depth, robot decends
-
-        time.sleep(5) # wait
-        
-        rc.setHeading(heading) # turning to the heading
+        self.robot_control.setDepth(depth)  # setting depth, robot decends
+        time.sleep(5)  # wait
+        self.robot_control.setHeading(heading)  # turning to the heading
 
     def cleanup(self):
         """
         Here should be all the code required after the run fonction.
         This could be cleanup, saving data, closing files, etc.
         """
-        for file_name in self.cv_files:
-            self.cv_handler.stop_cv(file_name)
 
+        # idle the robot
+        self.robot_control.movement()
         logger.info("Template mission terminate")
 
 

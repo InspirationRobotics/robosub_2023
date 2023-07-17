@@ -10,7 +10,7 @@ import logging
 import rospy
 from std_msgs.msg import String
 
-from auv.utils import cvHandler
+from auv.device import cvHandler
 from auv.motion import robot_control
 
 logger = logging.getLogger(__name__)
@@ -33,19 +33,18 @@ class GateMission:
 
         rospy.init_node("gate_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
-        self.cv_handler.set_oakd_model("gate")
+        self.cv_handler = cvHandler.CVHandler(**self.config)
         # init the cv handlers
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
-
+        
+        self.cv_handler.set_oakd_model("gate_cv", "gate")
         logger.info("Gate mission init")
 
     def callback(self, msg):
         """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
         file_name = msg._connection_header["topic"].split("/")[-1]
         data = json.loads(msg.data)
-        self.data[file_name] = data
         self.next_data[file_name] = data
         self.received = True
 
@@ -81,7 +80,7 @@ class GateMission:
             lateral = self.data["gate_cv"].get("lateral", 0)
             forward = self.data["gate_cv"].get("forward", 0)
             yaw = self.data["gate_cv"].get("yaw", 0)
-            print(self.data["gate_cv"].get("target_label", 0))
+            print(lateral, forward, yaw)
             # direcly feed the cv output to the robot control
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
 

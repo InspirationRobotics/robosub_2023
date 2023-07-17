@@ -1,6 +1,10 @@
 """
 CV Handler
 """
+import lsb_release
+if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+    import ctypes
+    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 
 import json
 import logging
@@ -15,6 +19,80 @@ from std_msgs.msg import String
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class CVHandler:
+    def __init__(self, **config):
+        """Init of CV Handler"""
+        self.config = config
+
+        # stores the running cv scripts keyed by file name
+        self.active_cv_scripts = {}
+        self.subs = {}
+
+    def start_cv(self, file_name, callback):
+        """Start a CV script"""
+        if file_name in self.active_cv_scripts:
+            logger.error("Cannot start a script that is already running")
+            return
+
+        try:
+            # module name is as follows: auv.cv.file_name
+            module = __import__("auv.cv.{}".format(file_name), fromlist=["CV"])
+        except Exception as e:
+            logger.error("Error while importing CV module from file name")
+            logger.error(e)
+            return
+
+        # Import the CV class from the module
+        cv_class = getattr(module, "CV", None)
+        if cv_class is None:
+            logger.error("No CV class found in file, check the file name and file content")
+            return
+
+        # Get the camera topic, if not specified, use the default front camera
+        camera_topic = getattr(cv_class, "camera", None)
+        if camera_topic is None:
+            logger.warning("No camera topic specified, using default front camera")
+            camera_topic = "/auv/camera/videoUSBRaw0"
+
+        # Init individual cv script handler
+        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config), camera_topic)
+        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
+
+    def stop_cv(self, file_name):
+        """Stop a CV script"""
+        if file_name not in self.active_cv_scripts:
+            logger.error("Cannot stop a script that is not running")
+            return
+
+        self.active_cv_scripts[file_name].stop()
+        del self.active_cv_scripts[file_name]
+
+        self.subs[file_name].unregister()
+        del self.subs[file_name]
+
+    def set_oakd_model(self, file_name, model_name):
+        if file_name not in self.active_cv_scripts:
+            logger.error("Cannot change model of a script that is not running")
+            return
+
+        if not self.active_cv_scripts[file_name].is_oakd:
+            logger.error("Cannot change model of a script that is not running on an OAK-D camera")
+            return
+
+        if not isinstance(model_name, str):
+            logger.error("Model name must be a string")
+            return
+
+        self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
+
+    def set_target(self, file_name, target):
+        if file_name not in self.active_cv_scripts:
+            logger.error("Cannot change target of a script that is not running")
+            return
+
+        self.active_cv_scripts[file_name].target = target
 
 
 class _ScriptHandler:
@@ -116,80 +194,6 @@ class _ScriptHandler:
         self.pub_viz.unregister()
         self.pub_out.unregister()
         self.closed = True
-
-
-class CVHandler:
-    def __init__(self, **config):
-        """Init of CV Handler"""
-        self.config = config
-
-        # stores the running cv scripts keyed by file name
-        self.active_cv_scripts = {}
-        self.subs = {}
-
-    def start_cv(self, file_name, callback):
-        """Start a CV script"""
-        if file_name in self.active_cv_scripts:
-            logger.error("Cannot start a script that is already running")
-            return
-
-        try:
-            # module name is as follows: auv.cv.file_name
-            module = __import__("auv.cv.{}".format(file_name), fromlist=["CV"])
-        except Exception as e:
-            logger.error("Error while importing CV module from file name")
-            logger.error(e)
-            return
-
-        # Import the CV class from the module
-        cv_class = getattr(module, "CV", None)
-        if cv_class is None:
-            logger.error("No CV class found in file, check the file name and file content")
-            return
-
-        # Get the camera topic, if not specified, use the default front camera
-        camera_topic = getattr(cv_class, "camera", None)
-        if camera_topic is None:
-            logger.warning("No camera topic specified, using default front camera")
-            camera_topic = "/auv/camera/videoUSBRaw0"
-
-        # Init individual cv script handler
-        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config), camera_topic)
-        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
-
-    def stop_cv(self, file_name):
-        """Stop a CV script"""
-        if file_name not in self.active_cv_scripts:
-            logger.error("Cannot stop a script that is not running")
-            return
-
-        self.active_cv_scripts[file_name].stop()
-        del self.active_cv_scripts[file_name]
-
-        self.subs[file_name].unregister()
-        del self.subs[file_name]
-
-    def set_oakd_model(self, file_name, model_name):
-        if file_name not in self.active_cv_scripts:
-            logger.error("Cannot change model of a script that is not running")
-            return
-
-        if not self.active_cv_scripts[file_name].is_oakd:
-            logger.error("Cannot change model of a script that is not running on an OAK-D camera")
-            return
-
-        if not isinstance(model_name, str):
-            logger.error("Model name must be a string")
-            return
-
-        self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
-
-    def set_target(self, file_name, target):
-        if file_name not in self.active_cv_scripts:
-            logger.error("Cannot change target of a script that is not running")
-            return
-
-        self.active_cv_scripts[file_name].target = target
 
 
 if __name__ == "__main__":

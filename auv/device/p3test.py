@@ -163,3 +163,24 @@
 # labelMap = data["mappings"]["labels"]
 
 # print(labelMap)
+
+# import lsb_release
+# if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+#     print(True)
+
+# from auv.utils import deviceHelper
+
+# usbIDS = [deviceHelper.dataFromConfig("bottomOak"), None]
+# ogDev = deviceHelper.findCam(usbIDS)
+# print(ogDev)
+
+# import re
+
+# data = ['/dev/video4', '/dev/video6', '/dev/video5', '/dev/video7']
+
+# def num_sort(test_string):
+#     return list(map(int, re.findall(r'\d+', test_string)))[0]
+
+# data.sort(key=num_sort)
+
+# print(data)

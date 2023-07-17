@@ -6,7 +6,7 @@ if [[ $PRODUCT == *"Xavier"* ]]; then
   echo "Detected $PRODUCT setting to Xavier init"
   POLULU=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py polulu)
   echo "Found Polulu Servo driver at $POLULU"
-  screen -dmS polulu bash -c "sudo bash /home/inspiration/auv/maestro-linux/clearPoluluErrors.sh $POLULU"
+  screen -dmS polulu bash -c "bash /home/inspiration/auv/maestro-linux/clearPoluluErrors.sh $POLULU"
   DISTRO="noetic"
 fi
 if [[ $PRODUCT == *"Nano"* ]]; then
