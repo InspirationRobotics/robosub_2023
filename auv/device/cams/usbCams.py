@@ -21,14 +21,14 @@ class USBCamera:
         self.frame = None
         self.br = CvBridge()
         self.loop_rate = rospy.Rate(30)
-        self.isKilled = False
+        self.isKilled = True
         self.ogDevice = ogDevice
         self.newDevice = newDevice
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pub = self.rospy.Publisher("/auv/camera/videoUSBRaw" + str(id), Image, queue_size=10)
         self.rospy.Subscriber("/auv/camera/videoUSBOutput" + str(id), Image, self.callbackMain)
         self.time = time.time()
-        print(ogDevice + " is available at " + newDevice)
+        print("Camera ID "+str(id)+": " + ogDevice + " is available at " + newDevice)
 
     def callbackMain(self, msg):
         if(self.isKilled):
@@ -60,6 +60,8 @@ class USBCamera:
         self.loop_rate.sleep()
 
     def kill(self):
+        if(self.isKilled):
+            return
         self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
         self.isKilled=True
         self.usbThread.join()

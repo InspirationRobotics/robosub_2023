@@ -9,16 +9,13 @@ import cv2
 import json
 import glob
 import numpy as np
+import depthai as dai
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
 from auv.device.cams import pyfakewebcam
 from auv.utils import deviceHelper
-
-if sys.version_info[0] == 3:
-    # python3 meaning oak-d
-    import depthai as dai
 
 
 class oakCamera:
@@ -32,14 +29,14 @@ class oakCamera:
         self.frame = None
         self.br = CvBridge()
         self.loop_rate = self.rospy.Rate(30)
-        self.isKilled = False
+        self.isKilled = True
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
         self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
         self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
         self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
         self.time = time.time()
-        print("Oak-D " + self.name + " is available at " + newDevice)
+        print("Camera ID "+str(id)+": " + "Oak-D " + self.name + " is available at " + newDevice)
 
     def createPipeline(self, modelPath=None, confidence=0.5):
         self.initialized = False
@@ -206,6 +203,8 @@ class oakCamera:
                 self.loop_rate.sleep()
 
     def kill(self):
+        if(self.isKilled):
+            return
         self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
         self.isKilled = True
         self.oakThread.join()

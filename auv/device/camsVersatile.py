@@ -1,31 +1,24 @@
-import ctypes #comment out for Onyx
-libgcc_s = ctypes.CDLL('libgcc_s.so.1') #comment out for Onyx
+import lsb_release
+if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+    import ctypes
+    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 import os
 import platform
 import signal
 import sys
-import threading
 import time
-
-import cv2
-import numpy as np
 import rospy
-from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
+import json
+from std_msgs.msg import String
 from auv.device.cams import pyfakewebcam, usbCams, oakCams
 from auv.utils import deviceHelper
-
-if sys.version_info[0] == 3:
-    # python3 meaning oak-d
-    import depthai as dai
+import depthai as dai
 
 # order is forward, down
-onyx = [deviceHelper.dataFromConfig("forwardUSB")]
-grey = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
+usbIDS = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
 ogDev = []
 oaks = []
 newDev = []
-sub = False  # default to grey
 
 
 def list_devices():
@@ -44,12 +37,7 @@ def difference(string1, string2):
 
 
 preDevices = os.popen("ls /dev/video*").read()
-if "nx" in platform.node():
-    sub = True
-    ogDev = deviceHelper.findCam(onyx)
-else:
-    ogDev = deviceHelper.findCam(grey)
-
+ogDev = deviceHelper.findCam(usbIDS)
 oaks = list_devices()
 oakAmt = len(oaks)
 print(oaks)
@@ -67,25 +55,56 @@ for i in range(camAmt + oakAmt - 1, -1, -1):
 # v4l2-ctl --list-devices
 
 class cameraStreams:
-    def __init__(self):
+    def __init__(self, debug=False):
         rospy.loginfo("Initializing Camera Streams...")
         self.cams = []
+        self.camID = []
+        self.activeCams = []
+        self.debug = debug
+        self.limit = 2 #max amount of cams that can be used at a time
         for i in range(camAmt):
             self.cams.append(usbCams.USBCamera(rospy, i, ogDev[i], newDev[i]))
+            self.camID.append(i)
         for i in range(oakAmt):
             self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt]))
+            self.camID.append(i+camAmt)
+        rospy.Subscriber("/auv/camsVersatile/cameraSelect", String, self.callbackCamSelect)
+        if(debug):
+            print("*****************\ndebug mode is ON\n*****************")
 
     def start(self):
-        while True:
-            stream = input("Select Camera stream to start or stop\n")
-            print(stream+" is selected. Enter 'start' or 'stop' or 'back' to pick different camera\n")
+        while self.debug and not rospy.is_shutdown():
+            stream = input("Select Camera ID to start or stop\n")
+            print("Camera "+stream+" is selected. Enter 'start' or 'stop' or 'back' to pick different camera\n")
             cmd = input()
             if(cmd=="start"):
-                self.cams[int(stream)].start()
+                self.camCtrl(stream,True)
             elif(cmd=="stop"):
-                self.cams[int(stream)].kill()
+                self.camCtrl(stream,False)
             elif(cmd=="back"):
                 continue
+        rospy.spin()
+
+    def camCtrl(self, id, state): #cam id and then true is start and false is stop
+        id = int(id)
+        if(id not in self.camID):
+            print("Invalid ID, please pick from "+ str(self.camID))
+            return False
+        if(state and len(self.activeCams)==2 and id not in self.activeCams):
+            print("2 camera streams are already active with ids: " + str(self.activeCams))
+            print("Please stop one of these streams first\n")
+            return False
+        if(state and id not in self.activeCams):
+            self.cams[id].start()
+            self.activeCams.append(id)
+            return True
+        if(not state and id in self.activeCams):
+            self.cams[id].kill()
+            self.activeCams.remove(id)
+            return True
+
+    def callbackCamSelect(self, msg):
+        data = json.loads(msg.data)
 
     def stop(self):
         for i in self.cams:
@@ -110,7 +129,7 @@ signal.signal(signal.SIGINT, onExit)
 
 if __name__ == "__main__":
     rospy.init_node("CameraStream", anonymous=True)
-    my_node = cameraStreams()
+    my_node = cameraStreams(True)
     my_node.start()
 
 # https://youtu.be/2l913YwWYe4
