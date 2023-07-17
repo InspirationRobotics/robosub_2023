@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-from auv.mission import gate_mission
-=======
 import os
-from auv.mission import gate_mission, surfacing_mission
->>>>>>> 9eb0f3a0a93f1af2e475748018219ad7adacb8f3
+from auv.mission import gate_mission
 
 from dotenv import dotenv_values
 import logging
