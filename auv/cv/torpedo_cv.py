@@ -25,17 +25,23 @@ class CV:
     def __init__(self, **config):
         """
         Init of torpedo CV,
+
         """
+
+        # TODO Change when testing
+        self.deploy = False
 
         self.frame = None
         self.lostSight = 0
         logger.info("Torpedo CV init")
 
-        self.target_center_x = 210  # Where we want the center of the circle
-        self.target_center_y = 350  # to be when close to mission
+        self.depth = 0.35
 
-        self.center_x = 240  # True center of screen which will be
-        self.center_y = 320  # used to align the sub when far away
+        self.target_center_x = 240  # Where we want the center of the circle
+        self.target_center_y = 320  # to be when close to mission
+
+        self.center_x = 330  # True center of screen which will be
+        self.center_y = 250  # used to align the sub when far away
 
         self.threshold_far = 30  # Margin of error when far
         self.threshold_near = 50  # "      "      " when near
@@ -50,12 +56,12 @@ class CV:
         # switch from center the center of the sub the the largest circle, to
         # then centering the torpedo zone
         self.far_near_boundary = 2  # if distance < 2 meteres, we are near
-        self.fire_distance = 280  # if distacne < 1 meter, we are in range
+        self.fire_distance = 1  # if distacne < 1 meter, we are in range
 
         step_angle = 1
         max_range = 20
 
-        self.p = Ping360(
+        self.p = (Ping360(
             "/dev/ttyUSB0",
             115200,
             scan_mode=1,
@@ -64,7 +70,7 @@ class CV:
             max_range=max_range,
             gain=2,
             transmit_freq=800,
-        )
+        ) if self.deploy else None )
 
     def get_circles(self, frame):
         """
@@ -74,7 +80,7 @@ class CV:
 
         # Convert frame to grey scale and extract edges
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 1, 325)
+        edges = cv2.Canny(gray, 1, 250)
 
         # Blurring the image to eliminate false positives
         edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
@@ -103,6 +109,7 @@ class CV:
                 cv2.circle(self.frame, center=(x, y), radius=dist, color=(0, 255, 0), thickness=20)
                 cv2.circle(self.frame, center=(circles[i, 0], circles[i, 1]), radius=2, color=(0, 0, 255), thickness=2)
                 i += 1
+        cv2.circle(self.frame, center=(self.center_x, self.center_y), radius=2, color=(255,0,0), thickness=3)
 
         # Return list containing all circles in the frame
         return circles
@@ -112,14 +119,14 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        logging.info("Torpedo CV run")
+        #logging.info("Torpedo CV run")
 
         if self.fired_torpedo_1 and self.fired_torpedo_2:
             logging.info("Mission complete!!")
             return {
                 "lateral": a[5],
                 "forward": a[4],
-                "vertical": a[2],
+                "vertical": self.depth,
                 "fire1": True,
                 "fire2": True,
                 "end": True,
@@ -138,7 +145,7 @@ class CV:
             self.lostSight = 0
 
             # Get distance with ping 360
-            obstacles = self.p.get_obstacles()
+            obstacles = (self.p.get_obstacles() if self.deploy else None)
 
             if obstacles is not None:
                 # Sort obstacles by size
@@ -155,16 +162,19 @@ class CV:
 
             # Center of largest circle - aim for this
             x, y = circles[0, 0], circles[0, 1]
+            logging.info("X: " + str(np.round(x).astype("int")))
+            logging.info("Y: " + str(np.round(y).astype("int")))
+
 
             if self.distance_to_target < self.fire_distance:
                 if not self.fired_torpedo_1:
-                    a[2] = 1440
+                    self.depth = 1440
                     logging.info("Fire torpedo 1!!!")
                     self.fired_torpedo_1 = True
                     return {
                         "lateral": a[5],
                         "forward": a[4],
-                        "vertical": a[2],
+                        "vertical": self.depth,
                         "fire1": True,
                         "fire2": False,
                         "end": False,
@@ -175,7 +185,7 @@ class CV:
                     return {
                         "lateral": a[5],
                         "forward": a[4],
-                        "vertical": a[2],
+                        "vertical": self.depth,
                         "fire1": True,
                         "fire2": True,
                         "end": False,
@@ -185,46 +195,46 @@ class CV:
                 # Aligning from afar
 
                 # X alignment
-                if self.center_x < x + self.threshold_far:  # Strafe Left
-                    a[5] = 1480
+                if self.center_x > x - self.threshold_far:  # Strafe Left
+                    a[5] = -1
                     logging.info("Left")
-                if self.center_x > x + self.threshold_far:  # Strafe Right
-                    a[5] = 1520
+                if self.center_x < x + self.threshold_far:  # Strafe Right
+                    a[5] = 1
                     logging.info("Right")
 
                 # Y alignment
-                if self.center_y < y + self.threshold_far:  # Dive
-                    a[2] = 1520
+                if self.center_y < y - self.threshold_far:  # Dive
+                    self.depth += 0.02
                     logging.info("Dive")
                 if self.center_y > y + self.threshold_far:  # Ascend
-                    a[2] = 1480
+                    self.depth -= 0.02
                     logging.info("Ascend")
 
                 # Print motors and return commands
                 print(a)
-                return {"lateral": a[5], "forward": a[4], "vertical": a[2], "end": False}, frame
+                return {"lateral": a[5], "forward": a[4], "vertical": self.depth, "end": False}, frame
 
             else:
                 # Aligning near the target
                 # X alignment
-                if self.target_center_x < x + self.threshold_near:  # Strafe Left
-                    a[5] = 1480
+                if self.target_center_x < x - self.threshold_near:  # Strafe Left
+                    a[5] = -1
                     logging.info("Left")
                 if self.target_center_x > x + self.threshold_near:  # Strafe Right
-                    a[5] = 1520
+                    a[5] = 1
                     logging.info("Right")
 
                 # Y alignment
-                if self.target_center_y < y + self.threshold_near:  # Dive
-                    a[2] = 1520
+                if self.target_center_y < y - self.threshold_near:  # Dive
+                    self.depth += 0.02
                     logging.info("Dive")
                 if self.target_center_y > y + self.threshold_near:  # Ascend
-                    a[2] = 1480
+                    self.depth -= 0.02
                     logging.info("Ascend")
 
                 # Print motors and return commands
                 print(a)
-                return {"lateral": a[5], "forward": a[4], "vertical": a[2], "end": False}, frame
+                return {"lateral": a[5], "forward": a[4], "vertical": self.depth, "end": False}, frame
 
         else:  # No circles detected
             # Potentially can resort to scanning sonar with 180 degree sweep
@@ -257,14 +267,15 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data\\Torpedo1.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo2.mp4")
 
     while True:
         # grab a frame
         ret, frame = cap.read()
         if not ret:
             break
-
+        
+        time.sleep(0.15)
         # run the cv
         result, img_viz = cv.run(frame)
         logger.info(result)
