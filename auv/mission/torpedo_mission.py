@@ -109,7 +109,7 @@ class TemplateMission:
                 # here is an example of how to set a target
                 # self.cv_handler.set_target("torpedo_cv", "albedo")
 
-            except:
+            except Exception as e:
                 logger.error(e)
                 # idle the robot (just in case something went wrong)
                 self.robot_control.movement()
