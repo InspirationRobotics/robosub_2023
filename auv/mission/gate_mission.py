@@ -81,6 +81,7 @@ class GateMission:
             lateral = self.data["gate_cv"].get("lateral", 0)
             forward = self.data["gate_cv"].get("forward", 0)
             yaw = self.data["gate_cv"].get("yaw", 0)
+            print(self.data["gate_cv"].get("target_label", 0))
             # direcly feed the cv output to the robot control
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
 
