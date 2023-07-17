@@ -34,7 +34,7 @@ class GateMission:
         rospy.init_node("gate_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler()
-
+        self.cv_handler.set_oakd_model("gate")
         # init the cv handlers
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
@@ -94,7 +94,8 @@ class GateMission:
         """
         for file_name in self.cv_files:
             self.cv_handler.stop_cv(file_name)
-
+        
+        self.robot_control.movement(lateral=0, forward=0, yaw=0)
         logger.info("Template mission terminate")
 
 

@@ -128,7 +128,7 @@ mission = <MissionClass>()
 # run mission
 mission.run() 
 # cleanup mission after it is done
-mission.terminate()
+mission.cleanup()
 ```
 
 #### CV
