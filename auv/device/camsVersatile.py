@@ -105,6 +105,7 @@ class cameraStreams:
 
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
+        pass #todo
 
     def stop(self):
         for i in self.cams:
