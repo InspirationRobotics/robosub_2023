@@ -45,7 +45,6 @@ class CV:
 
         self.threshold_far = 30  # Margin of error when far
         self.threshold_near = 50  # "      "      " when near
-        self.scan_timer = 0
         self.distance_to_target = 9999
         self.near = False
 
@@ -55,7 +54,7 @@ class CV:
         # TODO Fill with distance boundary that we will get from ping 360 to
         # switch from center the center of the sub the the largest circle, to
         # then centering the torpedo zone
-        self.far_near_boundary = 2  # if distance < 2 meteres, we are near
+        self.far_near_boundary = 2.5  # if distance < 2 meteres, we are near
         self.fire_distance = 1  # if distacne < 1 meter, we are in range
 
         step_angle = 1
@@ -146,15 +145,14 @@ class CV:
         if self.fired_torpedo_1 and self.fired_torpedo_2:
             logging.info("Mission complete!!")
             return {
-                "lateral": a[5],
-                "forward": a[4],
+                "lateral": 1,
+                "forward": 1,
                 "vertical": self.depth,
                 "fire1": True,
                 "fire2": True,
                 "end": True,
             }, frame
 
-        a = 18 * [1500]
 
         # video is 480 by 640, at end we want the point approx. (210, 350)
         self.frame = frame
@@ -193,8 +191,8 @@ class CV:
                     logging.info("Fire torpedo 1!!!")
                     self.fired_torpedo_1 = True
                     return {
-                        "lateral": a[5],
-                        "forward": a[4],
+                        "lateral": 1,
+                        "forward": 1,
                         "vertical": self.depth,
                         "fire1": True,
                         "fire2": False,
@@ -204,8 +202,8 @@ class CV:
                     logging.info("Fire torpedo 2!!!")
                     self.fired_torpedo_2 = True
                     return {
-                        "lateral": a[5],
-                        "forward": a[4],
+                        "lateral": 1,
+                        "forward": 1,
                         "vertical": self.depth,
                         "fire1": True,
                         "fire2": True,
@@ -217,10 +215,8 @@ class CV:
 
                 # X alignment
                 if self.center_x > x - self.threshold_far:  # Strafe Left
-                    a[5] = -1
                     logging.info("Left")
                 if self.center_x < x + self.threshold_far:  # Strafe Right
-                    a[5] = 1
                     logging.info("Right")
 
                 # Y alignment
@@ -232,10 +228,9 @@ class CV:
                     logging.info("Ascend")
 
                 # Print motors and return commands
-                print(a)
                 return {
-                    "lateral": a[5],
-                    "forward": a[4],
+                    "lateral": 1,
+                    "forward": 1,
                     "vertical": self.depth,
                     "end": False,
                 }, frame
@@ -244,10 +239,8 @@ class CV:
                 # Aligning near the target
                 # X alignment
                 if self.target_center_x < x - self.threshold_near:  # Strafe Left
-                    a[5] = -1
                     logging.info("Left")
                 if self.target_center_x > x + self.threshold_near:  # Strafe Right
-                    a[5] = 1
                     logging.info("Right")
 
                 # Y alignment
@@ -259,10 +252,9 @@ class CV:
                     logging.info("Ascend")
 
                 # Print motors and return commands
-                print(a)
                 return {
-                    "lateral": a[5],
-                    "forward": a[4],
+                    "lateral": 1,
+                    "forward": 1,
                     "vertical": self.depth,
                     "end": False,
                 }, frame
@@ -283,10 +275,9 @@ class CV:
 
             elif self.lostSight > 3000:
                 # No circles detected and need to back up looking any
-                a[4] = 1450
                 return {
                     "lateral": 0,
-                    "forward": a[4],
+                    "forward": 1,
                     "vertical": 0,
                     "end": False,
                 }, self.frame
