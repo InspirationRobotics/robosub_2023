@@ -103,11 +103,8 @@ class TemplateMission:
                     self.torpedo_2_fired = True
 
                 # direcly feed the cv output to the robot control
-                self.robot_control.movement(
-                    lateral=lateral, forward=forward
-                )
+                self.robot_control.movement(lateral=lateral, forward=forward)
                 self.robot_control.setDepth(vertical)
-
 
                 # here is an example of how to set a target
                 # self.cv_handler.set_target("torpedo_cv", "albedo")
