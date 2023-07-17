@@ -14,23 +14,25 @@ from auv.device.cams import pyfakewebcam
 
 class USBCamera:
     def __init__(self, rospy, id, ogDevice, newDevice):
-        IMG_W = 640
-        IMG_H = 480
+        self.IMG_W = 640
+        self.IMG_H = 480
         self.rospy = rospy
+        self.id = id
         self.frame = None
         self.br = CvBridge()
         self.loop_rate = rospy.Rate(30)
-        self.id = id
-        self.cam = cv2.VideoCapture(ogDevice)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
-        self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
+        self.isKilled = False
+        self.ogDevice = ogDevice
+        self.newDevice = newDevice
+        self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pub = self.rospy.Publisher("/auv/camera/videoUSBRaw" + str(id), Image, queue_size=10)
         self.rospy.Subscriber("/auv/camera/videoUSBOutput" + str(id), Image, self.callbackMain)
         self.time = time.time()
         print(ogDevice + " is available at " + newDevice)
 
     def callbackMain(self, msg):
+        if(self.isKilled):
+            return
         self.time = time.time()
         self.sendFakeFrame(self.br.imgmsg_to_cv2(msg))
 
@@ -43,12 +45,13 @@ class USBCamera:
             print(e)
 
     def runner(self):
-        while not self.rospy.is_shutdown():
+        while not self.rospy.is_shutdown() and not self.isKilled:
             try:
                 ret, frame1 = self.cam.read()
-                msg = self.br.cv2_to_imgmsg(frame1)
-                self.pub.publish(msg)
-                if(time.time()-self.time>3): #no new CV output frames recieved, default to cam view
+                if(ret):
+                    msg = self.br.cv2_to_imgmsg(frame1)
+                    self.pub.publish(msg)
+                    if(time.time()-self.time>3): #no new CV output frames recieved, default to cam view
                         self.sendFakeFrame(frame1)
                 pass
             except Exception as e:
@@ -57,10 +60,18 @@ class USBCamera:
         self.loop_rate.sleep()
 
     def kill(self):
+        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
+        self.isKilled=True
+        self.usbThread.join()
         self.cam.release()
+        self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
 
     def start(self):
+        self.cam = cv2.VideoCapture(self.ogDevice)
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, self.IMG_W)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, self.IMG_H)
+        self.isKilled=False
         self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
-        self.thread_param_updater = threading.Timer(0, self.runner)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
+        self.usbThread = threading.Timer(0, self.runner)
+        self.usbThread.daemon = True
+        self.usbThread.start()

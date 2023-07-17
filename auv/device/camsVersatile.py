@@ -1,5 +1,5 @@
-import ctypes
-libgcc_s = ctypes.CDLL('libgcc_s.so.1')
+import ctypes #comment out for Onyx
+libgcc_s = ctypes.CDLL('libgcc_s.so.1') #comment out for Onyx
 import os
 import platform
 import signal
@@ -22,7 +22,6 @@ if sys.version_info[0] == 3:
 # order is forward, down
 onyx = [deviceHelper.dataFromConfig("forwardUSB")]
 grey = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
-
 ogDev = []
 oaks = []
 newDev = []
@@ -48,15 +47,12 @@ preDevices = os.popen("ls /dev/video*").read()
 if "nx" in platform.node():
     sub = True
     ogDev = deviceHelper.findCam(onyx)
-    oaks = list_devices()
-    oakAmt = len(oaks)
-    print(oaks)
 else:
     ogDev = deviceHelper.findCam(grey)
-    oaks = list_devices()
-    oakAmt = len(oaks)
-    print(oaks)
-#oakAmt = 0
+
+oaks = list_devices()
+oakAmt = len(oaks)
+print(oaks)
 camAmt = len(ogDev)
 print(ogDev)
 os.system("sudo modprobe v4l2loopback devices=" + str(camAmt + oakAmt))
@@ -80,14 +76,21 @@ class cameraStreams:
             self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt]))
 
     def start(self):
-        for i in self.cams:
-            i.start()
-        rospy.spin()
+        while True:
+            stream = input("Select Camera stream to start or stop\n")
+            print(stream+" is selected. Enter 'start' or 'stop' or 'back' to pick different camera\n")
+            cmd = input()
+            if(cmd=="start"):
+                self.cams[int(stream)].start()
+            elif(cmd=="stop"):
+                self.cams[int(stream)].kill()
+            elif(cmd=="back"):
+                continue
 
     def stop(self):
         for i in self.cams:
             i.kill()
-
+            del i
 
 def onExit(signum, frame):
     try:
