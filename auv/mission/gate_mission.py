@@ -33,7 +33,7 @@ class GateMission:
 
         rospy.init_node("gate_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
+        self.cv_handler = cvHandler.CVHandler(**self.config)
         # init the cv handlers
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)

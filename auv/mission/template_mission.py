@@ -86,6 +86,8 @@ class TemplateMission:
         for file_name in self.cv_files:
             self.cv_handler.stop_cv(file_name)
 
+        # idle the robot
+        self.robot_control.movement()
         logger.info("Template mission terminate")
 
 
