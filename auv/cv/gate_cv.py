@@ -39,7 +39,6 @@ class CV:
         if target == 0, abydos
         if target == 1, earth
         """
-        print(frame)
         logger.info("Template CV run")
 
         if detections is None or len(detections) == 0:

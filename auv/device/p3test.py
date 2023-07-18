@@ -147,7 +147,7 @@
 
 # import json
 # import glob
-# folderPath = "/Users/eeshvij/Desktop/Code/robosub_2023/auv/device/cams/models/dhdModel/"
+# folderPath = "/home/inspiration/auv/auv/device/cams/models/gateModel/"
 # jsonFile = glob.glob(folderPath+"*.json")[0]
 # blobFile = glob.glob(folderPath+"*.blob")[0]
 # jsonFile = open(jsonFile)

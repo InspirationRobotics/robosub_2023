@@ -75,17 +75,22 @@ class CVHandler:
     def set_oakd_model(self, file_name, model_name):
         if file_name not in self.active_cv_scripts:
             logger.error("Cannot change model of a script that is not running")
+            print("Cannot change model of a script that is not running")
             return
 
         if not self.active_cv_scripts[file_name].is_oakd:
             logger.error("Cannot change model of a script that is not running on an OAK-D camera")
+            print("Cannot change model of a script that is not running on an OAK-D camera")
             return
 
         if not isinstance(model_name, str):
             logger.error("Model name must be a string")
+            print("Model name must be a string")
             return
 
-        self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
+        for i in range(5):
+            self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
+            print("model published", model_name)
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
@@ -112,11 +117,12 @@ class _ScriptHandler:
         if "OAKd" in self.camera_topic:
             self.is_oakd = True
             self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String, queue_size=10)
+            print(self.camera_topic.replace("Raw", "Model"))
             self.sub_oakd_data = rospy.Subscriber(
                 self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
             )
             # set default model to raw
-            self.pub_oakd_model.publish("raw")
+            # self.pub_oakd_model.publish("raw")
         else:
             self.is_oakd = False
             self.pub_oakd_model = None

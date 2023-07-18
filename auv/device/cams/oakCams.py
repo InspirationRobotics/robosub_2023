@@ -39,7 +39,6 @@ class oakCamera:
         print("Camera ID "+str(id)+": " + "Oak-D " + self.name + " is available at " + newDevice)
 
     def createPipeline(self, modelPath=None, confidence=0.5):
-        self.initialized = False
         self.modelPath = modelPath
         if self.modelPath == None:
             pipeline = dai.Pipeline()
@@ -48,7 +47,10 @@ class oakCamera:
             controlIn = pipeline.create(dai.node.XLinkIn)
             controlIn.setStreamName("control")
             camRgb = pipeline.createColorCamera()
-            camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            if(self.name=="Forward"):
+                camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
+            else:
+                camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camRgb.setIspScale(2, 3)
             camRgb.setPreviewSize(640, 480)
             camRgb.setInterleaved(False)
@@ -67,6 +69,7 @@ class oakCamera:
             # setup json parse for .blob file and parameters
             jsonFile = glob.glob(modelPath + "*.json")[0]
             blobFile = glob.glob(modelPath + "*.blob")[0]
+            print("Found model; creating pipeline")
             jsonFile = open(jsonFile)
             data = json.load(jsonFile)
             NN_params = data["nn_config"]["NN_specific_metadata"]
@@ -90,7 +93,12 @@ class oakCamera:
 
             # Properties
             camRgb.setPreviewSize(self.IMG_W, self.IMG_H)
-            camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            if(self.name=="Forward"):
+                camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
+            else:
+                camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            camRgb.setIspScale(2, 3)
+            camRgb.setPreviewSize(640, 480)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
             camRgb.setFps(30)
@@ -115,7 +123,7 @@ class oakCamera:
             device_info = dai.DeviceInfo(self.mxid)
             self.device = dai.Device(pipeline, device_info)
 
-        self.initialized = True
+        self.isKilled = False
 
     def mxidToName(self, mxid):
         if mxid == deviceHelper.dataFromConfig("forwardOak"): 
@@ -142,78 +150,82 @@ class oakCamera:
             print(e)
 
     def callbackModel(self, msg):
-        if(not self.initialized or self.isKilled):
+        print(msg.data)
+        if(self.isKilled):
             return
         modelName = msg.data
+        folderPath = "/home/inspiration/auv/auv/device/cams/models/"
         if(modelName=="gate"):
-            modelPath = "~/auv/auv/device/cams/models/gateModel/"
+            modelPath = folderPath+"gateModel/"
         elif(modelName=="dhd"):
-            modelPath = "~/auv/auv/device/cams/models/dhdModel/"
+            modelPath = folderPath+"dhdModel/"
         elif(modelName=="raw"):
             modelPath==None
         else:
             return
-        self.createPipeline(modelPath)
+        if(self.modelPath==modelPath):
+            return
+        self.kill()
+        self.start(modelPath)
         pass  #need to implment blob file switching
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        if self.modelPath != None:
+            qDet = self.device.getOutputQueue(name="nn", maxSize=4, blocking=False)
         while not self.rospy.is_shutdown() and not self.isKilled:
-            if self.modelPath != None:
-                if not self.initialized:
-                    continue
-                qDet = self.device.getOutputQueue(name="nn", maxSize=4, blocking=False)
-            while self.initialized and not self.isKilled:
-                try:
-                    frame1 = cam.get().getCvFrame()
-                    if self.modelPath != None:
-                        inDet = qDet.get()
-                        detections = inDet.detections
-                        for detection in detections:
-                            # Denormalize bounding box
-                            x1 = int(detection.xmin * self.IMG_W)
-                            x2 = int(detection.xmax * self.IMG_W)
-                            y1 = int(detection.ymin * self.IMG_H)
-                            y2 = int(detection.ymax * self.IMG_H)
-                            try:
-                                label = self.labelMap[detection.label]
-                            except:
-                                label = detection.label
-                            cv2.putText(frame1, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                            cv2.putText(
-                                frame1,
-                                "{:.2f}".format(detection.confidence * 100),
-                                (x1 + 10, y1 + 35),
-                                cv2.FONT_HERSHEY_TRIPLEX,
-                                0.5,
-                                255,
-                            )
-                            cv2.rectangle(
-                                frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
-                            )  # change for multiple colors?
-                        self.pubData.publish(str(detections))
-                    msg = self.br.cv2_to_imgmsg(frame1)
-                    self.pubFrame.publish(msg)
-                    if time.time() - self.time > 3:  # no new CV output frames recieved, default to cam view
-                        self.sendFakeFrame(frame1)
-                    pass
-                except Exception as e:
-                    print("Camera " + str(self.id) + " Input Error")
-                    print(e)
-                self.loop_rate.sleep()
+            try:
+                frame1 = cam.get().getCvFrame()
+                if self.modelPath != None:
+                    inDet = qDet.get()
+                    detections = inDet.detections
+                    for detection in detections:
+                        # Denormalize bounding box
+                        x1 = int(detection.xmin * self.IMG_W)
+                        x2 = int(detection.xmax * self.IMG_W)
+                        y1 = int(detection.ymin * self.IMG_H)
+                        y2 = int(detection.ymax * self.IMG_H)
+                        try:
+                            label = self.labelMap[detection.label]
+                        except:
+                            label = detection.label
+                        cv2.putText(frame1, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                        cv2.putText(
+                            frame1,
+                            "{:.2f}".format(detection.confidence * 100),
+                            (x1 + 10, y1 + 35),
+                            cv2.FONT_HERSHEY_TRIPLEX,
+                            0.5,
+                            255,
+                        )
+                        cv2.rectangle(
+                            frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
+                        )  # change for multiple colors?
+                    self.pubData.publish(str(detections))
+                msg = self.br.cv2_to_imgmsg(frame1)
+                self.pubFrame.publish(msg)
+                if time.time() - self.time > 3:  # no new CV output frames recieved, default to cam view
+                    self.sendFakeFrame(frame1)
+                pass
+            except Exception as e:
+                print("Camera " + str(self.id) + " Input Error")
+                print(e)
+            self.loop_rate.sleep()
 
     def kill(self):
         if(self.isKilled):
             return
-        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
         self.isKilled = True
+        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
         self.oakThread.join()
         del self.device
         self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
         pass  # todo
 
-    def start(self):
-        self.createPipeline()
+    def start(self, modelPath=None):
+        if(not self.isKilled):
+            return
+        self.createPipeline(modelPath)
         self.isKilled = False
         self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
         self.oakThread = threading.Timer(0, self.runner)
