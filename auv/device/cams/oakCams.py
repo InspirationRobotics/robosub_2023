@@ -183,7 +183,8 @@ class oakCamera:
                 if self.modelPath != None:
                     inDet = qDet.get()
                     detections = inDet.detections
-                    for detection in detections:
+                    dataToSend = {}
+                    for i, detection in enumerate(detections):
                         # Denormalize bounding box
                         x1 = int(detection.xmin * self.IMG_W)
                         x2 = int(detection.xmax * self.IMG_W)
@@ -205,7 +206,8 @@ class oakCamera:
                         cv2.rectangle(
                             frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
                         )  # change for multiple colors?
-                    self.pubData.publish(str(detections))
+                        dataToSend[str(i)] = [detection.label, detection.confidence, detection.xmin, detection.xmax, detection.ymin, detection.ymax]
+                    self.pubData.publish(str(json.dumps(dataToSend)))
                 msg = self.br.cv2_to_imgmsg(frame1)
                 self.pubFrame.publish(msg)
                 if time.time() - self.time > 3:  # no new CV output frames recieved, default to cam view

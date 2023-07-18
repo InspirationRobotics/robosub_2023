@@ -184,3 +184,30 @@
 # data.sort(key=num_sort)
 
 # print(data)
+
+#params for each detection are: label, confidence, xmin, xmax, ymin, ymax
+
+# import json
+
+# class detection:
+#     def __init__(self, label, confidence, xmin, xmax, ymin, ymax):
+#         self.label = label
+#         self.confidence = confidence
+#         self.xmin = xmin
+#         self.xmax = xmax
+#         self.ymin = ymin
+#         self.ymax = ymax
+
+# detections = []
+
+# for i in range(5):
+#     detections.append(detection("test"+str(i), i*0.29, i-1, i+1, i-2, i+2))
+
+
+# test = {}
+# for i, val in enumerate(detections):
+#     test[str(i)] = [val.label, val.confidence, val.xmin, val.xmax, val.ymin, val.ymax]
+
+# var = str(json.dumps(test))
+# var2 = json.loads(var)
+# print(var2)

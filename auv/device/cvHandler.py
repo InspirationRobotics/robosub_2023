@@ -20,6 +20,14 @@ from std_msgs.msg import String
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+class detection:
+    def __init__(self, data):
+        self.label = data[0]
+        self.confidence = data[1]
+        self.xmin = data[2]
+        self.xmax = data[3]
+        self.ymin = data[4]
+        self.ymax = data[5]
 
 class CVHandler:
     def __init__(self, **config):
@@ -151,8 +159,11 @@ class _ScriptHandler:
     def callback_oakd_data(self, msg):
         """Callback for the oakd data subscriber"""
         try:
+            dataList = []
             data = json.loads(msg.data)
-            self.oakd_data = data
+            for detections in data.values():
+                dataList.append(detection(detections))
+            self.oakd_data = dataList
         except Exception as e:
             logger.error("Error while converting oakd data to json")
             logger.error(e)
