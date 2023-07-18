@@ -11,7 +11,7 @@ setuptools.setup(
         "numpy",
         "pyserial",
         "bluerobotics-ping",
-        "dotenv",
+        "python-dotenv",
         "pyyaml",
     ],
     # >= 2.7 (legacy, will drop support) or >= 3.6

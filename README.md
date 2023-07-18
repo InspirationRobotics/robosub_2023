@@ -8,28 +8,30 @@ Team Inspiration's repository for the RoboSub 2023 competition. We are using ROS
 
 ### Prerequisites
 
-We have two different subs, Onyx and Graey, they both run on different software setups because of compat issues with Jetson Nano and Jetson NX.
+We have two different subs, Onyx and Graey, they both run on similar software setups. (compat issues with Jetson Nano and Jetson NX have been mostly mitigated)
 
 #### Onyx
 
 * Ubuntu 20.04
 * ROS Noetic
-* Python 3.8
-* OpenCV 4.7.0
+* Python 3.8.10
+* OpenCV 4.7.0 (CUDA)
+* CVbridge (Noetic)
 
 #### Graey
 
 * Ubuntu 18.04
 * Ros Melodic
-* CV on python 2.7, everything else could run on python 3.6
-* OpenCV 4.7.0
+* Python 3.8.0 (non-native)
+* OpenCV 4.7.0 (CUDA)
+* CVbridge (Noetic modified)
 
-Because of this, when we design our code, we need to make sure that it is compatible with both versions of python and ROS.
-Please don't use any python 3.8 features (f-strings, walrus operator, etc.) and make sure that everything is compatible for both subs.
-
+Because of this, when we design our code, we need to make sure that it is compatible between both subs.
 ### Installing
 
-#### For Onyx
+#### For Onyx or Graey
+
+Note: If using installScripts the first two steps will be done for you, you just need to install
 
 (for the following, you can also use the https link instead of the ssh link)
 
@@ -37,15 +39,6 @@ Please don't use any python 3.8 features (f-strings, walrus operator, etc.) and 
 git clone git@github.com:InspirationRobotics/robosub_2023.git 
 mv robosub_2023 auv && cd auv
 python3 -m pip install -e .
-```
-
-#### For Graey
-
-```bash
-git clone git@github.com:InspirationRobotics/robosub_2023.git 
-mv robosub_2023 auv && cd auv
-python3 -m pip install -e .
-python2 -m pip install -e .
 ```
 
 #### On your own computer
