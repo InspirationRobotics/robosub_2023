@@ -158,13 +158,13 @@ class oakCamera:
             modelName = msg.data
         modelsList = ["gate", "dhd", "raw"]
         if modelName not in modelsList:
-            print("Model " + modelName + "not found ("+self.name+" oakD error")
+            print("Model " + modelName + " not found ("+self.name+" oakD error")
             return
         if(modelName=="raw"):
             print("Switching " + self.name + " oakD to raw view")
             modelPath=None
         else:
-            print("Switching " + self.name + "oakD to " + modelName + " model")
+            print("Switching " + self.name + " oakD to " + modelName + " model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
             modelPath = folderPath+modelName+"Model/"
         if(self.modelPath==modelPath):
@@ -206,7 +206,7 @@ class oakCamera:
                         cv2.rectangle(
                             frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
                         )  # change for multiple colors?
-                        dataToSend[str(i)] = [detection.label, detection.confidence, detection.xmin, detection.xmax, detection.ymin, detection.ymax]
+                        dataToSend[str(i)] = [label, round(detection.confidence*100, 3), x1, x2, y1, y2]
                     self.pubData.publish(str(json.dumps(dataToSend)))
                 msg = self.br.cv2_to_imgmsg(frame1)
                 self.pubFrame.publish(msg)

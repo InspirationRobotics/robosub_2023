@@ -90,8 +90,11 @@ class cameraStreams:
             elif(cmd=="back"):
                 continue
             elif(cmd=="model"):
-                model = input("Name of model to run: \n")
-                self.camCtrl(stream, True, model)
+                model = input("Name of model to run: (or 'back' to return to camera selection)\n")
+                if(cmd=="back"):
+                    continue
+                else:
+                    self.camCtrl(stream, True, model)
         rospy.spin()
 
     def camCtrl(self, id, state, model=None): #cam id and then true is start and false is stop
