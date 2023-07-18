@@ -39,8 +39,6 @@ class GateMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        time.sleep(2)
-        
         self.cv_handler.set_oakd_model("gate_cv", "gate")
         logger.info("Gate mission init")
 

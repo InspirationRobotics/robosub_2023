@@ -86,13 +86,12 @@ class SurfacingMission:
                 forward = self.data["surfacing_cv"].get("forward", 0)
 
                 # direcly feed the cv output to the robot control
-                print(lateral, forward)
-                self.robot_control.movement(lateral=forward, forward=lateral)
+                logging.debug("lateral: {}, forward: {}".format(lateral, forward))
+                self.robot_control.movement(lateral=lateral, forward=forward)
 
             except Exception as e:
                 logger.error(e)
                 # idle the robot (just in case something went wrong)
-                print(e)
                 self.robot_control.movement()
                 break
         
@@ -108,10 +107,6 @@ class SurfacingMission:
 
         # idle the robot (just in case something went wrong)
         self.robot_control.movement()
-
-        # disarm sub (to surface)
-        disarm.disarm()
-
         logger.info("Template mission terminate")
 
 
@@ -120,11 +115,10 @@ if __name__ == "__main__":
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.mission.surfacing_mission"
     # You can also import it in a mission file outside of the package
-    import time
     logging.basicConfig(level=logging.DEBUG)
 
     # Create a mission object with arguments
-    mission = TemplateMission()
+    mission = SurfacingMission()
 
     # Run the mission
     mission.run()

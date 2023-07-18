@@ -13,17 +13,22 @@ logger.setLevel(logging.INFO)
 
 
 class CV:
-    camera = "/auv/camera/videoUSBRaw1"
 
     def __init__(self, **config):
         """
         Init of surfacing CV
         """
+        self.config = config
+        self.current_sub = self.config.get("sub", "greay")
+        if self.current_sub == "greay" :
+            self.camera = "/auv/camera/videoUSBRaw1"
+        elif self.current_sub == "onyx" :
+            self.camera = "/auv/camera/videoOAKdRawBottom"
+
+        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 3.0)
 
         self.viz_frame = None
         self.error_buffer = []
-
-        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 3.0)
 
         logger.info("Surfacing CV init")
 
@@ -42,7 +47,6 @@ class CV:
 
         # filter the image to red objects, filters what is white
         gray = cv2.inRange(frame, (0, 0, 200), (10, 10, 255))
-        # cv2.imshow("mask", gray)
 
         # get the centroid of the red points
         M = cv2.moments(gray)
@@ -83,14 +87,18 @@ class CV:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        print(avg_error, self.error_buffer)
         if avg_error < 0.05 and len(self.error_buffer) == 30:
-            print("ending")
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
+        # TODO: implement a simple PID controller for everyone to use
         x_error *= self.surfacing_sensitivity
         y_error *= self.surfacing_sensitivity
-        return {"lateral": x_error, "forward": y_error}, self.viz_frame
+
+        # if greay, x = forward, y = lateral
+        if self.current_sub == "greay" :
+            return {"lateral": y_error, "forward": x_error, "end": False}, self.viz_frame
+        else:
+            return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
 
 
 if __name__ == "__main__":

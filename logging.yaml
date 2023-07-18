@@ -1,0 +1,36 @@
+version: 1
+disable_existing_loggers: True
+
+formatters:
+    my_std:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        datefmt: "%Y/%m/%d %H:%M:%S"
+
+handlers:
+    console:
+        class: logging.StreamHandler
+        formatter: my_std
+        level: DEBUG
+        stream: ext://sys.stdout
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: my_std
+        filename: info.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
+
+loggers:
+    __main__:
+        level: DEBUG
+        handlers: [console]
+        propagate: no
+    rosout:
+        level: INFO
+        propagate: yes
+        qualname: rosout
+
+root:
+    level: INFO
+    handlers: [console, info_file_handler]
