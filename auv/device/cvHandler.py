@@ -2,9 +2,11 @@
 CV Handler
 """
 import lsb_release
-if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+
+if lsb_release.get_lsb_information()["RELEASE"] == "18.04":
     import ctypes
-    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
+
+    libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
 import json
 import logging
@@ -58,14 +60,8 @@ class CVHandler:
             logger.error("No CV class found in file, check the file name and file content")
             return
 
-        # Get the camera topic, if not specified, use the default front camera
-        camera_topic = getattr(cv_class, "camera", None)
-        if camera_topic is None:
-            logger.warning("No camera topic specified, using default front camera")
-            camera_topic = "/auv/camera/videoUSBRaw0"
-
         # Init individual cv script handler
-        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config), camera_topic)
+        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
         self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
 
     def stop_cv(self, file_name):
@@ -96,8 +92,11 @@ class CVHandler:
             print("Model name must be a string")
             return
 
+        # wait for the ros publisher / subscriber to be ready
+        time.sleep(1)
+
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
-        print("model published", model_name)
+        logger.info("model published {}".format(model_name))
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
@@ -108,10 +107,15 @@ class CVHandler:
 
 
 class _ScriptHandler:
-    def __init__(self, file_name, cv_object, camera_topic):
+    def __init__(self, file_name, cv_object):
         self.cv_object = cv_object
-        self.camera_topic = camera_topic
         self.file_name = file_name
+
+        # Get the camera topic, if not specified, use the default front camera
+        self.camera_topic = getattr(self.cv_object, "camera", None)
+        if self.camera_topic is None:
+            logger.warning("No camera topic specified, using default front camera")
+            self.camera_topic = "/auv/camera/videoUSBRaw0"
 
         # Create a cv bridge
         self.br = CvBridge()
@@ -124,7 +128,6 @@ class _ScriptHandler:
         if "OAKd" in self.camera_topic:
             self.is_oakd = True
             self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String, queue_size=10)
-            print(self.camera_topic.replace("Raw", "Model"))
             self.sub_oakd_data = rospy.Subscriber(
                 self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
             )
@@ -152,7 +155,6 @@ class _ScriptHandler:
             self.next_frame = self.br.imgmsg_to_cv2(msg)
             self.last_received = time.time()
         except Exception as e:
-            print(e)
             logger.error("Error while converting image to cv2")
             logger.error(e)
 
