@@ -149,24 +149,24 @@ class oakCamera:
             print("Camera " + str(self.id) + " Output Error, make sure running in correct python")
             print(e)
 
-    def callbackModel(self, msg):
-        print(msg.data)
+    def callbackModel(self, msg, debug=False):
         if(self.isKilled):
             return
-        modelName = msg.data
-        folderPath = "/home/inspiration/auv/auv/device/cams/models/"
-        if(modelName=="gate"):
-            modelPath = folderPath+"gateModel/"
-        elif(modelName=="dhd"):
-            modelPath = folderPath+"dhdModel/"
-        elif(modelName=="gateAug"):
-            modelPath = folderPath+"gateAugModel/"
-        elif(modelName=="bin"):
-            modelPath = folderPath+"binModel/"
-        elif(modelName=="raw"):
-            modelPath==None
+        if(debug):
+            modelName = msg
         else:
+            modelName = msg.data
+        modelsList = ["gate", "dhd", "raw"]
+        if modelName not in modelsList:
+            print("Model " + modelName + "not found ("+self.name+" oakD error")
             return
+        if(modelName=="raw"):
+            print("Switching " + self.name + " oakD to raw view")
+            modelPath=None
+        else:
+            print("Switching " + self.name + "oakD to " + modelName + " model")
+            folderPath = "/home/inspiration/auv/auv/device/cams/models/"
+            modelPath = folderPath+modelName+"Model/"
         if(self.modelPath==modelPath):
             return
         self.kill()

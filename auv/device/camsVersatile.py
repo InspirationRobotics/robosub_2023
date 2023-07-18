@@ -80,8 +80,8 @@ class cameraStreams:
 
     def start(self):
         while self.debug and not rospy.is_shutdown():
-            stream = input("Select Camera ID to start or stop\n")
-            print("Camera "+stream+" is selected. Enter 'start' or 'stop' or 'back' to pick different camera\n")
+            stream = input("Select Camera ID to control\n")
+            print("Camera "+stream+" is selected. Enter 'start' or 'stop' or 'model' to pick a model to run or 'back' to pick different camera \n")
             cmd = input()
             if(cmd=="start"):
                 self.camCtrl(stream,True)
@@ -89,9 +89,12 @@ class cameraStreams:
                 self.camCtrl(stream,False)
             elif(cmd=="back"):
                 continue
+            elif(cmd=="model"):
+                model = input("Name of model to run: \n")
+                self.camCtrl(stream, True, model)
         rospy.spin()
 
-    def camCtrl(self, id, state): #cam id and then true is start and false is stop
+    def camCtrl(self, id, state, model=None): #cam id and then true is start and false is stop
         id = int(id)
         if(id not in self.camID):
             print("Invalid ID, please pick from "+ str(self.camID))
@@ -101,12 +104,21 @@ class cameraStreams:
             print("Please stop one of these streams first\n")
             return False
         if(state and id not in self.activeCams):
+            if(model!=None):
+                print("Please start the camera stream seperately first")
+                return False
             self.cams[id].start()
             self.activeCams.append(id)
             return True
         if(not state and id in self.activeCams):
             self.cams[id].kill()
             self.activeCams.remove(id)
+            return True
+        if(state and id in self.activeCams and model!=None):
+            if id-camAmt<0:
+                print("Cannot load a model on a nonOak camera")
+                return False
+            self.cams[id].callbackModel(model, True)
             return True
 
     def callbackCamSelect(self, msg):
