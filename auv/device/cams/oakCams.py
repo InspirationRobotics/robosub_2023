@@ -52,7 +52,7 @@ class oakCamera:
             else:
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camRgb.setIspScale(2, 3)
-            camRgb.setPreviewSize(640, 480)
+            camRgb.setPreviewSize(self.IMG_W, self.IMG_H)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
             camRgb.preview.link(xoutRgb.input)
@@ -97,8 +97,8 @@ class oakCamera:
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
             else:
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-            camRgb.setIspScale(2, 3)
-            camRgb.setPreviewSize(640, 480)
+            #camRgb.setIspScale(2, 3)
+            #camRgb.setPreviewSize(640, 480)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
             camRgb.setFps(30)
@@ -159,6 +159,10 @@ class oakCamera:
             modelPath = folderPath+"gateModel/"
         elif(modelName=="dhd"):
             modelPath = folderPath+"dhdModel/"
+        elif(modelName=="gateAug"):
+            modelPath = folderPath+"gateAugModel/"
+        elif(modelName=="bin"):
+            modelPath = folderPath+"binModel/"
         elif(modelName=="raw"):
             modelPath==None
         else:

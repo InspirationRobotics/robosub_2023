@@ -56,12 +56,12 @@ class RobotControl:
         pwm = mavros_msgs.msg.OverrideRCIn()
 
         channels = [1500] * 18
-        channels[2] = (vertical * 80) + 1500 if vertical else 1500
-        channels[3] = (yaw * 80) + 1500 if yaw else 1500
-        channels[4] = (forward * 80) + 1500 if forward else 1500
-        channels[5] = (lateral * 80) + 1500 if lateral else 1500
-        channels[6] = (pitch * 80) + 1500 if pitch else 1500
-        channels[7] = (roll * 80) + 1500 if roll else 1500
+        channels[2] = int((vertical * 80) + 1500) if vertical else 1500
+        channels[3] = int((yaw * 80) + 1500) if yaw else 1500
+        channels[4] = int((forward * 80) + 1500) if forward else 1500
+        channels[5] = int((lateral * 80) + 1500) if lateral else 1500
+        channels[6] = int((pitch * 80) + 1500) if pitch else 1500
+        channels[7] = int((roll * 80) + 1500) if roll else 1500
         pwm.channels = channels
 
         # publishing pwms to /auv/devices/thrusters

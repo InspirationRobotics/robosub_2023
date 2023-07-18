@@ -75,8 +75,9 @@ class SurfacingMission:
                 if not "surfacing_cv" in self.data.keys():
                     continue
                 
-                if self.data["surfacing_cv"].get("end", False):
+                if self.data["surfacing_cv"].get("end", None):
                     # idle the robot
+                    print("ending True")
                     self.robot_control.movement()
                     break
                 
@@ -85,11 +86,13 @@ class SurfacingMission:
                 forward = self.data["surfacing_cv"].get("forward", 0)
 
                 # direcly feed the cv output to the robot control
-                self.robot_control.movement(lateral=lateral, forward=forward)
+                print(lateral, forward)
+                self.robot_control.movement(lateral=forward, forward=lateral)
 
             except Exception as e:
                 logger.error(e)
                 # idle the robot (just in case something went wrong)
+                print(e)
                 self.robot_control.movement()
                 break
         

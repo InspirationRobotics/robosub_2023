@@ -40,9 +40,9 @@ class CV:
         if target == 1, earth
         """
         logger.info("Template CV run")
-
+        print(detections)
         if detections is None or len(detections) == 0:
-            return {"lateral": 0, "forward": 0,"yaw":0, "end": False}, frame
+            return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
         
         # If the frame is available, draw bounding boxes on it and show the frame
         height = frame.shape[0]
@@ -77,7 +77,7 @@ class CV:
                 target_label = det_label
                 
         # Finding center of gate
-        
+        print(target_x, self.CENTER_FRAME_X)
         for i in range(300):
             frame[i][target_x] = (255,255,255)
         #Feedback Loop
@@ -105,6 +105,8 @@ class CV:
         # step 1: keep moving forward until you passed the gate
         elif self.step == 1:
             forward = 1
+
+        print(lateral, forward, yaw)
         return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end, "target": alignedTarget}, frame
         
         # TODO://detection of going through the gate + yaw 2 rotations entirely

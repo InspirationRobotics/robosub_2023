@@ -1,27 +1,28 @@
 import os
 import threading
 import time
+import rospy
+from .robot_control import RobotControl
+from ..utils.disarm import disarm
 
-from robot_control import RobotControl
-
-from auv.motion.servo import Servo
-
-servo = Servo()
+#from auv.motion.servo import Servo
+#servo = Servo()
+rospy.init_node("Keyboard", anonymous=True)
 rc = RobotControl()
 time.sleep(1)
 
-rc.setDepth(0.35)
+
+rc.setDepth(0.55)
 
 forward = 0
 lateral = 0
 yaw = 0
-throttle=0
 flag = True
 
 def sendData():
     while flag:
         time.sleep(0.05)
-        rc.movement(throttle=throttle, forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
+        rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
 
 thread_sensor_updater = threading.Timer(0, sendData)
 thread_sensor_updater.daemon = True
@@ -45,16 +46,16 @@ while flag:
         yaw = -1
     elif(var=="l"):
         yaw = 1
-    elif(var=="t"):
-        servo.torpedo()
+    #elif(var=="t"):
+    #    servo.torpedo()
     elif(var=="q"):
         lateral = 0
         forward = 0
         yaw = 0
-        os.system("python3 /home/inspiration/auv/devices/disarm.py")
+        disarm()
         flag = False
     else:
         print("Bad Input")
 
-rc.movement(throttle=0, forward=0, lateral=0, yaw=0, pitch=0, roll=0)
-rc.movement(throttle=0, forward=0, lateral=0, yaw=0, pitch=0, roll=0)
+rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)
+rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)

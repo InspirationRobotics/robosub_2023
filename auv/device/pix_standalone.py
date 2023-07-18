@@ -1,3 +1,8 @@
+import lsb_release
+if(lsb_release.get_distro_information()['RELEASE']=="18.04"):
+    import ctypes
+    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
+
 from ..utils.rospyHandler import RosHandler
 from ..utils.topicService import TopicService
 from ..utils import statusLed
@@ -44,7 +49,7 @@ class AUV(RosHandler):
         if("nx" in platform.node()):
             self.sub  = False #onyx
             self.limNeu = [300,1480] #onyx
-        self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.65) #in meters
+        self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.5) #in meters
         self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
 
         # init topics
@@ -270,7 +275,7 @@ def main():
         print("Waiting to connect...")
         time.sleep(0.5)
     print("Connected!")
-    auv.change_mode(MODE_MANUAL)
+    auv.change_mode(MODE_ALTHOLD)
     auv.calibrateDepth()
     time.sleep(2)
     while not auv.armed:

@@ -23,7 +23,7 @@ class CV:
         self.viz_frame = None
         self.error_buffer = []
 
-        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 2.0)
+        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 3.0)
 
         logger.info("Surfacing CV init")
 
@@ -42,7 +42,7 @@ class CV:
 
         # filter the image to red objects, filters what is white
         gray = cv2.inRange(frame, (0, 0, 200), (10, 10, 255))
-        cv2.imshow("mask", gray)
+        # cv2.imshow("mask", gray)
 
         # get the centroid of the red points
         M = cv2.moments(gray)
@@ -54,7 +54,7 @@ class CV:
         # get standard deviation of the red points
         std = np.std(gray)
 
-        cv2.circle(self.viz_frame, (x_center, y_center), int(640 / std), (0, 0, 255), 2)
+        cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 0, 255), -1)
 
         return x_center, y_center
 
@@ -79,16 +79,18 @@ class CV:
 
         (x_error, y_error) = self.get_error(x_center, y_center, frame.shape)
         self.error_buffer.append((x_error, y_error))
-        if len(self.error_buffer) > 20:
+        if len(self.error_buffer) > 30:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        if avg_error < 0.05:
+        print(avg_error, self.error_buffer)
+        if avg_error < 0.05 and len(self.error_buffer) == 30:
+            print("ending")
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
         x_error *= self.surfacing_sensitivity
         y_error *= self.surfacing_sensitivity
-        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+        return {"lateral": x_error, "forward": y_error}, self.viz_frame
 
 
 if __name__ == "__main__":

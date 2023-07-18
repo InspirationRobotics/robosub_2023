@@ -88,9 +88,8 @@ class CVHandler:
             print("Model name must be a string")
             return
 
-        for i in range(5):
-            self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
-            print("model published", model_name)
+        self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
+        print("model published", model_name)
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
