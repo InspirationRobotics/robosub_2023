@@ -26,7 +26,6 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-
         logger.info("Template CV init")
 
     def run(self, frame, target, oakdData=None):
@@ -38,11 +37,20 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
+        end = False
         logging.info("Template CV run")
         #frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
         L_limit=np.array([8, 100, 100]) 
-        U_limit=np.array([50, 255, 255]) 
+        U_limit=np.array([50, 255, 255])
+        frame_b, frame_g, frame_r = cv2.split(frame)
+        frame_g = cv2.equalizeHist(frame_g)
+        frame_b = cv2.equalizeHist(frame_b)
+        frame_r = cv2.equalizeHist(frame_r)
+        frame = cv2.merge((frame_b, frame_g, frame_r))
+
+        # filter the image to red objects, filters what is white
+        gray = cv2.inRange(frame, L_limit, U_limit)
         # L_limit=np.array([5, 25, 50]) 
         # U_limit=np.array([30, 255, 255]) 
         #L_limit = np.array([8, 100, 100])
@@ -63,7 +71,7 @@ class CV:
     
         ret2, thresh2 = cv2.threshold(blur, 1, 255, cv2.THRESH_OTSU)
         contours, heirarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
+        cv2.drawContours(frame, contours, -1, 255, 3)
         yaw =0
         lateral=0
         forward=0
@@ -99,8 +107,42 @@ class CV:
                 yaw=-1
             elif(slope == 0):
                 #strafe left or right to align
-                print("forward now")
-                forward=1
-    
-        return {"lateral": 0, "forward": forward,"yaw":yaw, "end": False}, frame
+                if(cx>260):
+                    lateral=1
+                elif(cx<220):
+                    lateral = -1
+                else:
+                    self.aligned = True
+                    forward=1
+        elif(self.aligned==True):
+            end = True
+        else:
+            forward=1
+
+        return {"lateral":lateral,"forward": forward,"yaw":yaw, "end": end}, frame
+
+if __name__ == "__main__":
+    # This is the code that will be executed if you run this file directly
+    # It is here for testing purposes
+    # you can run this file independently using: "python -m auv.cv.surfacing_cv"
+    # Create a CV object with arguments
+    cv = CV()
+
+    cap = cv2.VideoCapture("../../testing_data/pvid.MOV")
+
+    while True:
+        ret, img = cap.read()
+        if not ret:
+            break
+
+        # set the frame
+        img = cv2.resize(img, (480, 640))
+
+        # run the CV
+        result, img_viz = cv.run(img, None, None)
+        
+        # show the result
+        cv2.imshow("frame", img_viz)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
 
