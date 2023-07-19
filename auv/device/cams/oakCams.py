@@ -156,11 +156,22 @@ class oakCamera:
             modelName = msg
         else:
             modelName = msg.data
-        modelsList = ["gate", "dhd", "raw"]
+        modelsList = ["gate", "dhd", "gateAug", "raw"]
         if modelName not in modelsList:
-            print("Model " + modelName + " not found ("+self.name+" oakD error")
-            return
-        if(modelName=="raw"):
+            if modelName[0]=="/":
+                print("Detected direct path")
+                if(os.path.exists(modelName)):
+                    print("Switching " + self.name + " oakD to model at: " + modelName)
+                    if(modelName[len(modelName)-1] != "/"):
+                        modelName+="/"
+                    modelPath = modelName
+                else:
+                    print("Path not detected ("+self.name+" oakD error")
+                    return
+            else:
+                print("Model " + modelName + " not found ("+self.name+" oakD error")
+                return
+        elif(modelName=="raw"):
             print("Switching " + self.name + " oakD to raw view")
             modelPath=None
         else:
