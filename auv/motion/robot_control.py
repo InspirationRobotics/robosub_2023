@@ -21,8 +21,7 @@ class RobotControl:
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
         # init some variables
-        self.previous_depth = 0.0
-        self.depth = 0.5
+        self.depth = config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
     def callback_compass(self, data):
@@ -38,8 +37,6 @@ class RobotControl:
         depth = Float64()
         depth.data = d
         self.pub_depth.publish(depth)
-
-        self.previous_depth = d
         logger.info("Depth set to {}".format(d))
 
     def movement(
