@@ -46,7 +46,7 @@ class CV:
         frame = cv2.merge((frame_b, frame_g, frame_r))
 
         # filter the image to red objects, filters what is white
-        gray = cv2.inRange(frame, (0, 0, 200), (10, 10, 255))
+        gray = cv2.inRange(frame, (0, 0, 200), (30, 30, 255))
 
         # get the centroid of the red points
         M = cv2.moments(gray)

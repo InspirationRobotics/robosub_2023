@@ -341,7 +341,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo2.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo5.mp4")
 
     while True:
         # grab a frame
@@ -349,7 +349,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        time.sleep(0.15)
+        #time.sleep(0.15)
         # run the cv
         result, img_viz = cv.run(frame)
         logger.info(result)
