@@ -1,14 +1,10 @@
 import logging
-import signal
-import threading
 import time
 
-import geometry_msgs.msg
 import mavros_msgs.msg
 import mavros_msgs.srv
 import rospy
-import sensor_msgs.msg
-from std_msgs.msg import Float64, Int32MultiArray
+from std_msgs.msg import Float64, Float32MultiArray
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -20,43 +16,46 @@ class RobotControl:
     def __init__(self, **config):
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
+        self.sub_depth = rospy.Subscriber("/auv/devices/baro", Float32MultiArray, self.callback_depth)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
         # init some variables
         self.previous_depth = 0.0
+        self.depth = 0.5
         self.compass = None
 
     def callback_compass(self, data):
         """Get compass heading from /auv/devices/compass topic"""
         self.compass = data.data
 
-    # setting depth for depth holding to specific input
+    def callback_depth(self, data):
+        """Get depth data from barometer /auv/devices/baro topic"""
+        self.depth = data.data[0]
+
     def setDepth(self, d):
         """Set depth to a given value"""
         depth = Float64()
         depth.data = d
-        for i in range(5):
-            self.pub_depth.publish(depth)
-            time.sleep(0.1)
+        self.pub_depth.publish(depth)
 
         self.previous_depth = d
         logger.info("Depth set to {}".format(d))
 
     def movement(
         self,
-        vertical=None,
         yaw=None,
         forward=None,
         lateral=None,
         pitch=None,
         roll=None,
+        **kwargs, # here so that it doesn't break if you give something else
     ):
-        # provided an kwargs of values from -5 to 5 for each degree of freedom
+        # inputs are from -5 to 5
         pwm = mavros_msgs.msg.OverrideRCIn()
 
         channels = [1500] * 18
-        channels[2] = int((vertical * 80) + 1500) if vertical else 1500
+        #channels[2] = int((vertical * 80) + 1500) if vertical else 1500
         channels[3] = int((yaw * 80) + 1500) if yaw else 1500
         channels[4] = int((forward * 80) + 1500) if forward else 1500
         channels[5] = int((lateral * 80) + 1500) if lateral else 1500

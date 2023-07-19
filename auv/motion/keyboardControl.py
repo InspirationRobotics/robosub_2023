@@ -5,8 +5,8 @@ import rospy
 from .robot_control import RobotControl
 from ..utils.disarm import disarm
 
-#from auv.motion.servo import Servo
-#servo = Servo()
+from auv.motion.servo import Servo
+servo = Servo()
 rospy.init_node("Keyboard", anonymous=True)
 rc = RobotControl()
 time.sleep(1)
@@ -46,8 +46,8 @@ while flag:
         yaw = -1
     elif(var=="l"):
         yaw = 1
-    #elif(var=="t"):
-    #    servo.torpedo()
+    elif(var=="t"):
+       servo.torpedo()
     elif(var=="q"):
         lateral = 0
         forward = 0

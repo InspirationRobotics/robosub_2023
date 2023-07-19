@@ -8,7 +8,6 @@ import os
 import time
 
 from auv.device.sonar import Ping360, io
-from auv.utils import arm, disarm
 
 import numpy as np
 import cv2
@@ -47,14 +46,14 @@ parser.add_argument(
 args = parser.parse_args()
 
 step_angle = 1
-max_range = 20
+max_range = 10
 
 # Create a Ping360 object and connect to the Ping360
 p = Ping360(
     args.device,
     args.baudrate,
     scan_mode=1,
-    angle_range=(150, 250),
+    angle_range=(175, 225),
     angle_step=step_angle,
     max_range=max_range,
     gain=2,
@@ -66,23 +65,27 @@ print(d)
 
 # make a full scan and save it to a file
 logging.info("Starting Ping360 full scan")
-arm.arm()
 
 while True:
     try:
         start_time = time.time()
         
         # get objstacle detection from scan
-        obj = p.get_obstacles()
+        obj = p.get_obstacles(threshold=60)
 
         # sort the obstacles by distance
-        obj = sorted(obj, key=lambda x: x["distance"])
+        obj = sorted(obj, key=lambda x: x.distance * x.size)
+        logging.info(obj)
 
-        logging.info("\n".join(obj))
+        if not len(obj)
+            continue 
+        
+        # this is the closest one
+        logging.info("closest: {}".format(obj[0]))
 
-        imcount += 1
-
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         break
 
-disarm.disarm()
+    except Exception as e:
+        logging.error(e)
+

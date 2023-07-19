@@ -106,6 +106,7 @@ class AUV(RosHandler):
         return result.success, result.value.integer, result.value.real
     
     def change_mode(self, mode: str, flag = False):
+        # TODO: see which mode we want to keep
         if(mode==MODE_ALTHOLD): 
             self.DepthHoldMode = True
             self.change_mode(MODE_STABILIZE, True)
@@ -152,7 +153,7 @@ class AUV(RosHandler):
                 self.depth = self.press_abs/(997.0474*9.80665*0.01)
                 self.press_diff = round(self.press_diff,2)
                 baro_data = std_msgs.msg.Float32MultiArray()
-                baro_data.data = [self.press_abs, self.press_diff]
+                baro_data.data = [self.depth-self.depthCalib, self.press_diff]
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
                 if(self.DepthHoldMode and self.armed): self.depthHold(self.depth)

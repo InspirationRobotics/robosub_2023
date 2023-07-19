@@ -56,7 +56,7 @@ class CV:
         # TODO Fill with distance boundary that we will get from ping 360 to
         # switch from center the center of the sub the the largest circle, to
         # then centering the torpedo zone
-        self.far_near_boundary = 2.5  # if distance < 2 meteres, we are near
+        self.far_near_boundary = 2  # if distance < 2 meteres, we are near
         self.fire_distance = 1  # if distacne < 1 meter, we are in range
 
         step_angle = 1
@@ -137,7 +137,7 @@ class CV:
         # Return list containing all circles in the frame
         return circles
 
-    def run(self, frame):
+    def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
@@ -175,7 +175,8 @@ class CV:
                 # Grab the distance of the first object in the list
                 largest_object = sorted_obstacles[0]
                 self.distance_to_target = largest_object.distance
-                logging.info("Distance: " + self.distance_to_target)
+                #logging.info("Distance: " + self.distance_to_target)
+                print("Distance: " + self.distance_to_target)
 
                 if self.distance_to_target < self.far_near_boundary:
                     self.near = True
