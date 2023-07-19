@@ -122,6 +122,7 @@
 #         TS = ":TS,23070714400162,35.0, +26.1,   0.0,1536.9,  0"
 #         TS = TS.replace(" ", "").split(",")
 #         dataPacket["Timestamp"] = ['20'+TS[1][:2]+"-"+TS[1][4:6]+"-"+TS[1][2:4], TS[1][6:8]+":"+TS[1][8:10]+":"+TS[1][10:12]]
+#         dataPacket["TimestampSeconds"] = [int(TS[1][6:8])*int(TS[1][8:10])*int(TS[1][10:12])+int(TS[1][12:14])]
 #         dataPacket["Salinity"] = float(TS[2])
 #         dataPacket["Temp"] = float(TS[3])
 #         dataPacket["Transducer_depth"] = float(TS[4])

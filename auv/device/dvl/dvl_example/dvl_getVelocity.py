@@ -1,7 +1,7 @@
 import time
 import serial
 import signal
-from ...utils.deviceHelper import dataFromConfig
+from ....utils.deviceHelper import dataFromConfig
 
 dvlPort = dataFromConfig("dvl")
 
@@ -24,6 +24,7 @@ time.sleep(2)
 def createPacket(SA):
 	dataPacket = {
 		"Timestamp":[],             # year, month, day, hour:minute:second
+		"TimestampSeconds": [],		# timestamp in seconds (ignores year, month, day)
 		"Attitude":[],              # roll, pitch, and heading in degrees
 		"Salinity":[],              # in ppt (parts per thousand)
 		"Temp":[],                  # celcius
@@ -42,6 +43,7 @@ def createPacket(SA):
 		dataPacket["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
 		TS = ser.readline().decode("utf-8").replace(" ", "").replace("\r\n", "").split(",")
 		dataPacket["Timestamp"] = ['20'+TS[1][:2]+"-"+TS[1][4:6]+"-"+TS[1][2:4], TS[1][6:8]+":"+TS[1][8:10]+":"+TS[1][10:12]]
+		dataPacket["TimestampSeconds"] = [int(TS[1][6:8])*60*60+int(TS[1][8:10])*60+int(TS[1][10:12])+int(TS[1][12:14])*0.01] 
 		dataPacket["Salinity"] = float(TS[2])
 		dataPacket["Temp"] = float(TS[3])
 		dataPacket["Transducer_depth"] = float(TS[4])
@@ -70,7 +72,7 @@ if __name__ == '__main__':
 			try:
 				rawOut = out.decode("utf-8")
 				packet = createPacket(out)
-				#print(packet)
+				print(packet)
 				if(packet["isAUV_velocity_valid"]==True):
 					print(packet["AUV_velocity"])
 			except:

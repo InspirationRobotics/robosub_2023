@@ -1,7 +1,7 @@
 import time
 import serial
 import os
-from ...utils.deviceHelper import dataFromConfig
+from ....utils.deviceHelper import dataFromConfig
 
 #to send commands to DVL based off documentation, type "break" first
 #to start pings send "CS"
