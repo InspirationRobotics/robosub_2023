@@ -26,7 +26,7 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-        
+        #frame is going to be 640 x 480
         self.step = 0
         self.maxGlyphLength = 0
         self.CENTER_FRAME_X = 320
