@@ -1,7 +1,9 @@
 import lsb_release
-if(lsb_release.get_distro_information()['RELEASE']=="18.04"):
+
+if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     import ctypes
-    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
+
+    libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 import os
 import platform
 import signal
@@ -29,6 +31,7 @@ def list_devices():
         available_devices.append(device.getMxId())
     return available_devices
 
+
 def difference(string1, string2):
     string1 = string1.split()
     string2 = string2.split()
@@ -37,8 +40,10 @@ def difference(string1, string2):
     str_diff = A.symmetric_difference(B)
     return list(str_diff)
 
+
 def num_sort(test_string):
-    return list(map(int, re.findall(r'\d+', test_string)))[0]
+    return list(map(int, re.findall(r"\d+", test_string)))[0]
+
 
 preDevices = os.popen("ls /dev/video*").read()
 ogDev = deviceHelper.findCam(usbIDS)
@@ -60,6 +65,7 @@ newDev.sort(key=num_sort)
 
 # v4l2-ctl --list-devices
 
+
 class cameraStreams:
     def __init__(self, debug=False):
         rospy.loginfo("Initializing Camera Streams...")
@@ -67,58 +73,62 @@ class cameraStreams:
         self.camID = []
         self.activeCams = []
         self.debug = debug
-        self.limit = 2 #max amount of cams that can be used at a time
+        self.limit = 2  # max amount of cams that can be used at a time
         for i in range(camAmt):
             self.cams.append(usbCams.USBCamera(rospy, i, ogDev[i], newDev[i]))
             self.camID.append(i)
         for i in range(oakAmt):
             self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt]))
-            self.camID.append(i+camAmt)
+            self.camID.append(i + camAmt)
         rospy.Subscriber("/auv/camsVersatile/cameraSelect", String, self.callbackCamSelect)
-        if(debug):
+        if debug:
             print("*****************\ndebug mode is ON\n*****************")
 
     def start(self):
         while self.debug and not rospy.is_shutdown():
             stream = input("Select Camera ID to control\n")
-            print("Camera "+stream+" is selected. Enter 'start' or 'stop' or 'model' to pick a model to run or 'back' to pick different camera \n")
+            print(
+                "Camera "
+                + stream
+                + " is selected. Enter 'start' or 'stop' or 'model' to pick a model to run or 'back' to pick different camera \n"
+            )
             cmd = input()
-            if(cmd=="start"):
-                self.camCtrl(stream,True)
-            elif(cmd=="stop"):
-                self.camCtrl(stream,False)
-            elif(cmd=="back"):
+            if cmd == "start":
+                self.camCtrl(stream, True)
+            elif cmd == "stop":
+                self.camCtrl(stream, False)
+            elif cmd == "back":
                 continue
-            elif(cmd=="model"):
+            elif cmd == "model":
                 model = input("Name of model to run: (or 'back' to return to camera selection)\n")
-                if(cmd=="back"):
+                if cmd == "back":
                     continue
                 else:
                     self.camCtrl(stream, True, model)
         rospy.spin()
 
-    def camCtrl(self, id, state, model=None): #cam id and then true is start and false is stop
+    def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
         id = int(id)
-        if(id not in self.camID):
-            print("Invalid ID, please pick from "+ str(self.camID))
+        if id not in self.camID:
+            print("Invalid ID, please pick from " + str(self.camID))
             return False
-        if(state and len(self.activeCams)==2 and id not in self.activeCams):
+        if state and len(self.activeCams) == 2 and id not in self.activeCams:
             print("2 camera streams are already active with ids: " + str(self.activeCams))
             print("Please stop one of these streams first\n")
             return False
-        if(state and id not in self.activeCams):
-            if(model!=None):
+        if state and id not in self.activeCams:
+            if model != None:
                 print("Please start the camera stream seperately first")
                 return False
             self.cams[id].start()
             self.activeCams.append(id)
             return True
-        if(not state and id in self.activeCams):
+        if not state and id in self.activeCams:
             self.cams[id].kill()
             self.activeCams.remove(id)
             return True
-        if(state and id in self.activeCams and model!=None):
-            if id-camAmt<0:
+        if state and id in self.activeCams and model != None:
+            if id - camAmt < 0:
                 print("Cannot load a model on a nonOak camera")
                 return False
             self.cams[id].callbackModel(model, True)
@@ -126,12 +136,13 @@ class cameraStreams:
 
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
-        pass #todo
+        pass  # todo
 
     def stop(self):
         for i in self.cams:
             i.kill()
             del i
+
 
 def onExit(signum, frame):
     try:
@@ -146,6 +157,7 @@ def onExit(signum, frame):
         exit(1)
     except:
         pass
+
 
 signal.signal(signal.SIGINT, onExit)
 
