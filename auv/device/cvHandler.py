@@ -2,11 +2,9 @@
 CV Handler
 """
 import lsb_release
-
-if lsb_release.get_lsb_information()["RELEASE"] == "18.04":
+if(lsb_release.get_distro_information()['RELEASE']=="18.04"):
     import ctypes
-
-    libgcc_s = ctypes.CDLL("libgcc_s.so.1")
+    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 
 import json
 import logging
