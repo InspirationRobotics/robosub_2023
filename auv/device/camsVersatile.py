@@ -108,6 +108,9 @@ class cameraStreams:
         rospy.spin()
 
     def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
+        if not id.isnumeric():
+            print("Invalid ID, please pick from " + str(self.camID))
+            return
         id = int(id)
         if id not in self.camID:
             print("Invalid ID, please pick from " + str(self.camID))
@@ -117,10 +120,13 @@ class cameraStreams:
             print("Please stop one of these streams first\n")
             return False
         if state and id not in self.activeCams:
-            if model != None:
-                print("Please start the camera stream seperately first")
-                return False
-            self.cams[id].start()
+            if model == None:
+                self.cams[id].start()
+            else:
+                if id - camAmt < 0:
+                    print("Cannot load a model on a nonOak camera")
+                    return False
+                self.cams[id].start(model)
             self.activeCams.append(id)
             return True
         if not state and id in self.activeCams:

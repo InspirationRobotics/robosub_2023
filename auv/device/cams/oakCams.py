@@ -30,6 +30,8 @@ class oakCamera:
         self.br = CvBridge()
         self.loop_rate = self.rospy.Rate(30)
         self.isKilled = True
+        self.modelPath = -1
+        self.isValid = None
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
         self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
@@ -39,7 +41,8 @@ class oakCamera:
         print("Camera ID "+str(id)+": " + "Oak-D " + self.name + " is available at " + newDevice)
 
     def createPipeline(self, modelPath=None, confidence=0.5):
-        self.modelPath = modelPath
+        if self.isValid: self.modelPath = modelPath
+        else: print("Invalid model detected, using previous state")
         if self.modelPath == None:
             pipeline = dai.Pipeline()
             xoutRgb = pipeline.createXLinkOut()
@@ -67,8 +70,8 @@ class oakCamera:
             controlQueue.send(ctrl)
         else:
             # setup json parse for .blob file and parameters
-            jsonFile = glob.glob(modelPath + "*.json")[0]
-            blobFile = glob.glob(modelPath + "*.blob")[0]
+            jsonFile = glob.glob(self.modelPath + "*.json")[0]
+            blobFile = glob.glob(self.modelPath + "*.blob")[0]
             print("Found model; creating pipeline")
             jsonFile = open(jsonFile)
             data = json.load(jsonFile)
@@ -149,13 +152,7 @@ class oakCamera:
             print("Camera " + str(self.id) + " Output Error, make sure running in correct python")
             print(e)
 
-    def callbackModel(self, msg, debug=False):
-        if(self.isKilled):
-            return
-        if(debug):
-            modelName = msg
-        else:
-            modelName = msg.data
+    def modelSelect(self, modelName):
         modelsList = ["gate", "dhd", "gateAug", "raw"]
         if modelName not in modelsList:
             if modelName[0]=="/":
@@ -165,24 +162,37 @@ class oakCamera:
                     if(modelName[len(modelName)-1] != "/"):
                         modelName+="/"
                     modelPath = modelName
+                    self.isValid = True
                 else:
                     print("Path not detected ("+self.name+" oakD error")
+                    self.isValid = False
                     return
             else:
-                print("Model " + modelName + " not found ("+self.name+" oakD error")
+                print("Model " + modelName + " not found ("+self.name+" oakD error)")
+                self.isValid = False
                 return
         elif(modelName=="raw"):
             print("Switching " + self.name + " oakD to raw view")
             modelPath=None
+            self.isValid = True
         else:
             print("Switching " + self.name + " oakD to " + modelName + " model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
             modelPath = folderPath+modelName+"Model/"
+            self.isValid = True
         if(self.modelPath==modelPath):
+            print("Model already running...")
+            self.isValid = False
             return
+        return modelPath
+
+
+    def callbackModel(self, msg, debug=False):
+        if(self.isKilled): return
+        if(debug): modelName = msg
+        else: modelName = msg.data
         self.kill()
-        self.start(modelPath)
-        pass  #need to implment blob file switching
+        self.start(modelName)
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
@@ -239,10 +249,10 @@ class oakCamera:
         self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
         pass  # todo
 
-    def start(self, modelPath=None):
+    def start(self, modelPath="raw"):
         if(not self.isKilled):
             return
-        self.createPipeline(modelPath)
+        self.createPipeline(self.modelSelect(modelPath))
         self.isKilled = False
         self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
         self.oakThread = threading.Timer(0, self.runner)
