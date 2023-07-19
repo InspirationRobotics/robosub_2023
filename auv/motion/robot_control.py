@@ -6,6 +6,8 @@ import mavros_msgs.srv
 import rospy
 from std_msgs.msg import Float64, Float32MultiArray
 
+from ..device.dvl import dvl
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -14,23 +16,42 @@ class RobotControl:
     """Class to control the robot"""
 
     def __init__(self, **config):
+        # init some variables
+        self.config = config
+        self.depth = self.config.get("INIT_DEPTH", 0.0)
+        self.compass = None
+
+        # dvl sensor setup (onyx)
+        if self.config.get("sub") == "onyx":
+            self.dvl = dvl.DVL()
+            self.dvl.start()
+        else:
+            self.dvl = None
+
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
         self.sub_depth = rospy.Subscriber("/auv/devices/baro", Float32MultiArray, self.callback_depth)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
-        # init some variables
-        self.depth = config.get("INIT_DEPTH", 0.0)
-        self.compass = None
+    def callback_compass(self):
+        def _callback_compass(msg):
+            """Get compass heading from /auv/devices/compass topic"""
+            self.compass = msg.data
 
-    def callback_compass(self, data):
-        """Get compass heading from /auv/devices/compass topic"""
-        self.compass = data.data
+        def _callback_compass_dvl(msg):
+            """Get compass heading from dvl"""
+            self.compass = msg.data
+            self.dvl.compass = msg.data
 
-    def callback_depth(self, data):
+        if self.dvl:
+            return callback_compass_dvl
+        else:
+            return callback_compass
+
+    def callback_depth(self, msg):
         """Get depth data from barometer /auv/devices/baro topic"""
-        self.depth = data.data[0]
+        self.depth = msg.data[0]
 
     def setDepth(self, d):
         """Set depth to a given value"""
