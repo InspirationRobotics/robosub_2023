@@ -105,7 +105,16 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
-    logging.basicConfig(level=logging.INFO)
+
+    import logging.config
+    import os
+
+    import yaml
+    from dotenv import dotenv_values
+    log_config = yaml.safe_load(open(os.environ.get("LOG_CFG_PATH", "logging.yaml"), "r"))
+
+    logging.config.dictConfig(log_config)
+    logger = logging.getLogger(__name__)
 
     # Create a CV object with arguments
     cv = CV()

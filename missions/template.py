@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import os
 
 import yaml
@@ -8,9 +9,9 @@ from auv.mission import template_mission
 
 # load sub config and logging config (usefull to see the logs in the console)
 config = dotenv_values(os.environ.get("ENV_PATH", "../config/onyx.env"))
-log_config = yaml.safe_load(open(os.environ.get("LOG_CFG_PATH", "../config/logging.yaml"), "r"))
+log_config = yaml.safe_load(open(config.get("LOG_CFG_PATH", "../logging.yaml"), "r"))
 
-logging = logging.config.dictConfig(log_config)
+logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 # create the mission object
