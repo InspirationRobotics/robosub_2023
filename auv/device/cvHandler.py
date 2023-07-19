@@ -15,6 +15,7 @@ import os
 import threading
 import time
 
+import cv2
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
