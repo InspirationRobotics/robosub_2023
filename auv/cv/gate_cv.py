@@ -30,7 +30,7 @@ class CV:
         self.step = 0
         self.maxGlyphLength = 0
         self.CENTER_FRAME_X = 320
-        logger.info("Template CV init")
+        logger.info("Gate CV init")
 
     def run(self, frame, target, detections):
         """
@@ -44,25 +44,13 @@ class CV:
         if detections is None or len(detections) == 0:
             return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
         
-        # If the frame is available, draw bounding boxes on it and show the frame
-        height = frame.shape[0]
-        width  = frame.shape[1]
         target_x = -1
         #confidenceGate = -1
-        sumOfDets = 0
         targetConfidences = []
         end = False
 
         for detection in detections:
-            x1 = int(detection.xmin * width)
-            x2 = int(detection.xmax * width)
-            y1 = int(detection.ymin * height)
-            y2 = int(detection.ymax * height)
-            sumOfDets+=detection.xmin*width
-            cv2.putText(frame, str(detection.label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX)
-            targetConfidences.append((detection.confidence, x1, detection.label))
+            targetConfidences.append((detection.confidence, detection.xmin, detection.label))
 
         # Finding which symbol is detected with highest confidence rate
         maxConfidence = 0
@@ -160,4 +148,4 @@ class CV:
             # yaw for 2 full rotations
             end = True
         '''
-        return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end}, frame
+        #return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end}, frame
