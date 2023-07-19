@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 servo = Servo()
 
 
-class TemplateMission:
+class TorpedoMission:
     cv_files = ["torpedo_cv"]
 
     def __init__(self, **config):
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     # Create a mission object with arguments
-    mission = TemplateMission()
+    mission = TorpedoMission()
 
     # Run the mission
     mission.run()

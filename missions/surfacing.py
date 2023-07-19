@@ -7,13 +7,13 @@ import yaml
 from dotenv import dotenv_values
 
 from auv.mission import surfacing_mission
-from auv.utils import arm, disarm
+from auv.utils import arm, deviceHelper
 
 # load sub config and logging config (usefull to see the logs in the console)
-config = dotenv_values(os.environ.get("ENV_PATH", "../config/onyx.env"))
+config = deviceHelper.variables
 log_config = yaml.safe_load(open(config.get("LOG_CFG_PATH", "../logging.yaml"), "r"))
 
-logging = logging.config.dictConfig(log_config)
+logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 arm.arm()

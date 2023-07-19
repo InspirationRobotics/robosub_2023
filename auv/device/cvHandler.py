@@ -1,9 +1,10 @@
 """
 CV Handler
+Author: Maxime Ellerbach
 """
 import lsb_release
 
-if lsb_release.get_lsb_information()["RELEASE"] == "18.04":
+if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     import ctypes
 
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
@@ -22,14 +23,6 @@ from std_msgs.msg import String
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class detection:
-    def __init__(self, data):
-        self.label = data[0]
-        self.confidence = data[1]
-        self.xmin = data[2]
-        self.xmax = data[3]
-        self.ymin = data[4]
-        self.ymax = data[5]
 
 class CVHandler:
     def __init__(self, **config):
@@ -40,7 +33,7 @@ class CVHandler:
         self.active_cv_scripts = {}
         self.subs = {}
 
-    def start_cv(self, file_name, callback):
+    def start_cv(self, file_name, callback, dummy=None):
         """Start a CV script"""
         if file_name in self.active_cv_scripts:
             logger.error("Cannot start a script that is already running")
@@ -60,9 +53,16 @@ class CVHandler:
             logger.error("No CV class found in file, check the file name and file content")
             return
 
-        # Init individual cv script handler
-        self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
         self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
+
+        if dummy:  # Init dummy cv script handler
+            self.active_cv_scripts[file_name] = _DummyScriptHandler(file_name, cv_class(**self.config), dummy)
+        else:  # Init individual cv script handler
+            self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
+
+        # Reset the model to raw
+        if self.active_cv_scripts[file_name].is_oakd:
+            self.set_oakd_model(file_name, "raw")
 
     def stop_cv(self, file_name):
         """Stop a CV script"""
@@ -91,9 +91,6 @@ class CVHandler:
             logger.error("Model name must be a string")
             print("Model name must be a string")
             return
-
-        # wait for the ros publisher / subscriber to be ready
-        time.sleep(1)
 
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
         logger.info("model published {}".format(model_name))
@@ -125,14 +122,14 @@ class _ScriptHandler:
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
         self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
 
+        # init the oakd stuff
         if "OAKd" in self.camera_topic:
             self.is_oakd = True
-            self.pub_oakd_model = rospy.Publisher(self.camera_topic.replace("Raw", "Model"), String, queue_size=10)
-            self.sub_oakd_data = rospy.Subscriber(
-                self.camera_topic.replace("Raw", "Data"), String, self.callback_oakd_data
-            )
-            # set default model to raw
-            # self.pub_oakd_model.publish("raw")
+            pub_oakd_model_topic = self.camera_topic.replace("Raw", "Model")
+            pub_oakd_data_topic = self.camera_topic.replace("Raw", "Data")
+            self.pub_oakd_model = rospy.Publisher(pub_oakd_model_topic, String, queue_size=10)
+            self.sub_oakd_data = rospy.Subscriber(pub_oakd_data_topic, String, self.callback_oakd_data)
+            time.sleep(1)  # wait for the ros publisher / subscriber to be ready
         else:
             self.is_oakd = False
             self.pub_oakd_model = None
@@ -164,7 +161,7 @@ class _ScriptHandler:
             dataList = []
             data = json.loads(msg.data)
             for detections in data.values():
-                dataList.append(detection(detections))
+                dataList.append(Detection(detections))
             self.oakd_data = dataList
         except Exception as e:
             logger.error("Error while converting oakd data to json")
@@ -214,6 +211,90 @@ class _ScriptHandler:
         self.pub_viz.unregister()
         self.pub_out.unregister()
         self.closed = True
+
+
+class _DummyScriptHandler:
+    def __init__(self, file_name, cv, dummy):
+        self.file_name = file_name
+        self.cv = cv
+
+        # Get the camera topic, if not specified, use the default front camera
+        self.camera_topic = getattr(self.cv_object, "camera", None)
+        if self.camera_topic is None:
+            logger.warning("No camera topic specified, using default front camera")
+            self.camera_topic = "/auv/camera/videoUSBRaw0"
+
+        self.is_oakd = False
+        self.target = "main"
+        self.oakd_data = None
+        self.running = False
+        self.closed = False
+
+        # this is our dummy camera
+        self.dummy_video = dummy
+        self.cap = cv2.VideoCapture(self.dummy_video)
+        if not self.cap.isOpened():
+            logger.error("Error while opening dummy video")
+            return
+
+        # run the video in a thread, loop when it ends
+        self.thread = threading.Thread(target=self.run)
+
+        # should we post the viz to the viz topic?
+        self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
+        self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
+
+    def run(self):
+        self.running = True
+
+        while self.running:
+            ret, frame = self.cap.read()
+
+            # loop if video ends
+            if not ret:
+                self.cap = cv2.VideoCapture(self.dummy_video)
+                continue
+
+            # Run the CV
+            try:
+                ret = self.cv_object.run(frame, self.target, self.oakd_data)
+            except Exception as e:
+                logger.error("Error while running CV {} {}".format(self.file_name, e))
+                print(e)
+                continue
+
+            if isinstance(ret, tuple) and len(ret) == 2:
+                result, viz_img = ret
+            elif isinstance(ret, dict):
+                result = ret
+                viz_img = None
+            else:
+                logger.error("CV returned invalid type")
+                continue
+
+            # Publish the result
+            self.pub_out.publish(json.dumps(result))
+
+            if viz_img is not None:
+                self.pub_viz.publish(self.br.cv2_to_imgmsg(viz_img))
+
+    def stop(self):
+        self.running = False
+        self.thread.join()
+
+        self.pub_viz.unregister()
+        self.pub_out.unregister()
+        self.closed = True
+
+
+class Detection:
+    def __init__(self, data):
+        self.label = data[0]
+        self.confidence = data[1]
+        self.xmin = data[2]
+        self.xmax = data[3]
+        self.ymin = data[4]
+        self.ymax = data[5]
 
 
 if __name__ == "__main__":

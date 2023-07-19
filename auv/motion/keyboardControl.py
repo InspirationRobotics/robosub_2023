@@ -1,16 +1,21 @@
 import os
 import threading
 import time
+
 import rospy
-from .robot_control import RobotControl
+
+
 from ..utils.disarm import disarm
+from .robot_control import RobotControl
+from .servo import Servo
 
 from auv.motion.servo import Servo
 servo = Servo()
 rospy.init_node("Keyboard", anonymous=True)
-rc = RobotControl()
-time.sleep(1)
 
+rc = RobotControl()
+servo = Servo()
+time.sleep(1)
 
 rc.setDepth(0.55)
 
@@ -19,43 +24,55 @@ lateral = 0
 yaw = 0
 flag = True
 
+
 def sendData():
     while flag:
         time.sleep(0.05)
         rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
 
-thread_sensor_updater = threading.Timer(0, sendData)
-thread_sensor_updater.daemon = True
-thread_sensor_updater.start()
+
+thread_mov = threading.Thread(target=sendData)
+thread_mov.daemon = True
+thread_mov.start()
 
 while flag:
-    var = input()
-    if(var=="a"):
-        lateral = -2
-    elif(var=="d"):
-        lateral = 2
-    elif(var=="w"):
-        forward = 2
-    elif(var=="s"):
-        forward = -2
-    elif(var=="f"):
-        lateral = 0
-        forward = 0
-        yaw = 0
-    elif(var=="k"):
-        yaw = -1
-    elif(var=="l"):
-        yaw = 1
-    elif(var=="t"):
-       servo.torpedo()
-    elif(var=="q"):
-        lateral = 0
-        forward = 0
-        yaw = 0
-        disarm()
-        flag = False
-    else:
-        print("Bad Input")
+    try:
+        var = input()
+        if var == "a":
+            lateral = -2
+        elif var == "d":
+            lateral = 2
+        elif var == "w":
+            forward = 2
+        elif var == "s":
+            forward = -2
+        elif var == "f":
+            lateral = 0
+            forward = 0
+            yaw = 0
+        elif var == "k":
+            yaw = -1
+        elif var == "l":
+            yaw = 1
+        elif var == "z":
+            rc.setDepth(rc.depth - 0.1)
+        elif var == "x":
+            rc.setDepth(rc.depth + 0.1)
+        elif var == "t":
+            servo.torpedo()
+        elif var == "q":
+            lateral = 0
+            forward = 0
+            yaw = 0
+            flag = False
+            break
+        else:
+            print("Bad Input")
+    except KeyboardInterrupt:
+        break
 
-rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)
+flag = False
+disarm()
+thread_mov.join()
+
 rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)

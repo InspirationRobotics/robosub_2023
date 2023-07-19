@@ -1,29 +1,30 @@
 import lsb_release
-if(lsb_release.get_distro_information()['RELEASE']=="18.04"):
+
+if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     import ctypes
-    libgcc_s = ctypes.CDLL('libgcc_s.so.1')
 
-from ..utils.rospyHandler import RosHandler
-from ..utils.topicService import TopicService
-from ..utils import statusLed
+    libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
+import platform
+import signal
+import threading
+import time
+from statistics import mean
+from struct import pack, unpack
+
+import geographic_msgs.msg
+import geometry_msgs.msg
 import mavros_msgs.msg
 import mavros_msgs.srv
-import geographic_msgs.msg
-import std_msgs.msg
-import sensor_msgs.msg
-import geometry_msgs.msg
-
-from struct import pack, unpack
-import rospy
-import time
 import numpy as np
-import signal
-import platform
+import rospy
+import sensor_msgs.msg
+import std_msgs.msg
 from simple_pid import PID
 
-import threading
-from statistics import mean
+from ..utils import statusLed
+from ..utils.rospyHandler import RosHandler
+from ..utils.topicService import TopicService
 
 MODE_MANUAL = "MANUAL"
 MODE_STABILIZE = "STABILIZE"
@@ -32,24 +33,24 @@ MODE_LOITER = "LOITER"
 MODE_AUTO = "AUTO"
 MODE_GUIDED = "GUIDED"
 
-class AUV(RosHandler):
 
+class AUV(RosHandler):
     def __init__(self):
         super().__init__()
         self.armed = False
         self.guided = False
         self.DepthHoldMode = False
         self.depthMotorPower = 0
-        self.depth=None
+        self.depth = None
         self.mode = ""
-        self.channels = [0]*18
+        self.channels = [0] * 18
         self.depthCalib = 0
-        self.sub = True #grey
-        self.limNeu = [200,1475] #grey
-        if("nx" in platform.node()):
-            self.sub  = False #onyx
-            self.limNeu = [300,1480] #onyx
-        self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.5) #in meters
+        self.sub = True  # grey
+        self.limNeu = [200, 1475]  # grey
+        if "nx" in platform.node():
+            self.sub = False  # onyx
+            self.limNeu = [300, 1480]  # onyx
+        self.pid = PID(self.limNeu[0], 0.05, 0, setpoint=0.5)  # in meters
         self.pid.output_limits = (-self.limNeu[0], self.limNeu[0])
 
         # init topics
@@ -60,28 +61,30 @@ class AUV(RosHandler):
         self.SERVICE_GET_PARAM = TopicService("/mavros/param/get", mavros_msgs.srv.ParamGet)
 
         # movement
-        self.TOPIC_SET_VELOCITY = TopicService('/mavros/setpoint_velocity/cmd_vel_unstamped', geometry_msgs.msg.Twist) # only works in auto/guided mode
-        self.TOPIC_SET_RC_OVR = TopicService('/mavros/rc/override', mavros_msgs.msg.OverrideRCIn)
+        self.TOPIC_SET_VELOCITY = TopicService(
+            "/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist
+        )  # only works in auto/guided mode
+        self.TOPIC_SET_RC_OVR = TopicService("/mavros/rc/override", mavros_msgs.msg.OverrideRCIn)
 
         # sensory
-        self.TOPIC_GET_IMU_DATA = TopicService('/mavros/imu/data', sensor_msgs.msg.Imu)
-        self.TOPIC_GET_CMP_HDG = TopicService('/mavros/global_position/compass_hdg', std_msgs.msg.Float64)
-        self.TOPIC_GET_RC = TopicService('/mavros/rc/in', mavros_msgs.msg.RCIn)
-        self.TOPIC_GET_MAVBARO = TopicService('/mavlink/from', mavros_msgs.msg.Mavlink)
-        #https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
-        self.TOPIC_GET_BATTERY = TopicService('/mavros/battery', sensor_msgs.msg.BatteryState)
+        self.TOPIC_GET_IMU_DATA = TopicService("/mavros/imu/data", sensor_msgs.msg.Imu)
+        self.TOPIC_GET_CMP_HDG = TopicService("/mavros/global_position/compass_hdg", std_msgs.msg.Float64)
+        self.TOPIC_GET_RC = TopicService("/mavros/rc/in", mavros_msgs.msg.RCIn)
+        self.TOPIC_GET_MAVBARO = TopicService("/mavlink/from", mavros_msgs.msg.Mavlink)
+        # https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
+        self.TOPIC_GET_BATTERY = TopicService("/mavros/battery", sensor_msgs.msg.BatteryState)
 
         # custom topics
-        self.AUV_COMPASS = TopicService('/auv/devices/compass', std_msgs.msg.Float64)
-        self.AUV_IMU = TopicService('/auv/devices/imu', sensor_msgs.msg.Imu)
-        self.AUV_BARO = TopicService('/auv/devices/baro', std_msgs.msg.Float32MultiArray)
-        self.AUV_GET_THRUSTERS = TopicService('/auv/devices/thrusters', mavros_msgs.msg.OverrideRCIn)
-        self.AUV_GET_DEPTH = TopicService('/auv/devices/setDepth', std_msgs.msg.Float64)
-        self.AUV_GET_ARM = TopicService('/auv/status/arm', std_msgs.msg.Bool)
-        self.AUV_GET_MODE = TopicService('/auv/status/mode', std_msgs.msg.String)
+        self.AUV_COMPASS = TopicService("/auv/devices/compass", std_msgs.msg.Float64)
+        self.AUV_IMU = TopicService("/auv/devices/imu", sensor_msgs.msg.Imu)
+        self.AUV_BARO = TopicService("/auv/devices/baro", std_msgs.msg.Float32MultiArray)
+        self.AUV_GET_THRUSTERS = TopicService("/auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn)
+        self.AUV_GET_DEPTH = TopicService("/auv/devices/setDepth", std_msgs.msg.Float64)
+        self.AUV_GET_ARM = TopicService("/auv/status/arm", std_msgs.msg.Bool)
+        self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
     def arm(self, status: bool):
-        if(self.armed):
+        if self.armed:
             return
         data = mavros_msgs.srv.CommandBoolRequest()
         data.value = status
@@ -104,9 +107,10 @@ class AUV(RosHandler):
         self.SERVICE_SET_PARAM.set_data(data)
         result = self.service_caller(self.SERVICE_SET_PARAM, timeout=30)
         return result.success, result.value.integer, result.value.real
-    
-    def change_mode(self, mode: str, flag = False):
-        if(mode==MODE_ALTHOLD): 
+
+    def change_mode(self, mode: str, flag=False):
+        # TODO: see which mode we want to keep
+        if mode == MODE_ALTHOLD:
             self.DepthHoldMode = True
             self.change_mode(MODE_STABILIZE, True)
             return
@@ -121,22 +125,23 @@ class AUV(RosHandler):
         print("\nStarting Depth Calibration...")
         start_time = time.time()
         depthArr = []
-        while(self.depth==None): pass
+        while self.depth == None:
+            pass
         prevDepth = self.depth
-        while(time.time()-start_time<3):
-            if(self.depth!=prevDepth):
+        while time.time() - start_time < 3:
+            if self.depth != prevDepth:
                 depthArr.append(self.depth)
-                prevDepth=self.depth
+                prevDepth = self.depth
         self.depthCalib = mean(depthArr)
         print(f"Finished. Surface is: {self.depthCalib}")
         return
 
     def depthHold(self, depth):
         try:
-            depth = depth-self.depthCalib
-            if(depth<-9 or depth>100):
+            depth = depth - self.depthCalib
+            if depth < -9 or depth > 100:
                 return
-            self.depthMotorPower = int(self.pid(depth)*-1 + self.limNeu[1])
+            self.depthMotorPower = int(self.pid(depth) * -1 + self.limNeu[1])
             print(f"Depth: {depth:.4f} depthMotorPower: {self.depthMotorPower} Target: {self.pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
         except Exception as e:
@@ -145,30 +150,31 @@ class AUV(RosHandler):
 
     def get_baro(self, baro):
         try:
-            if(baro.msgid == 143):
+            if baro.msgid == 143:
                 p = pack("QQ", *baro.payload64)
-                time_boot_ms, self.press_abs, self.press_diff, temperature = unpack("Iffhxx", p) #pressure is in mBar
-                self.press_abs = round(self.press_abs,2)
-                self.depth = self.press_abs/(997.0474*9.80665*0.01)
-                self.press_diff = round(self.press_diff,2)
+                time_boot_ms, self.press_abs, self.press_diff, temperature = unpack("Iffhxx", p)  # pressure is in mBar
+                self.press_abs = round(self.press_abs, 2)
+                self.depth = self.press_abs / (997.0474 * 9.80665 * 0.01)
+                self.press_diff = round(self.press_diff, 2)
                 baro_data = std_msgs.msg.Float32MultiArray()
-                baro_data.data = [self.press_abs, self.press_diff]
+                baro_data.data = [self.depth - self.depthCalib, self.press_diff]
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
-                if(self.DepthHoldMode and self.armed): self.depthHold(self.depth)
+                if self.DepthHoldMode and self.armed:
+                    self.depthHold(self.depth)
         except Exception as e:
             print("Baro Failed")
             print(e)
 
     def setDepth(self, setDValue):
-        if(setDValue.data<0):
+        if setDValue.data < 0:
             return
         self.pid.setpoint = setDValue.data
 
     def batteryIndicator(self, msg):
-        if(self.sub):
+        if self.sub:
             self.voltage = msg.voltage
-            if(self.voltage<13.5):
+            if self.voltage < 13.5:
                 statusLed.flashRed()
         pass
 
@@ -183,7 +189,7 @@ class AUV(RosHandler):
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
         self.topic_subscriber(self.AUV_GET_DEPTH, self.setDepth)
         self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
-        #-Begin reading core data
+        # -Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
         self.thread_param_updater.daemon = True
         self.thread_param_updater.start()
@@ -205,21 +211,21 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             try:
                 thrusters = self.AUV_GET_THRUSTERS.get_data()
-                self.channels = [1500]*18
-                if(thrusters != None):
+                self.channels = [1500] * 18
+                if thrusters != None:
                     self.channels = list(thrusters.channels)
                     print(f"Pre: {self.channels}")
                 thruster_data = mavros_msgs.msg.OverrideRCIn()
-                if(self.DepthHoldMode): self.channels[2] = self.depthMotorPower
+                if self.DepthHoldMode:
+                    self.channels[2] = self.depthMotorPower
                 thruster_data.channels = self.channels
-                #print(f"Post: {thruster_data.channels}")
+                # print(f"Post: {thruster_data.channels}")
                 self.TOPIC_SET_RC_OVR.set_data(thruster_data)
                 self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
             except Exception as e:
                 print("Thrusters failed")
                 print(e)
             time.sleep(0.1)
-            
 
     def get_sensors(self):
         while not rospy.is_shutdown():
@@ -229,14 +235,14 @@ class AUV(RosHandler):
                     self.imu = self.TOPIC_GET_IMU_DATA.get_data_last()
                     armRequest = self.AUV_GET_ARM.get_data()
                     modeRequest = self.AUV_GET_MODE.get_data()
-                    if(armRequest != None):
+                    if armRequest != None:
                         self.armRequest = armRequest.data
-                        while(auv.armed != self.armRequest):
+                        while auv.armed != self.armRequest:
                             self.arm(self.armRequest)
                             time.sleep(2)
-                    if(modeRequest != None):
+                    if modeRequest != None:
                         self.modeRequest = modeRequest.data
-                        while(self.mode != self.modeRequest):
+                        while self.mode != self.modeRequest:
                             self.change_mode(self.modeRequest)
                             time.sleep(0.5)
                     self.publish_sensors()
@@ -270,6 +276,7 @@ class AUV(RosHandler):
         while not rospy.is_shutdown():
             pass
 
+
 def main():
     while not auv.connected:
         print("Waiting to connect...")
@@ -286,6 +293,7 @@ def main():
     print("\nNow beginning loops...")
     auv.beginThreads()
 
+
 def onExit(signum, frame):
     try:
         print("\nDisarming and exiting...")
@@ -299,6 +307,7 @@ def onExit(signum, frame):
     except:
         pass
 
+
 signal.signal(signal.SIGINT, onExit)
 
 if __name__ == "__main__":
@@ -307,4 +316,4 @@ if __name__ == "__main__":
     thread_sensor_updater = threading.Timer(0, main)
     thread_sensor_updater.daemon = True
     thread_sensor_updater.start()
-    auv.connect("pixStandalone", rate=20) #change rate to 10 if issues arrive
+    auv.connect("pixStandalone", rate=20)  # change rate to 10 if issues arrive

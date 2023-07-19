@@ -36,8 +36,10 @@ class TemplateMission:
         self.cv_handler = cvHandler.CVHandler()
 
         # init the cv handlers
-        for file_name in self.cv_files:
-            self.cv_handler.start_cv(file_name, self.callback)
+        # dummys are used to input a video file instead of the camera
+        dummys = self.config.get("cv_dummy", [None] * len(self.cv_files))
+        for file_name, dummy in zip(self.cv_files, dummys):
+            self.cv_handler.start_cv(file_name, self.callback, dummy=dummy)
 
         logger.info("Template mission init")
 
@@ -45,7 +47,6 @@ class TemplateMission:
         """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
         file_name = msg._connection_header["topic"].split("/")[-1]
         data = json.loads(msg.data)
-        self.data[file_name] = data
         self.next_data[file_name] = data
         self.received = True
 
@@ -100,8 +101,13 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
+    config = {
+        # # this dummy video file will be used instead of the camera if uncommented
+        # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+    }
+
     # Create a mission object with arguments
-    mission = TemplateMission()
+    mission = TemplateMission(**config)
 
     # Run the mission
     mission.run()

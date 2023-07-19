@@ -5,7 +5,7 @@ import os
 import yaml
 from dotenv import dotenv_values
 
-from auv.mission import template_mission
+from auv.mission import torpedo_mission
 from auv.utils import arm, deviceHelper
 
 # load sub config and logging config (usefull to see the logs in the console)
@@ -15,17 +15,17 @@ log_config = yaml.safe_load(open(config.get("LOG_CFG_PATH", "../logging.yaml"), 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-# arm.arm()
-# time.sleep(5)
+arm.arm()
+time.sleep(5)
 
 # create the mission object
-mission = template_mission.TemplateMission()
+torpedoMission = torpedo_mission.TorpedoMission()
 
 # run the mission
-mission.run()
+torpedoMission.run()
 
 # terminate the mission
-mission.cleanup()
+torpedoMission.cleanup()
 
 # end
 logger.info("Mission ended")
