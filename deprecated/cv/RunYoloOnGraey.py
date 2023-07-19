@@ -1,10 +1,9 @@
 from ultralytics import YOLO
-from ultralytics.yolo.v8.detect.predict import DetectionPredictor
 import cv2
 #loading the model from the folder
 model = YOLO("smallestmodel.pt")
 #importing the video
-importedVid = cv2.VideoCapture("cutvide.mp4")
+importedVid = cv2.VideoCapture("/dev/video0")
 if not importedVid.isOpened():
  print("Cannot open camera")
  exit()
@@ -15,7 +14,7 @@ while True:
         # actually runs the model on the image frame, returns a list called results of size 1 (for some reason) with all results in it
         #source is the source of the image, show determines whether or not to show the frame ( i use imshow since it's easier and i can draw on it)
         #verbose is whether or not to show logs (see image on doc for what it looks like)
-        results = model.predict(source = frame, show = False, verbose = False)
+        results = model.predict(source = frame, show = True, verbose = False)
         # extracts the boxes from the results list, then turns it into numpy to be easier to work with
         boxes = results[0].boxes.data.numpy()
         #although results is a size 1 array, boxes actually has multiple values so we have to enumerate it and run for each box inside of the boxes array
