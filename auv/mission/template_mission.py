@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     config = {
         # # this dummy video file will be used instead of the camera if uncommented
-        # "cv_dummy": ["/home/auv/auv/data/thisisavideo.mp4"],
+        # "cv_dummy": ["/somepath/thisisavideo.mp4"],
     }
 
     # Create a mission object with arguments
