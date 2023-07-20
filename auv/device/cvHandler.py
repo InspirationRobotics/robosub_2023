@@ -34,7 +34,7 @@ class CVHandler:
         self.active_cv_scripts = {}
         self.subs = {}
 
-    def start_cv(self, file_name, callback, dummy=None):
+    def start_cv(self, file_name, callback, dummy_camera=None):
         """Start a CV script"""
         if file_name in self.active_cv_scripts:
             logger.error("Cannot start a script that is already running")
@@ -54,16 +54,11 @@ class CVHandler:
             logger.error("No CV class found in file, check the file name and file content")
             return
 
-        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
-
-        if dummy:  # Init dummy cv script handler
-            self.active_cv_scripts[file_name] = _DummyScriptHandler(file_name, cv_class(**self.config), dummy)
+        if dummy_camera:  # Init dummy cv script handler
+            self.active_cv_scripts[file_name] = _DummyScriptHandler(file_name, cv_class(**self.config), dummy_camera)
         else:  # Init individual cv script handler
             self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
-
-        # Reset the model to raw
-        if self.active_cv_scripts[file_name].is_oakd:
-            self.set_oakd_model(file_name, "raw")
+        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
 
     def stop_cv(self, file_name):
         """Stop a CV script"""
