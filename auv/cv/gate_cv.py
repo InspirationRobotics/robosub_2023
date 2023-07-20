@@ -23,7 +23,7 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-        #frame is going to be 640 x 480
+        # frame is going to be 640 x 480
         self.step = 0
         self.maxGlyphLength = 0
         self.CENTER_FRAME_X = 320
@@ -37,11 +37,11 @@ class CV:
         if target == 1, earth
         """
         print("[INFO] Template CV run")
-        #if detections is None or len(detections) == 0:
-           # return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
-        
+        # if detections is None or len(detections) == 0:
+        # return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
+
         target_x = -1
-        #confidenceGate = -1
+        # confidenceGate = -1
         targetConfidences = []
         end = False
 
@@ -56,11 +56,11 @@ class CV:
             # if(confidence[2]==target and confidence[0]>maxTargetConfidence):
             #     maxTargetConfidence = confidence[0]
             #     targetGate = confidence[1]
-            if det_label=="E":
+            if det_label == "E":
                 maxConfidence = det_confidence
                 target_x = det_x
                 target_label = det_label
-                
+
         # Finding center of gate
         print(target_x, self.CENTER_FRAME_X)
         # for i in range(300):
@@ -75,29 +75,29 @@ class CV:
         tolerance = 10
         alignedTarget = -1
         # step 0: strafe until we hit the center of the highest confidence glyph
-        if(self.step==0):
+        if self.step == 0:
             # if target is detected
-            if(target_x!=-1):
-                if(target_x < self.CENTER_FRAME_X-tolerance):
+            if target_x != -1:
+                if target_x < self.CENTER_FRAME_X - tolerance:
                     print("strafe left")
-                    lateral=-2
-                elif(target_x>self.CENTER_FRAME_X+tolerance):
+                    lateral = -2
+                elif target_x > self.CENTER_FRAME_X + tolerance:
                     print("strafe right")
-                    lateral=2
+                    lateral = 2
                 else:
                     print("aligned, continue")
-                    forward=2
+                    forward = 2
                     alignedTarget = target_label
-                    self.step=1
+                    self.step = 1
         # step 1: keep moving forward until you passed the gate
         if self.step == 1:
             forward = 2
         print(forward, lateral, yaw)
-        return {"lateral": lateral, "forward": forward, "yaw":yaw, "end": end, "target": alignedTarget}, frame
-        
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end, "target": alignedTarget}, frame
+
         # TODO://detection of going through the gate + yaw 2 rotations entirely
 
-        '''
+        """
         elif(self.step == 1):
             if(confidenceGate!=-1):
                 for i in range(300)
@@ -145,5 +145,5 @@ class CV:
             forward=1
             # yaw for 2 full rotations
             end = True
-        '''
-        #return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end}, frame
+        """
+        # return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end}, frame

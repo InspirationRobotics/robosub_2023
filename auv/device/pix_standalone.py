@@ -61,9 +61,8 @@ class AUV(RosHandler):
         self.SERVICE_GET_PARAM = TopicService("/mavros/param/get", mavros_msgs.srv.ParamGet)
 
         # movement
-        self.TOPIC_SET_VELOCITY = TopicService(
-            "/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist
-        )  # only works in auto/guided mode
+        # only works in auto/guided mode
+        self.TOPIC_SET_VELOCITY = TopicService("/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist)
         self.TOPIC_SET_RC_OVR = TopicService("/mavros/rc/override", mavros_msgs.msg.OverrideRCIn)
 
         # sensory

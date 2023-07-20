@@ -10,6 +10,7 @@ from .robot_control import RobotControl
 from .servo import Servo
 
 from auv.motion.servo import Servo
+
 servo = Servo()
 rospy.init_node("Keyboard", anonymous=True)
 

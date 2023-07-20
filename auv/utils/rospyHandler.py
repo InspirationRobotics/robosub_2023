@@ -24,11 +24,12 @@ class RosHandler:
     def topic_publisher(topic: TopicService):
         pub = rospy.Publisher(topic.get_name(), topic.get_type(), queue_size=10)
         pub.publish(topic.get_data())
-        #print("published to " + topic.get_name())
+        # print("published to " + topic.get_name())
 
     @staticmethod
     def topic_subscriber(topic: TopicService, function=None):
-        if(function==None): function=topic.set_data
+        if function == None:
+            function = topic.set_data
         rospy.Subscriber(topic.get_name(), topic.get_type(), function)
 
     @staticmethod
@@ -50,4 +51,3 @@ class RosHandler:
         except KeyError as e:
             print("ERROR:", e)
         return None
-

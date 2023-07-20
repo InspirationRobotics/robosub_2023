@@ -16,13 +16,13 @@
 #     available_devices = []
 #     for device in dai.Device.getAllAvailableDevices():
 #         available_devices.append(device.getMxId())
-    
+
 #     return available_devices
 
 # devices = list_devices()
 # print(devices)
 
-#def difference(string1, string2):
+# def difference(string1, string2):
 #    # Split both strings into list items
 #    string1 = string1.split()
 #    string2 = string2.split()
@@ -33,7 +33,7 @@
 #    str_diff = A.symmetric_difference(B)
 #    print(list(str_diff))
 
-#difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
+# difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
 
 # from altimu10v5.lsm6ds33 import LSM6DS33
 # from altimu10v5.lis3mdl import LIS3MDL
@@ -186,7 +186,7 @@
 
 # print(data)
 
-#params for each detection are: label, confidence, xmin, xmax, ymin, ymax
+# params for each detection are: label, confidence, xmin, xmax, ymin, ymax
 
 # import json
 
@@ -226,11 +226,13 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(pin1, GPIO.OUT)
 GPIO.setup(pin2, GPIO.IN)
 
+
 def printState(tp):
     global state
     print("Detected")
     GPIO.cleanup()
     state = False
+
 
 GPIO.output(pin1, GPIO.HIGH)
 print("Its high")
@@ -239,6 +241,3 @@ GPIO.add_event_detect(pin2, GPIO.FALLING, callback=printState, bouncetime=10)
 
 while state:
     pass
-
-
-

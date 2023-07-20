@@ -38,11 +38,14 @@ class oakCamera:
         self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
         self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
         self.time = time.time()
-        print("Camera ID "+str(id)+": " + "Oak-D " + self.name + " is available at " + newDevice)
+        print("Camera ID " + str(id) + ": " + "Oak-D " + self.name + " is available at " + newDevice)
 
     def createPipeline(self, modelPath=None, confidence=0.5):
-        if self.isValid: self.modelPath = modelPath
-        else: print("Invalid model detected, using previous state")
+        if self.isValid:
+            self.modelPath = modelPath
+        else:
+            print("Invalid model detected, using previous state")
+
         if self.modelPath == None:
             pipeline = dai.Pipeline()
             xoutRgb = pipeline.createXLinkOut()
@@ -50,7 +53,7 @@ class oakCamera:
             controlIn = pipeline.create(dai.node.XLinkIn)
             controlIn.setStreamName("control")
             camRgb = pipeline.createColorCamera()
-            if(self.name=="Forward"):
+            if self.name == "Forward":
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
             else:
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
@@ -96,12 +99,12 @@ class oakCamera:
 
             # Properties
             camRgb.setPreviewSize(self.IMG_W, self.IMG_H)
-            if(self.name=="Forward"):
+            if self.name == "Forward":
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
             else:
                 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-            #camRgb.setIspScale(2, 3)
-            #camRgb.setPreviewSize(640, 480)
+            # camRgb.setIspScale(2, 3)
+            # camRgb.setPreviewSize(640, 480)
             camRgb.setInterleaved(False)
             camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
             camRgb.setFps(30)
@@ -129,7 +132,7 @@ class oakCamera:
         self.isKilled = False
 
     def mxidToName(self, mxid):
-        if mxid == deviceHelper.dataFromConfig("forwardOak"): 
+        if mxid == deviceHelper.dataFromConfig("forwardOak"):
             return "Forward"
         elif mxid == deviceHelper.dataFromConfig("bottomOak"):
             return "Bottom"
@@ -139,7 +142,7 @@ class oakCamera:
             return "Unknown"
 
     def callbackMain(self, msg):
-        if(self.isKilled):
+        if self.isKilled:
             return
         self.time = time.time()
         self.sendFakeFrame(self.br.imgmsg_to_cv2(msg))
@@ -155,42 +158,44 @@ class oakCamera:
     def modelSelect(self, modelName):
         modelsList = ["gate", "dhd", "gateAug", "raw"]
         if modelName not in modelsList:
-            if modelName[0]=="/":
+            if modelName[0] == "/":
                 print("Detected direct path")
-                if(os.path.exists(modelName)):
+                if os.path.exists(modelName):
                     print("Switching " + self.name + " oakD to model at: " + modelName)
-                    if(modelName[len(modelName)-1] != "/"):
-                        modelName+="/"
+                    if modelName[len(modelName) - 1] != "/":
+                        modelName += "/"
                     modelPath = modelName
                     self.isValid = True
                 else:
-                    print("Path not detected ("+self.name+" oakD error")
+                    print("Path not detected (" + self.name + " oakD error")
                     self.isValid = False
                     return
             else:
-                print("Model " + modelName + " not found ("+self.name+" oakD error)")
+                print("Model " + modelName + " not found (" + self.name + " oakD error)")
                 self.isValid = False
                 return
-        elif(modelName=="raw"):
+        elif modelName == "raw":
             print("Switching " + self.name + " oakD to raw view")
-            modelPath=None
+            modelPath = None
             self.isValid = True
         else:
             print("Switching " + self.name + " oakD to " + modelName + " model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
-            modelPath = folderPath+modelName+"Model/"
+            modelPath = folderPath + modelName + "Model/"
             self.isValid = True
-        if(self.modelPath==modelPath):
+        if self.modelPath == modelPath:
             print("Model already running...")
             self.isValid = False
             return
         return modelPath
 
-
     def callbackModel(self, msg, debug=False):
-        if(self.isKilled): return
-        if(debug): modelName = msg
-        else: modelName = msg.data
+        if self.isKilled:
+            return
+        if debug:
+            modelName = msg
+        else:
+            modelName = msg.data
         self.kill()
         self.start(modelName)
 
@@ -224,10 +229,8 @@ class oakCamera:
                             0.5,
                             255,
                         )
-                        cv2.rectangle(
-                            frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX
-                        )  # change for multiple colors?
-                        dataToSend[str(i)] = [label, round(detection.confidence*100, 3), x1, x2, y1, y2]
+                        cv2.rectangle(frame1, (x1, y1), (x2, y2), (255, 255, 255), cv2.FONT_HERSHEY_SIMPLEX)  # change for multiple colors?
+                        dataToSend[str(i)] = [label, round(detection.confidence * 100, 3), x1, x2, y1, y2]
                     self.pubData.publish(str(json.dumps(dataToSend)))
                 msg = self.br.cv2_to_imgmsg(frame1)
                 self.pubFrame.publish(msg)
@@ -240,7 +243,7 @@ class oakCamera:
             self.loop_rate.sleep()
 
     def kill(self):
-        if(self.isKilled):
+        if self.isKilled:
             return
         self.isKilled = True
         self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
@@ -250,7 +253,7 @@ class oakCamera:
         pass  # todo
 
     def start(self, modelPath="raw"):
-        if(not self.isKilled):
+        if not self.isKilled:
             return
         self.createPipeline(self.modelSelect(modelPath))
         self.isKilled = False

@@ -140,7 +140,7 @@ class cameraStreams:
             self.cams[id].callbackModel(model, True)
             return True
 
-    '''
+    """
     Essentially it will be a ROS string message formatted as a json.
     The json will include the following information:
 
@@ -169,23 +169,23 @@ class cameraStreams:
     {[“camera_ID”]: 30, [“mode”]: True, [“Model”]: “raw”} or
     {[“camera_ID”]: 30, [“mode”]: True}
 
-    Kill all active cameras: {[“Kill”]: True}'''
+    Kill all active cameras: {[“Kill”]: True}"""
 
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
         print("Received data:", data)
         kill = data.get("kill")
-        if(kill!=None):
+        if kill != None:
             for i in self.activeCams:
                 self.camCtrl(i, False)
         camID = data.get("camera_ID")
         mode = data.get("mode")
         model = data.get("model")
-        if camID>=10: 
-            camID = camAmt-1 + camID/10
-        if(mode=="start"):
+        if camID >= 10:
+            camID = camAmt - 1 + camID / 10
+        if mode == "start":
             self.camCtrl(camID, True, model)
-        if(mode=="stop"):
+        if mode == "stop":
             self.camCtrl(camID, False)
 
     def stop(self):

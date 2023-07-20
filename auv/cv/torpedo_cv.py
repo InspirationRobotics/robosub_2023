@@ -12,6 +12,7 @@ import time
 
 from auv.device.sonar import Ping360, utils, io
 
+
 class CV:
     camera = "/auv/camera/videoUSBRaw0"
 
@@ -96,7 +97,7 @@ class CV:
             maxRadius=600,
         )
 
-        if(not self.deploy):
+        if not self.deploy:
             cv2.imshow("Edges", edges)
 
         # Draw all circles on the original image
@@ -104,8 +105,7 @@ class CV:
             i = 0
 
             circles = np.round(circles[0, :]).astype("int")
-            
-            
+
             for circle in circles:
                 x, y = circles[i, 0], circles[i, 1]
                 dist = circles[i, 2]
@@ -173,7 +173,7 @@ class CV:
                 # Grab the distance of the first object in the list
                 largest_object = sorted_obstacles[0]
                 self.distance_to_target = largest_object.distance
-                #print("[INFO] Distance: " + self.distance_to_target)
+                # print("[INFO] Distance: " + self.distance_to_target)
                 print("Distance: " + self.distance_to_target)
 
                 if self.distance_to_target < self.far_near_boundary:
@@ -188,7 +188,6 @@ class CV:
 
             if self.distance_to_target < self.fire_distance:
                 if not self.fired_torpedo_1:
-
                     if self.open_is_top:
                         self.depth += 0.1
                     if not self.open_is_top:
@@ -256,9 +255,7 @@ class CV:
                 sorted_obstacles = sorted(circles, key=lambda x: x.y, reverse=True)
                 x, y = circles[0, 0], circles[0, 1]
 
-                
                 self.open_is_top = True if y > last_y else None
-
 
                 # X alignment
                 if self.target_center_x < x - self.threshold_near:  # Strafe Left

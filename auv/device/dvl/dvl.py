@@ -41,12 +41,12 @@ class DVL:
         self.dvl_error = 0.001  # m/s
 
         # [0 -> 1], close to 0 is perfect, 1 is random basically
-        self.error_rate = ((self.heading_error / 360) + self.dvl_error)
+        self.error_rate = (self.heading_error / 360) + self.dvl_error
         self.accumulated_error = 0  # accumulated error (+/- m)
-        
+
         self.compass = None
         self.vel_rot = [0, 0, 0]  # rotated velocity vector
-        self.position = [0, 0, 0] # position in meters
+        self.position = [0, 0, 0]  # position in meters
         self.is_valid = False
 
         if autostart:

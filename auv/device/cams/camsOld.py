@@ -12,10 +12,10 @@ from sensor_msgs.msg import Image
 
 from . import pyfakewebcam
 
-preDevices = os.popen('ls /dev/video*').read()
-os.system('sudo modprobe v4l2loopback devices=2')
-postDevices = os.popen('ls /dev/video*').read()
-diff = postDevices[len(preDevices):]
+preDevices = os.popen("ls /dev/video*").read()
+os.system("sudo modprobe v4l2loopback devices=2")
+postDevices = os.popen("ls /dev/video*").read()
+diff = postDevices[len(preDevices) :]
 diff = diff.split("\n")
 newDevice1 = diff[0]
 newDevice2 = diff[1]
@@ -39,7 +39,8 @@ fake2 = pyfakewebcam.FakeWebcam(newDevice2, IMG_W, IMG_H)
 print("Forward output at: " + newDevice1)
 print("Downward output at: " + newDevice2)
 
-class CameraStreams():
+
+class CameraStreams:
     def __init__(self):
         # Params
         self.forwardVideo = None
@@ -49,12 +50,12 @@ class CameraStreams():
         self.loop_rate = rospy.Rate(30)
 
         # Publishers
-        self.pubForward = rospy.Publisher('/auv/camera/videoForwardRaw', Image,queue_size=10)
-        self.pubBottom = rospy.Publisher('/auv/camera/videoBottomRaw', Image,queue_size=10)
+        self.pubForward = rospy.Publisher("/auv/camera/videoForwardRaw", Image, queue_size=10)
+        self.pubBottom = rospy.Publisher("/auv/camera/videoBottomRaw", Image, queue_size=10)
 
         # Subscribers
-        rospy.Subscriber("/auv/camera/videoForwardOutput",Image,self.callbackForward)
-        rospy.Subscriber("/auv/camera/videoBottomOutput",Image,self.callbackBottom)
+        rospy.Subscriber("/auv/camera/videoForwardOutput", Image, self.callbackForward)
+        rospy.Subscriber("/auv/camera/videoBottomOutput", Image, self.callbackBottom)
 
     def callbackForward(self, msg):
         try:
@@ -89,7 +90,8 @@ class CameraStreams():
                 print(e)
 
             self.loop_rate.sleep()
-            
+
+
 def onExit(signum, frame):
     try:
         print("\Closing Cameras and exiting...")
@@ -100,20 +102,21 @@ def onExit(signum, frame):
         while not rospy.is_shutdown():
             pass
         print("\n\nCleanly Exited")
-        print('Please run: \nsudo modprobe -r v4l2loopback\n')
+        print("Please run: \nsudo modprobe -r v4l2loopback\n")
         exit(1)
     except:
         pass
 
+
 signal.signal(signal.SIGINT, onExit)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     rospy.init_node("CameraStream", anonymous=True)
     my_node = CameraStreams()
     my_node.start()
 
-#https://youtu.be/2l913YwWYe4
-#https://stackoverflow.com/questions/55377442/how-to-subscribe-and-publish-images-in-ros
+# https://youtu.be/2l913YwWYe4
+# https://stackoverflow.com/questions/55377442/how-to-subscribe-and-publish-images-in-ros
 
-#At the top of pyfakewebcam.py and __init__.py add "from __future__ import absolute_import"
-#path: /home/inspiration/.local/lib/python2.7/site-packages/pyfakewebcam
+# At the top of pyfakewebcam.py and __init__.py add "from __future__ import absolute_import"
+# path: /home/inspiration/.local/lib/python2.7/site-packages/pyfakewebcam

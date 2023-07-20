@@ -20,6 +20,7 @@ class Obstacle:
     def __repr__(self):
         return "Obstacle({}, {}, {})".format(self.distance, self.angle, self.size)
 
+
 def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
     """
     plot some points in polar coordinates on an image
@@ -139,9 +140,7 @@ def object_detection(img, dist_factor=1, threshold=60):
     _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
 
     # find contours
-    contours, hierarchy = cv2.findContours(
-        thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     img_contours = np.zeros_like(img)
     cv2.drawContours(img_contours, contours, -1, 255, 2)
