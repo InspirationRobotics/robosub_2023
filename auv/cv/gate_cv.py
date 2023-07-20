@@ -40,9 +40,8 @@ class CV:
         if target == 1, earth
         """
         logger.info("Template CV run")
-        print(detections)
-        if detections is None or len(detections) == 0:
-            return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
+        #if detections is None or len(detections) == 0:
+           # return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
         
         target_x = -1
         #confidenceGate = -1
@@ -51,6 +50,7 @@ class CV:
 
         for detection in detections:
             targetConfidences.append((detection.confidence, detection.xmin, detection.label))
+            print(detection.confidence)
 
         # Finding which symbol is detected with highest confidence rate
         maxConfidence = 0
@@ -59,19 +59,22 @@ class CV:
             # if(confidence[2]==target and confidence[0]>maxTargetConfidence):
             #     maxTargetConfidence = confidence[0]
             #     targetGate = confidence[1]
-            if det_confidence>maxConfidence:
+            if det_label=="E":
                 maxConfidence = det_confidence
                 target_x = det_x
                 target_label = det_label
                 
         # Finding center of gate
         print(target_x, self.CENTER_FRAME_X)
-        for i in range(300):
-            frame[i][target_x] = (255,255,255)
-        #Feedback Loop
-        #strafe until we hit the center of the gate (ensure that we don't lose teh image)
-        #parallel to abydos (yaw until the length of highesgt confidence detection is longest, continue moving until it gets smaller)
-        #strafe until we hit the center of the highest confidence glyph
+        # for i in range(300):
+        #     frame[i][target_x] = (255,255,255)
+        # #Feedback Loop
+        # #strafe until we hit the center of the gate (ensure that we don't lose teh image)
+        # #parallel to abydos (yaw until the length of highesgt confidence detection is longest, continue moving until it gets smaller)
+        # #strafe until we hit the center of the highest confidence glyph
+        forward = 0
+        lateral = 0
+        yaw = 0
         tolerance = 10
         alignedTarget = -1
         # step 0: strafe until we hit the center of the highest confidence glyph
@@ -80,22 +83,20 @@ class CV:
             if(target_x!=-1):
                 if(target_x < self.CENTER_FRAME_X-tolerance):
                     print("strafe left")
-                    lateral=-1
+                    lateral=-2
                 elif(target_x>self.CENTER_FRAME_X+tolerance):
                     print("strafe right")
-                    lateral=1
+                    lateral=2
                 else:
                     print("aligned, continue")
-                    self.step = 1
+                    forward=2
                     alignedTarget = target_label
-            else:
-                yaw = 0.5
+                    self.step=1
         # step 1: keep moving forward until you passed the gate
-        elif self.step == 1:
-            forward = 1
-
-        print(lateral, forward, yaw)
-        return {"lateral": lateral, "forward": forward,"yaw":yaw, "end": end, "target": alignedTarget}, frame
+        if self.step == 1:
+            forward = 2
+        print(forward, lateral, yaw)
+        return {"lateral": lateral, "forward": forward, "yaw":yaw, "end": end, "target": alignedTarget}, frame
         
         # TODO://detection of going through the gate + yaw 2 rotations entirely
 

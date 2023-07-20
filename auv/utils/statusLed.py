@@ -16,6 +16,7 @@ def red(state):
     else:
         GPIO.output(redPin, GPIO.LOW)
         print("Red Light is Off!")
+    GPIO.cleanup()
 
 def flashRed():
     GPIO.setmode(GPIO.BOARD)
@@ -25,6 +26,7 @@ def flashRed():
             GPIO.output(redPin, GPIO.HIGH)
         elif(GPIO.input(redPin)==1):
             GPIO.output(redPin, GPIO.LOW)
+    GPIO.cleanup()
 
 def blue(state):
     GPIO.setmode(GPIO.BOARD)
@@ -35,6 +37,7 @@ def blue(state):
     else:
         GPIO.output(bluePin, GPIO.LOW)
         print("Blue Light is Off!")
+    GPIO.cleanup()
 
 if len(sys.argv)>1:
     for i in range(1,len(sys.argv)):

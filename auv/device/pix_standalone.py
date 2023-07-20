@@ -46,7 +46,7 @@ class AUV(RosHandler):
         self.channels = [0] * 18
         self.depthCalib = 0
         self.sub = True  # grey
-        self.limNeu = [200, 1475]  # grey
+        self.limNeu = [200, 1490]  # grey
         if "nx" in platform.node():
             self.sub = False  # onyx
             self.limNeu = [300, 1480]  # onyx
@@ -84,8 +84,10 @@ class AUV(RosHandler):
         self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
     def arm(self, status: bool):
-        if self.armed:
-            return
+        if status:
+            statusLed.red(True)
+        else:
+            statusLed.red(False)
         data = mavros_msgs.srv.CommandBoolRequest()
         data.value = status
         self.SERVICE_ARM.set_data(data)

@@ -31,6 +31,9 @@ class GateMission:
         self.data = {}  # dict to store the data from the cv handlers
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
+        self.prevLat = 0
+        self.prevYaw = 0
+        self.prevFor = 0
 
         rospy.init_node("gate_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
@@ -78,9 +81,13 @@ class GateMission:
                 break
             
             # get the lateral and forward values from the cv (if they exist)
-            lateral = self.data["gate_cv"].get("lateral", 0)
-            forward = self.data["gate_cv"].get("forward", 0)
-            yaw = self.data["gate_cv"].get("yaw", 0)
+            lateral = self.data["gate_cv"].get("lateral", self.prevLat)
+            forward = self.data["gate_cv"].get("forward", self.prevFor)
+            yaw = self.data["gate_cv"].get("yaw", self.prevYaw)
+            self.prevLat = lateral
+            self.prevFor = forward
+            self.prevYaw = yaw
+            print(forward, lateral, yaw)
             # direcly feed the cv output to the robot control
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
 
