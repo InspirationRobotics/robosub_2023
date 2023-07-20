@@ -140,6 +140,37 @@ class cameraStreams:
             self.cams[id].callbackModel(model, True)
             return True
 
+    '''
+    Essentially it will be a ROS string message formatted as a json.
+    The json will include the following information:
+
+    Camera ID: an ID for each camera - Format:
+    - If USB low-light: 0 = forward ; 1 = bottom
+    - If Oak-D: 10 = forward ; 20 = bottom ; 30 = POE - ^these ids make it significantly easier on my end
+
+    Mode: Start or Stop
+    - Format: boolean, True for start and False for stop
+
+    Model (will only be parsed if mode is Start):
+    - Format: name of model to run by mission (i.e. “gate”, “buoy”, etc)
+
+    Kill: Only call to kill all streams
+    - Format: if a Kill is in the message it will disregard all other params
+
+    Sample Messages:
+    Start forward oak with gate model
+    {[“camera_ID”]: 10, [“mode”]: True, [“Model”]: “gate”}
+
+    Stop forward oak
+    {[“camera_ID”]: 10, [“mode”]: False}
+    Start lowlight forward {[“Camera_ID”]: 0, [“mode”]: True}
+
+    Start POE oak without a model
+    {[“camera_ID”]: 30, [“mode”]: True, [“Model”]: “raw”} or
+    {[“camera_ID”]: 30, [“mode”]: True}
+
+    Kill all active cameras: {[“Kill”]: True}'''
+
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
         print("Received data:", data)
