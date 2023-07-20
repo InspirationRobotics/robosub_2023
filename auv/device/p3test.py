@@ -212,3 +212,33 @@
 # var = str(json.dumps(test))
 # var2 = json.loads(var)
 # print(var2)
+
+import Jetson.GPIO as GPIO
+import sys
+import time
+
+pin1 = 35
+pin2 = 36
+global state
+state = True
+GPIO.setmode(GPIO.BOARD)
+
+GPIO.setup(pin1, GPIO.OUT)
+GPIO.setup(pin2, GPIO.IN)
+
+def printState(tp):
+    global state
+    print("Detected")
+    GPIO.cleanup()
+    state = False
+
+GPIO.output(pin1, GPIO.HIGH)
+print("Its high")
+
+GPIO.add_event_detect(pin2, GPIO.FALLING, callback=printState, bouncetime=10)
+
+while state:
+    pass
+
+
+
