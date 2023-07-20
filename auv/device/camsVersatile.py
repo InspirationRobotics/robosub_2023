@@ -144,9 +144,9 @@ class cameraStreams:
         data = json.loads(msg.data)
         print("Received data:", data)
         kill = data.get("kill")
-        oak = False
         if(kill!=None):
-            pass #need to implement
+            for i in self.activeCams:
+                self.camCtrl(i, False)
         camID = data.get("camera_ID")
         mode = data.get("mode")
         model = data.get("model")
