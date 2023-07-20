@@ -41,7 +41,7 @@ class CV:
         logging.info("Template CV run")
         #frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
-        L_limit=np.array([8, 100, 100]) 
+        L_limit=np.array([0, 0, 150]) 
         U_limit=np.array([50, 255, 255])
         frame_b, frame_g, frame_r = cv2.split(frame)
         frame_g = cv2.equalizeHist(frame_g)
@@ -50,17 +50,18 @@ class CV:
         frame = cv2.merge((frame_b, frame_g, frame_r))
 
         # filter the image to red objects, filters what is white
-        gray = cv2.inRange(frame, L_limit, U_limit)
+        orange = cv2.inRange(frame, L_limit, U_limit)
         # L_limit=np.array([5, 25, 50]) 
         # U_limit=np.array([30, 255, 255]) 
-        #L_limit = np.array([8, 100, 100])
-        #U_limit = np.array([60, 255, 255])
+        # racquet club testing:
+        #L_limit = np.array([8, 100, 100]) 
+        #U_limit = np.array([50, 255, 255])
         # for more range
         # L_limit = np.array([3, 25, 20])
         # U_limit = np.array([50, 255, 255])
     
-        orange=cv2.inRange(into_hsv,L_limit,U_limit)
-    
+        # orange=cv2.inRange(into_hsv,L_limit,U_limit)
+        self.aligned = False
         kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
     
