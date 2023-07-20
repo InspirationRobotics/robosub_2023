@@ -29,7 +29,7 @@ class CV:
         """
 
         # TODO Change when testing
-        self.deploy = False
+        self.deploy = True
 
         self.frame = None
         self.lostSight = 0
