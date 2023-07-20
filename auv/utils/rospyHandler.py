@@ -39,9 +39,9 @@ class RosHandler:
             typ = service.get_type()
             data = service.get_data()
 
-            rospy.loginfo("waiting for ROS service:" + srv)
+            rospy.loginfo(f"waiting for ROS service:{srv}")
             rospy.wait_for_service(srv, timeout=timeout)
-            rospy.loginfo("ROS service is up:" + srv)
+            rospy.loginfo(f"ROS service is up:{srv}")
             call_srv = rospy.ServiceProxy(srv, typ)
             return call_srv(data)
         except rospy.ROSException as e:

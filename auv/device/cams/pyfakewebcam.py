@@ -2,7 +2,6 @@ import os
 import sys
 import fcntl
 import timeit
-import sys
 
 import numpy as np
 
@@ -21,15 +20,15 @@ except:
 class FakeWebcam:
     def __init__(self, video_device, width, height, channels=3, input_pixfmt="RGB"):
         if channels != 3:
-            raise NotImplementedError("Code only supports inputs with 3 channels right now. You tried to intialize with {} channels".format(channels))
+            raise NotImplementedError(f"Code only supports inputs with 3 channels right now. You tried to intialize with {channels} channels")
 
         if input_pixfmt != "RGB":
-            raise NotImplementedError("Code only supports RGB pixfmt. You tried to intialize with {}".format(input_pixfmt))
+            raise NotImplementedError(f"Code only supports RGB pixfmt. You tried to intialize with {input_pixfmt}")
 
         if not os.path.exists(video_device):
             sys.stderr.write("\n--- Make sure the v4l2loopback kernel module is loaded ---\n")
             sys.stderr.write("sudo modprobe v4l2loopback devices=1\n\n")
-            raise FileNotFoundError("device does not exist: {}".format(video_device))
+            raise FileNotFoundError(f"device does not exist: {video_device}")
 
         self._channels = channels
         self._video_device = os.open(video_device, os.O_WRONLY | os.O_SYNC)
@@ -56,15 +55,15 @@ class FakeWebcam:
         capability = _v4l2.v4l2_capability()
         print(("get capabilities result", (fcntl.ioctl(self._video_device, _v4l2.VIDIOC_QUERYCAP, capability))))
         print(("capabilities", hex(capability.capabilities)))
-        print(("v4l2 driver: {}".format(capability.driver)))
+        print(f"v4l2 driver: {capability.driver}")
 
     def schedule_frame(self, frame):
         if frame.shape[0] != self._settings.fmt.pix.height:
-            raise Exception("frame height does not match the height of webcam device: {}!={}\n".format(self._settings.fmt.pix.height, frame.shape[0]))
+            raise Exception(f"frame height does not match the height of webcam device: {self._settings.fmt.pix.height}!={frame.shape[0]}\n")
         if frame.shape[1] != self._settings.fmt.pix.width:
-            raise Exception("frame width does not match the width of webcam device: {}!={}\n".format(self._settings.fmt.pix.width, frame.shape[1]))
+            raise Exception(f"frame width does not match the width of webcam device: {self._settings.fmt.pix.width}!={frame.shape[1]}\n")
         if frame.shape[2] != self._channels:
-            raise Exception("num frame channels does not match the num channels of webcam device: {}!={}\n".format(self._channels, frame.shape[2]))
+            raise Exception(f"num frame channels does not match the num channels of webcam device: {self._channels}!={frame.shape[2]}\n")
 
         if cv2_imported:
             # t1 = timeit.default_timer()

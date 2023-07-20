@@ -32,7 +32,7 @@ parser.add_argument(
     "--output",
     action="store",
     required=False,
-    default=str(time.time()) + ".txt",
+    default=f"{str(time.time())}.txt",
     type=str,
     help="Output file name",
 )
@@ -86,10 +86,10 @@ while True:
         end_time = time.time()
 
         cartesian = utils.polar_to_cart(img)
-        cv2.imwrite(str(imcount) + "_cart.png", cartesian)
-        cv2.imwrite(str(imcount) + "_polar.png", img)
+        cv2.imwrite(f"{str(imcount)}_cart.png", cartesian)
+        cv2.imwrite(f"{str(imcount)}_polar.png", img)
 
-        print("[INFO] Full scan complete in {} seconds".format(end_time - start_time))
+        print(f"[INFO] Full scan complete in {end_time - start_time} seconds")
 
         imcount += 1
 

@@ -54,7 +54,7 @@ class RobotControl:
         depth = Float64()
         depth.data = d
         self.pub_depth.publish(depth)
-        print("[INFO] Depth set to {}".format(d))
+        print(f"[INFO] Depth set to {d}")
 
     def movement(
         self,
@@ -87,7 +87,7 @@ class RobotControl:
         pwm.channels = [1500] * 18
         target = (target) % 360
 
-        print("[INFO] Setting heading to {}".format(target))
+        print(f"[INFO] Setting heading to {target}")
 
         # direct variable is direction; clockwise and counterclockwise
         while not rospy.is_shutdown():
@@ -109,13 +109,13 @@ class RobotControl:
             # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
             if diff <= 1:
                 pwm.channels[3] = 1500
-                self.pubThrusters.publish(pwm)  # publishing pwms to stop yawing
+                self.pub_thrusters.publish(pwm)  # publishing pwms to stop yawing
                 break
             else:
                 pwm.channels[3] = 1500 + (direct * speed)
-                self.pubThrusters.publish(pwm)  # publishing pwms to continue yawing
+                self.pub_thrusters.publish(pwm)  # publishing pwms to continue yawing
 
-        print("[INFO] Finished setting heading to {}".format(target))
+        print(f"[INFO] Finished setting heading to {target}")
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -134,7 +134,7 @@ class RobotControl:
         pwm.channels[4] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
+            self.pub_thrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
             time.sleep(0.1)
 
         print("[INFO] finished forward")
@@ -145,7 +145,7 @@ class RobotControl:
         while time.time() - startTime < timeStop:
             current_p = pwm.channels[4]
             pwm.channels[4] = current_p - gradDec
-            self.pubThrusters.publish(pwm)  # publishing reduced pwms for forward thrust
+            self.pub_thrusters.publish(pwm)  # publishing reduced pwms for forward thrust
             time.sleep(0.1)
 
         t2 = 0
@@ -154,7 +154,7 @@ class RobotControl:
         startTime = time.time()
         # publishing idle pwms to sub to stop moving
         while time.time() - startTime <= 0.5:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
         print("[INFO] finished forward heading")
 
@@ -166,7 +166,7 @@ class RobotControl:
         pwm.channels[5] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
         self.backStop(pwm, t)
 
@@ -178,7 +178,7 @@ class RobotControl:
         pwm.channels[4] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
         self.backStop(pwm, t)
 
@@ -199,6 +199,7 @@ class RobotControl:
             for i in range(len(pwm.channels)):
                 if pwm.channels[i] != 1500:
                     pwm.channels[i] = int(
+                        # TODO: this doesn't exist anymore
                         self.mapping(
                             time.time() - startTime,
                             0,
@@ -207,12 +208,12 @@ class RobotControl:
                             powerStop[i],
                         )
                     )
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
         pwm.channels = [1500] * 18
         startTime = time.time()
         while time.time() - startTime <= 0.5:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
         print("[INFO] finished backstopping")
 

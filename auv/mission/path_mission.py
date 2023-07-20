@@ -44,7 +44,7 @@ class PathMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print("Received data from {}".format(file_name))
+        print(f"Received data from {file_name}")
 
     def run(self):
         """

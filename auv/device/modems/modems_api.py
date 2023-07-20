@@ -29,7 +29,7 @@ class Modem:
         self.thread_param_updater.start()
 
     def sendToModem(self, data):
-        data = "$" + data + "\r\n"
+        data = f'${data}\r\n'
         ser.write(data.encode())
         out = b""
         time.sleep(0.1)
@@ -48,8 +48,8 @@ class Modem:
         data = self.sendToModem(QUERY_COMMAND)
         self.modemAddr = data[2:5]
         self.voltage = round(float(int(data[6:11]) * 15 / 65536), 2)
-        print("Modem Addr: " + self.modemAddr)
-        print("Voltage: " + str(self.voltage))
+        print(f"Modem Addr: {self.modemAddr}")
+        print(f"Voltage: {str(self.voltage)}")
 
     def transmitDataLowLevel(self, msg, broadcast=True):
         length = len(msg.encode("utf-8"))
@@ -57,25 +57,25 @@ class Modem:
             print(f"Packet size of {length} is too large, limited to 64 bytes")
             return
         if length < 10:
-            length = "0" + str(length)
+            length = f"0{str(length)}"
         else:
             length = str(length)
         if broadcast:
-            data = "B" + length + msg
+            data = f"B{length}{msg}"
             self.sendToModem(data)
         else:
-            data = "U" + self.targetModemAddr + length + msg
+            data = f"U{self.targetModemAddr}{length}{msg}"
             self.sendToModem(data)
 
     def transmit(self, msg, modemAddr=None, broadcast=True):
         if modemAddr != None:
             self.targetModemAddr = modemAddr
             broadcast = False
-        msg = "*" + msg + "*"
+        msg = f"*{msg}*"
         length = len(msg.encode("utf-8"))
         if length > 64:
             if length % 64 < 3:
-                msg = "  " + msg
+                msg = f"  {msg}"
                 length += 2
         dataToSend = []
         while length > 64:

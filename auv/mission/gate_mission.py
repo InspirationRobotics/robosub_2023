@@ -48,7 +48,7 @@ class GateMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print("[DEBUG] Received data from {}".format(file_name))
+        print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """

@@ -33,12 +33,12 @@ class oakCamera:
         self.modelPath = -1
         self.isValid = None
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
-        self.pubFrame = self.rospy.Publisher("/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10)
-        self.pubData = self.rospy.Publisher("/auv/camera/videoOAKdData" + self.name, String, queue_size=10)
-        self.rospy.Subscriber("/auv/camera/videoOAKdModel" + self.name, String, self.callbackModel)
-        self.rospy.Subscriber("/auv/camera/videoOAKdOutput" + self.name, Image, self.callbackMain)
+        self.pubFrame = self.rospy.Publisher(f"/auv/camera/videoOAKdRaw{self.name}", Image, queue_size=10)
+        self.pubData = self.rospy.Publisher(f"/auv/camera/videoOAKdData{self.name}", String, queue_size=10)
+        self.rospy.Subscriber(f"/auv/camera/videoOAKdModel{self.name}", String, self.callbackModel)
+        self.rospy.Subscriber(f"/auv/camera/videoOAKdOutput{self.name}", Image, self.callbackMain)
         self.time = time.time()
-        print("Camera ID " + str(id) + ": " + "Oak-D " + self.name + " is available at " + newDevice)
+        print(f"Camera ID {str(id)}: Oak-D {self.name} is available at {newDevice}")
 
     def createPipeline(self, modelPath=None, confidence=0.5):
         if self.isValid:
@@ -73,8 +73,8 @@ class oakCamera:
             controlQueue.send(ctrl)
         else:
             # setup json parse for .blob file and parameters
-            jsonFile = glob.glob(self.modelPath + "*.json")[0]
-            blobFile = glob.glob(self.modelPath + "*.blob")[0]
+            jsonFile = glob.glob(f"{self.modelPath}*.json")[0]
+            blobFile = glob.glob(f"{self.modelPath}*.blob")[0]
             print("Found model; creating pipeline")
             jsonFile = open(jsonFile)
             data = json.load(jsonFile)
@@ -152,7 +152,7 @@ class oakCamera:
             self.frame = cv2.cvtColor(msg, cv2.COLOR_BGR2RGB)
             self.fake.schedule_frame(self.frame)
         except Exception as e:
-            print("Camera " + str(self.id) + " Output Error, make sure running in correct python")
+            print(f"Camera {str(self.id)} Output Error, make sure running in correct python")
             print(e)
 
     def modelSelect(self, modelName):
@@ -161,27 +161,27 @@ class oakCamera:
             if modelName[0] == "/":
                 print("Detected direct path")
                 if os.path.exists(modelName):
-                    print("Switching " + self.name + " oakD to model at: " + modelName)
+                    print(f"Switching {self.name} oakD to model at: {modelName}")
                     if modelName[len(modelName) - 1] != "/":
                         modelName += "/"
                     modelPath = modelName
                     self.isValid = True
                 else:
-                    print("Path not detected (" + self.name + " oakD error")
+                    print(f"Path not detected ({self.name} oakD error")
                     self.isValid = False
                     return
             else:
-                print("Model " + modelName + " not found (" + self.name + " oakD error)")
+                print(f"Model {modelName} not found ({self.name} oakD error)")
                 self.isValid = False
                 return
         elif modelName == "raw":
-            print("Switching " + self.name + " oakD to raw view")
+            print(f"Switching {self.name} oakD to raw view")
             modelPath = None
             self.isValid = True
         else:
-            print("Switching " + self.name + " oakD to " + modelName + " model")
+            print(f"Switching {self.name} oakD to {modelName} model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
-            modelPath = folderPath + modelName + "Model/"
+            modelPath = f"{folderPath + modelName}Model/"
             self.isValid = True
         if self.modelPath == modelPath:
             print("Model already running...")
@@ -223,7 +223,7 @@ class oakCamera:
                         cv2.putText(frame1, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                         cv2.putText(
                             frame1,
-                            "{:.2f}".format(detection.confidence * 100),
+                            f"{detection.confidence * 100:.2f}",
                             (x1 + 10, y1 + 35),
                             cv2.FONT_HERSHEY_TRIPLEX,
                             0.5,
@@ -238,7 +238,7 @@ class oakCamera:
                     self.sendFakeFrame(frame1)
                 pass
             except Exception as e:
-                print("Camera " + str(self.id) + " Input Error")
+                print(f"Camera {str(self.id)} Input Error")
                 print(e)
             self.loop_rate.sleep()
 
@@ -246,10 +246,10 @@ class oakCamera:
         if self.isKilled:
             return
         self.isKilled = True
-        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Killing Camera {str(self.id)} Stream...")
         self.oakThread.join()
         del self.device
-        self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Killed Camera {str(self.id)} Stream...")
         pass  # todo
 
     def start(self, modelPath="raw"):
@@ -257,7 +257,7 @@ class oakCamera:
             return
         self.createPipeline(self.modelSelect(modelPath))
         self.isKilled = False
-        self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Starting Camera {str(self.id)} Stream...")
         self.oakThread = threading.Timer(0, self.runner)
         self.oakThread.daemon = True
         self.oakThread.start()

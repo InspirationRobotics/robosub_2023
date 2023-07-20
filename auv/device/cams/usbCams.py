@@ -26,10 +26,10 @@ class USBCamera:
         self.ogDevice = ogDevice
         self.newDevice = newDevice
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
-        self.pub = self.rospy.Publisher("/auv/camera/videoUSBRaw" + str(id), Image, queue_size=10)
-        self.rospy.Subscriber("/auv/camera/videoUSBOutput" + str(id), Image, self.callbackMain)
+        self.pub = self.rospy.Publisher(f"/auv/camera/videoUSBRaw{str(id)}", Image, queue_size=10)
+        self.rospy.Subscriber(f"/auv/camera/videoUSBOutput{str(id)}", Image, self.callbackMain)
         self.time = time.time()
-        print("Camera ID " + str(id) + ": " + ogDevice + " is available at " + newDevice)
+        print(f"Camera ID {str(id)}: {ogDevice} is available at {newDevice}")
 
     def callbackMain(self, msg):
         if self.isKilled:
@@ -42,7 +42,7 @@ class USBCamera:
             self.frame = cv2.cvtColor(msg, cv2.COLOR_BGR2RGB)
             self.fake.schedule_frame(self.frame)
         except Exception as e:
-            print("Camera " + str(self.id) + " Output Error, make sure running in correct python")
+            print(f"Camera {str(self.id)} Output Error, make sure running in correct python")
             print(e)
 
     def runner(self):
@@ -56,25 +56,25 @@ class USBCamera:
                         self.sendFakeFrame(frame1)
                 pass
             except Exception as e:
-                print("Camera " + str(self.id) + " Input Error")
+                print(f"Camera {str(self.id)} Input Error")
                 print(e)
         self.loop_rate.sleep()
 
     def kill(self):
         if self.isKilled:
             return
-        self.rospy.loginfo("Killing Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Killing Camera {str(self.id)} Stream...")
         self.isKilled = True
         self.usbThread.join()
         self.cam.release()
-        self.rospy.loginfo("Killed Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Killed Camera {str(self.id)} Stream...")
 
     def start(self):
         self.cam = cv2.VideoCapture(self.ogDevice)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, self.IMG_W)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, self.IMG_H)
         self.isKilled = False
-        self.rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
+        self.rospy.loginfo(f"Starting Camera {str(self.id)} Stream...")
         self.usbThread = threading.Timer(0, self.runner)
         self.usbThread.daemon = True
         self.usbThread.start()

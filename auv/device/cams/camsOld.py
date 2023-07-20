@@ -36,8 +36,8 @@ cam2.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
 
 fake1 = pyfakewebcam.FakeWebcam(newDevice1, IMG_W, IMG_H)
 fake2 = pyfakewebcam.FakeWebcam(newDevice2, IMG_W, IMG_H)
-print("Forward output at: " + newDevice1)
-print("Downward output at: " + newDevice2)
+print(f"Forward output at: {newDevice1}")
+print(f"Downward output at: {newDevice2}")
 
 
 class CameraStreams:

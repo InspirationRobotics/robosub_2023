@@ -159,6 +159,12 @@ If you have trouble running this command, you can use the following command inst
 python3 -m black .
 ```
 
+(bonus) Code analysis is done using pylint. we will omit C0115 and C0116 for now, but try to fix the other errors.
+
+```bash
+pylint --disable=C0115,C0116 auv
+```
+
 ## Running the AUVs
 
 ### Graey and Onyx

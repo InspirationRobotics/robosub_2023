@@ -94,7 +94,7 @@ class CV:
 
         contours, _ = cv2.findContours(gray.copy(), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_L1)
         if len(contours) != 0:
-            print("Length: " + str(len(contours)))
+            print(f"Length: {str(len(contours))}")
         centres = []
         for i in range(len(contours)):
             moments = cv2.moments(contours[i])

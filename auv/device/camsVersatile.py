@@ -52,7 +52,7 @@ oakAmt = len(oaks)
 print(oaks)
 camAmt = len(ogDev)
 print(ogDev)
-os.system("sudo modprobe v4l2loopback devices=" + str(camAmt + oakAmt))
+os.system(f"sudo modprobe v4l2loopback devices={str(camAmt + oakAmt)}")
 postDevices = os.popen("ls /dev/video*").read()
 diff = difference(preDevices, postDevices)
 if len(diff) == 0:
@@ -109,14 +109,14 @@ class cameraStreams:
 
     def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
         if not id.isnumeric():
-            print("Invalid ID, please pick from " + str(self.camID))
+            print(f"Invalid ID, please pick from {str(self.camID)}")
             return
         id = int(id)
         if id not in self.camID:
-            print("Invalid ID, please pick from " + str(self.camID))
+            print(f"Invalid ID, please pick from {str(self.camID)}")
             return False
         if state and len(self.activeCams) == 2 and id not in self.activeCams:
-            print("2 camera streams are already active with ids: " + str(self.activeCams))
+            print(f"2 camera streams are already active with ids: {str(self.activeCams)}")
             print("Please stop one of these streams first\n")
             return False
         if state and id not in self.activeCams:

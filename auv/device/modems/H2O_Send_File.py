@@ -153,7 +153,7 @@ def gaps_handler():
     print("gaps_handler", gaps)
     for g in gaps:
         if int(g) <= last_send_packet:
-            print("Sending gap sequence number = " + str(int(g)))
+            print(f"Sending gap sequence number = {str(int(g))}")
             send_packet(client_buffer[int(g)], int(g))
             time.sleep(TxDelay)
     gaps = []
@@ -192,7 +192,7 @@ def main():
         int_seq = 0
         seq = int_seq.to_bytes(1, "big")
         prefix = "$S,TOP,BRD,"
-        suffix = "I," + FILE_NAME + "," + str(chunk_count) + "," + str(ACK_INTERVAL) + "\r\n"
+        suffix = f'I,{FILE_NAME},{str(chunk_count)},{str(ACK_INTERVAL)}\r\n'
         client_buffer[sequence_number] = prefix.encode() + seq + suffix.encode()
         print(client_buffer[sequence_number].decode())
         sequence_number = sequence_number + 1
@@ -219,12 +219,12 @@ def main():
         int_seq = 0
         seq = int_seq.to_bytes(1, "big")  # type data
         prefix = "$S,TOP,BRD,"
-        suffix = "EOF," + str(sequence_number) + "," + "\r\n"
+        suffix = f'EOF,{str(sequence_number)},\r\n'
         client_buffer[sequence_number] = prefix.encode() + seq + suffix.encode()
         sequence_number = sequence_number + 1
     except Exception as e:
         print(e)
-        sys.exit("Failed to open file: " + FILE_NAME)
+        sys.exit(f"Failed to open file: {FILE_NAME}")
 
     # Initialize the signal thread that will help in timeout tracking
     signal.signal(signal.SIGALRM, timeout_thread)

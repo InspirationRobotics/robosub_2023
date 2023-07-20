@@ -117,7 +117,7 @@ class DVL:
             return False
 
         dt = current_time - self.prev_time
-        if self.dt < 0:
+        if dt < 0:
             print("[WARN] DVL time error, skipping")
             return False
 

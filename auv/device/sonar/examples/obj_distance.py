@@ -32,7 +32,7 @@ parser.add_argument(
     "--output",
     action="store",
     required=False,
-    default=str(time.time()) + ".txt",
+    default=f"{str(time.time())}.txt",
     type=str,
     help="Output file name",
 )
@@ -77,7 +77,7 @@ while True:
             continue
 
         # this is the closest one
-        print("[INFO] closest: {}".format(obj[0]))
+        print(f"[INFO] closest: {obj[0]}")
 
     except KeyboardInterrupt as e:
         break

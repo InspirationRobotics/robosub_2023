@@ -39,7 +39,7 @@ class CVHandler:
 
         try:
             # module name is as follows: auv.cv.file_name
-            module = __import__("auv.cv.{}".format(file_name), fromlist=["CV"])
+            module = __import__(f"auv.cv.{file_name}", fromlist=["CV"])
         except Exception as e:
             print("[ERROR] [cvHandler] Error while importing CV module from file name")
             print(f"[ERROR] {e}")
@@ -55,7 +55,7 @@ class CVHandler:
             self.active_cv_scripts[file_name] = _DummyScriptHandler(file_name, cv_class(**self.config), dummy_camera)
         else:  # Init individual cv script handler
             self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
-        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
+        self.subs[file_name] = rospy.Subscriber(f"auv/cv_handler/{file_name}", String, callback)
 
     def stop_cv(self, file_name):
         """Stop a CV script"""
@@ -83,7 +83,7 @@ class CVHandler:
             return
 
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
-        print("[INFO] model published {}".format(model_name))
+        print(f"[INFO] model published {model_name}")
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
@@ -110,7 +110,7 @@ class _ScriptHandler:
         # Create the ROS node, the subscribers and the publishers
         self.sub_cv = rospy.Subscriber(self.camera_topic, Image, self.callback_cam)
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
-        self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
+        self.pub_out = rospy.Publisher(f"auv/cv_handler/{file_name}", String, queue_size=10)
 
         # init the oakd stuff
         if "OAKd" in self.camera_topic:
@@ -174,7 +174,7 @@ class _ScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                print("[ERROR] [cvHandler] Error while running CV {} {}".format(self.file_name, e))
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e}")
                 print(e)
                 continue
 
@@ -232,7 +232,7 @@ class _DummyScriptHandler:
 
         # should we post the viz to the viz topic?
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
-        self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
+        self.pub_out = rospy.Publisher(f"auv/cv_handler/{file_name}", String, queue_size=10)
 
     def run(self):
         self.running = True
@@ -249,7 +249,7 @@ class _DummyScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                print("[ERROR] [cvHandler] Error while running CV {} {}".format(self.file_name, e))
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e}")
                 print(e)
                 continue
 
@@ -291,7 +291,7 @@ if __name__ == "__main__":
     # some small testings for CVHandler, requires camVersatile to run before
 
     def dummy_callback(msg):
-        print("[INFO] received: {}".format(msg.data))
+        print(f"[INFO] received: {msg.data}")
 
     cv = CVHandler()
     cv.start_cv("template_cv")

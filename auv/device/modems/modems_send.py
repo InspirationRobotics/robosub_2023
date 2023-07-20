@@ -19,7 +19,7 @@ while 1:
         ser.close()
         exit()
     else:
-        buffer = _input + "\r\n"
+        buffer = f'{_input}\r\n'
         print(buffer)
         ser.write(buffer.encode())
         out = b""

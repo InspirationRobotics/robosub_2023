@@ -83,8 +83,8 @@ class LIS3MDL(I2C):
             self.mag_cal_min = minCal
             self.mag_cal_max = maxCal
             self.is_mag_calibrated = True
-            print("min: " + str(self.mag_cal_min))
-            print("max: " + str(self.mag_cal_max))
+            print(f"min: {str(self.mag_cal_min)}")
+            print(f"max: {str(self.mag_cal_max)}")
 
     def calibrate(self, iterations=1000):
         """Calibrate the mags raw values."""
@@ -103,8 +103,8 @@ class LIS3MDL(I2C):
 
             time.sleep(0.01)
         print("Calibration Done")
-        print("min: " + str(self.mag_cal_min))
-        print("max: " + str(self.mag_cal_max))
+        print(f"min: {str(self.mag_cal_min)}")
+        print(f"max: {str(self.mag_cal_max)}")
         self.is_mag_calibrated = True
 
     def get_magnetometer_raw(self):

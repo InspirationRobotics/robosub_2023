@@ -28,7 +28,7 @@ while 1:
         ser.close()
         exit()
     else:
-        buffer = _input + "\r"
+        buffer = f'{_input}\r'
         if buffer == "break\r":
             ser.send_break()
             continue

@@ -44,7 +44,7 @@ class SurfacingMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print("[DEBUG] Received data from {}".format(file_name))
+        print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -82,7 +82,7 @@ class SurfacingMission:
                 forward = self.data["surfacing_cv"].get("forward", 0)
 
                 # direcly feed the cv output to the robot control
-                print("[DEBUG] lateral: {}, forward: {}".format(lateral, forward))
+                print(f"[DEBUG] lateral: {lateral}, forward: {forward}")
                 self.robot_control.movement(lateral=lateral, forward=forward)
 
             except Exception as e:

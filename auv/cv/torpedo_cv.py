@@ -174,7 +174,7 @@ class CV:
                 largest_object = sorted_obstacles[0]
                 self.distance_to_target = largest_object.distance
                 # print("[INFO] Distance: " + self.distance_to_target)
-                print("Distance: " + self.distance_to_target)
+                print(f"Distance: {self.distance_to_target}")
 
                 if self.distance_to_target < self.far_near_boundary:
                     self.near = True
@@ -182,8 +182,8 @@ class CV:
 
             # Center of largest circle - aim for this
             x, y = circles[0, 0], circles[0, 1]
-            print("[INFO] X: " + str(np.round(x).astype("int")))
-            print("[INFO] Y: " + str(np.round(y).astype("int")))
+            print(f"[INFO] X: {str(np.round(x).astype('int'))}")
+            print(f"[INFO] Y: {str(np.round(y).astype('int'))}")
             last_y = y
 
             if self.distance_to_target < self.fire_distance:

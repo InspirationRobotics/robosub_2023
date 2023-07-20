@@ -20,13 +20,13 @@ class rosBags:
         fileName = fileName.split(".")
         fileName = fileName[0].split(" ")
         temp = fileName[1].split(":")
-        fileName[1] = temp[0] + "-" + temp[1] + "-" + temp[2]
-        fileName = fileName[0] + "_" + fileName[1]
-        self.name = "/home/inspiration/bags/" + fileName + ".bag"
+        fileName[1] = f"{temp[0]}-{temp[1]}-{temp[2]}"
+        fileName = f"{fileName[0]}_{fileName[1]}"
+        self.name = f"/home/inspiration/bags/{fileName}.bag"
         os.system("mkdir /home/inspiration/bags >/dev/null 2>&1")
-        os.system("touch " + self.name)
+        os.system(f"touch {self.name}")
         self.bag = rosbag.Bag(self.name, "w")
-        print("Successfully made bag file: " + self.name)
+        print(f"Successfully made bag file: {self.name}")
 
         # Subscribe to the desired topics and save messages to the bag
         rospy.Subscriber("/auv/devices/compass", std_msgs.msg.Float64, self.bag_write_callback, callback_args=("/auv/devices/compass"))
@@ -54,7 +54,7 @@ def onExit(signum, frame):
             pass
         bag.closeBag()
         time.sleep(1)
-        print("\nBag Saved to " + bag.name + " ...Done")
+        print(f"\nBag Saved to {bag.name} ...Done")
         exit(1)
     except:
         pass
