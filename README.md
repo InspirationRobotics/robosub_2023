@@ -157,3 +157,39 @@ If you have trouble running this command, you can use the following command inst
 ```bash
 python3 -m black .
 ```
+## Running the AUVs
+
+### Graey and Onyx
+The first thing you must be doing before running any scripts on the sub is running mavros. Feel free to use screens to make things easier.
+```
+screen -S mavros
+roslaunch mavros apm.launch
+```
+Git pull if necessary
+```
+cd auv
+git pull
+```
+Now run the cams scripts:
+```
+screen -S cams
+python3 camsVersatile.py
+```
+Enter which camera id you are using and then enter "start" or "stop"
+
+If you would like camera feed
+```
+screen -S bash
+cd ~/rtsp
+./start_video.sh {Camera #}
+```
+Now run pix_standalone for sensor and thruster capabilities.
+```
+screen -S pix
+python3 pix_standalone.py
+```
+Now run your mission program
+```
+cd auv/missions/
+python3 yourMission.py
+```
