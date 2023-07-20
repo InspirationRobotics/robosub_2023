@@ -142,7 +142,20 @@ class cameraStreams:
 
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
-        pass  # todo
+        print("Received data:", data)
+        kill = data.get("kill")
+        oak = False
+        if(kill!=None):
+            pass #need to implement
+        camID = data.get("camera_ID")
+        mode = data.get("mode")
+        model = data.get("model")
+        if camID>=10: 
+            camID = camAmt-1 + camID/10
+        if(mode=="start"):
+            self.camCtrl(camID, True, model)
+        if(mode=="stop"):
+            self.camCtrl(camID, False)
 
     def stop(self):
         for i in self.cams:
