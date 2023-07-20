@@ -64,7 +64,7 @@ class CV:
 
         self.p = (
             Ping360(
-                "/dev/ttyUSB0",
+                "/dev/ttyUSB1",
                 115200,
                 scan_mode=1,
                 angle_range=(150, 250),
@@ -85,7 +85,7 @@ class CV:
 
         # Convert frame to grey scale and extract edges
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 1, 250)
+        edges = cv2.Canny(gray, 100, 200)
 
         # Blurring the image to eliminate false positives
         edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
@@ -97,17 +97,22 @@ class CV:
             cv2.HOUGH_GRADIENT,
             1,
             edges.shape[0] / 8,
-            param1=10,
-            param2=100,
+            param1=50,
+            param2=65,
             minRadius=1,
             maxRadius=600,
         )
+
+        if(not self.deploy):
+            cv2.imshow("Edges", edges)
 
         # Draw all circles on the original image
         if circles is not None:
             i = 0
 
             circles = np.round(circles[0, :]).astype("int")
+            
+            
             for circle in circles:
                 x, y = circles[i, 0], circles[i, 1]
                 dist = circles[i, 2]
@@ -335,14 +340,14 @@ class CV:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.cv.template_cv"
+    # you can run this file independently using: "python -m auv.cv.torpedo_cv"
     logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo5.mp4")
+    cap = cv2.VideoCapture("testing_data/TorpedoTest1.mp4")
 
     while True:
         # grab a frame
@@ -350,9 +355,9 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        #time.sleep(0.15)
+        time.sleep(0.02)
         # run the cv
-        result, img_viz = cv.run(frame)
+        result, img_viz = cv.run(frame, None, None)
         logger.info(result)
 
         # show the frame
