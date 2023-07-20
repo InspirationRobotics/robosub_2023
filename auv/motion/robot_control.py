@@ -29,12 +29,12 @@ class RobotControl:
             self.dvl = None
 
         # establishing thrusters and depth publishers
-        self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
+        self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
         self.sub_depth = rospy.Subscriber("/auv/devices/baro", Float32MultiArray, self.callback_depth)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
-    def callback_compass(self):
+    def get_callback_compass(self):
         def _callback_compass(msg):
             """Get compass heading from /auv/devices/compass topic"""
             self.compass = msg.data
@@ -45,9 +45,9 @@ class RobotControl:
             self.dvl.compass = msg.data
 
         if self.dvl:
-            return callback_compass_dvl
+            return _callback_compass_dvl
         else:
-            return callback_compass
+            return _callback_compass
 
     def callback_depth(self, msg):
         """Get depth data from barometer /auv/devices/baro topic"""

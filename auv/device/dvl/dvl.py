@@ -47,6 +47,7 @@ class DVL:
         self.compass = None
         self.vel_rot = [0, 0, 0]  # rotated velocity vector
         self.position = [0, 0, 0] # position in meters
+        self.is_valid = False
 
         if autostart:
             self.start()
@@ -74,7 +75,7 @@ class DVL:
         }
         SA = self.__parseLine(self.ser.readline())
         if SA[0] != ":SA":
-            return
+            return None
 
         TS = self.__parseLine(self.ser.readline())
         BI = self.__parseLine(self.ser.readline())
@@ -120,6 +121,11 @@ class DVL:
             logging.warn("DVL time error, skipping")
             return False
 
+        self.is_valid = data["isAUV_velocity_valid"]
+        if not self.is_valid:
+            logging.warn("DVL velocity not valid, skipping")
+            return False
+
         self.prev_time = current_time
 
         # rotate velocity vector using compass heading
@@ -156,6 +162,9 @@ class DVL:
         while self.__running:
             while self.ser.in_waiting and self.__running:
                 vel_packet = self.__get_velocity(self.ser.readline())
+                if vel_packet is None:
+                    continue
+
                 ret = self.__process_data(vel_packet)
                 self.newData = ret
 
