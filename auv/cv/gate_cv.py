@@ -5,14 +5,11 @@ Author: Team Inspiration
 
 # import what you need from within the package
 
-import logging
+
 import time
 
 import cv2
 import numpy as np
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CV:
@@ -30,7 +27,7 @@ class CV:
         self.step = 0
         self.maxGlyphLength = 0
         self.CENTER_FRAME_X = 320
-        logger.info("Gate CV init")
+        print("[INFO] Gate CV init")
 
     def run(self, frame, target, detections):
         """
@@ -39,7 +36,7 @@ class CV:
         if target == 0, abydos
         if target == 1, earth
         """
-        logger.info("Template CV run")
+        print("[INFO] Template CV run")
         #if detections is None or len(detections) == 0:
            # return {"lateral": 0, "forward": 1,"yaw":0, "end": False}, frame
         

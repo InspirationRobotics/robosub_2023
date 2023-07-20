@@ -1,4 +1,3 @@
-import logging
 import time
 
 import mavros_msgs.msg
@@ -7,9 +6,6 @@ import rospy
 from std_msgs.msg import Float64, Float32MultiArray
 
 from ..device.dvl import dvl
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class RobotControl:
@@ -58,7 +54,7 @@ class RobotControl:
         depth = Float64()
         depth.data = d
         self.pub_depth.publish(depth)
-        logger.info("Depth set to {}".format(d))
+        print("[INFO] Depth set to {}".format(d))
 
     def movement(
         self,
@@ -67,13 +63,13 @@ class RobotControl:
         lateral=None,
         pitch=None,
         roll=None,
-        **kwargs, # here so that it doesn't break if you give something else
+        **kwargs,  # here so that it doesn't break if you give something else
     ):
         # inputs are from -5 to 5
         pwm = mavros_msgs.msg.OverrideRCIn()
 
         channels = [1500] * 18
-        #channels[2] = int((vertical * 80) + 1500) if vertical else 1500
+        # channels[2] = int((vertical * 80) + 1500) if vertical else 1500
         channels[3] = int((yaw * 80) + 1500) if yaw else 1500
         channels[4] = int((forward * 80) + 1500) if forward else 1500
         channels[5] = int((lateral * 80) + 1500) if lateral else 1500
@@ -91,7 +87,7 @@ class RobotControl:
         pwm.channels = [1500] * 18
         target = (target) % 360
 
-        logger.info("Setting heading to {}".format(target))
+        print("[INFO] Setting heading to {}".format(target))
 
         # direct variable is direction; clockwise and counterclockwise
         while not rospy.is_shutdown():
@@ -119,7 +115,7 @@ class RobotControl:
                 pwm.channels[3] = 1500 + (direct * speed)
                 self.pubThrusters.publish(pwm)  # publishing pwms to continue yawing
 
-        logger.info("Finished setting heading to {}".format(target))
+        print("[INFO] Finished setting heading to {}".format(target))
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -141,7 +137,7 @@ class RobotControl:
             self.pubThrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
             time.sleep(0.1)
 
-        logger.info("finished forward")
+        print("[INFO] finished forward")
         # calculating gradual decrease for thruster power
         gradDec = int((forwardPower - powerStop) / (timeStop * 10))
         startTime = time.time()
@@ -153,14 +149,14 @@ class RobotControl:
             time.sleep(0.1)
 
         t2 = 0
-        logger.info("finished backstopping")
+        print("[INFO] finished backstopping")
         pwm.channels = [1500] * 18
         startTime = time.time()
         # publishing idle pwms to sub to stop moving
         while time.time() - startTime <= 0.5:
             self.pubThrusters.publish(pwm)
             time.sleep(0.05)
-        logger.info("finished forward heading")
+        print("[INFO] finished forward heading")
 
     # incorporates universal backstop function for lateral movement
     def lateralUni(self, power, t):
@@ -218,7 +214,7 @@ class RobotControl:
         while time.time() - startTime <= 0.5:
             self.pubThrusters.publish(pwm)
             time.sleep(0.05)
-        logger.info("finished backstopping")
+        print("[INFO] finished backstopping")
 
     # uses functions from testing to correlate pwms and time to distance and then utilizes forwardHeadingUni commmand to send pwms to thrusters for calculated pwms and time
     def forwardDist(self, dist, power):

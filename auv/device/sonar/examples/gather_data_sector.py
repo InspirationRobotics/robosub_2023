@@ -3,17 +3,13 @@ Script designed to experiment with the Ping360 sonar and collect some data.
 """
 
 import argparse
-import logging
 import os
 import time
 
-from auv.device.sonar import Ping360, utils, io
-
-import numpy as np
 import cv2
+import numpy as np
 
-logging.basicConfig(level=logging.INFO)
-
+from auv.device.sonar import Ping360, io, utils
 
 parser = argparse.ArgumentParser(description="Ping360 data collection script")
 parser.add_argument(
@@ -64,7 +60,7 @@ d = p.get_device_data()
 print(d)
 
 # make a full scan and save it to a file
-logging.info("Starting Ping360 full scan")
+print("[INFO] Starting Ping360 full scan")
 r = io.Record(args.output, "w")
 
 size = (400, p._number_of_samples)
@@ -93,7 +89,7 @@ while True:
         cv2.imwrite(str(imcount) + "_cart.png", cartesian)
         cv2.imwrite(str(imcount) + "_polar.png", img)
 
-        logging.info("Full scan complete in {} seconds".format(end_time - start_time))
+        print("[INFO] Full scan complete in {} seconds".format(end_time - start_time))
 
         imcount += 1
 

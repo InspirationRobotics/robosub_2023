@@ -5,15 +5,11 @@ Author: Team Inspiration
 
 # import what you need from within the package
 
-import logging
 import time
 
 import cv2
 import numpy as np
 from sklearn import cluster
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CV:
@@ -30,7 +26,7 @@ class CV:
 
         self.buffer_size = config.get("buffer_size", 30)
         self.memory_box = []
-        logger.info("Template CV init")
+        print("[INFO] Template CV init")
 
     def gate_box_clustering(self, frame):
         """
@@ -75,7 +71,7 @@ class CV:
                 to_remove.append(i + 1)
 
         box_clusters = [box for i, box in enumerate(box_clusters) if i not in to_remove]
-        
+
         if len(box_clusters) == 0:
             return None, None, None
 
@@ -120,8 +116,6 @@ class CV:
             return box_clusters[0], box_clusters[1], box_clusters[2]
 
         return None, None, None
-
-
 
     def run(self, frame, target, oakd_data):
         """
@@ -184,7 +178,6 @@ class CV:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV()
@@ -200,7 +193,7 @@ if __name__ == "__main__":
 
         # run the cv
         result, frame = cv.run(frame, None, None)
-        logger.info(result)
+        print(f"[INFO] {result}")
 
         # debug the frame
         cv2.imshow("frame", frame)

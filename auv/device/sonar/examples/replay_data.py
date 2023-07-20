@@ -3,16 +3,13 @@ Script to replay data from a file, do processing on those and visualize it.
 """
 
 import argparse
-import logging
 import os
 import time
 
-from auv.device.sonar import Ping360, utils, io
-
-import numpy as np
 import cv2
+import numpy as np
 
-logging.basicConfig(level=logging.INFO)
+from auv.device.sonar import Ping360, io, utils
 
 parser = argparse.ArgumentParser(description="Ping360 data collection script")
 parser.add_argument(
@@ -65,7 +62,7 @@ for timestamp, angle, data in p:
 
     # detect obstacles
     detection_counter += 1
-    if detection_counter == detection_every: 
+    if detection_counter == detection_every:
         obstacles = utils.object_detection(polar_img, threshold=100)
 
         # draw obstacles

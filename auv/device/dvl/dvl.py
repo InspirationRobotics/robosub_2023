@@ -4,7 +4,7 @@ import math
 
 import serial
 import threading
-import logging
+
 
 from ...utils.deviceHelper import dataFromConfig
 
@@ -113,17 +113,17 @@ class DVL:
 
         if self.prev_time is None or self.compass is None:
             self.prev_time = current_time
-            logging.warn("DVL not ready, waiting for compass or some more sample")
+            print("[WARN] DVL not ready, waiting for compass or some more sample")
             return False
 
         dt = current_time - self.prev_time
         if self.dt < 0:
-            logging.warn("DVL time error, skipping")
+            print("[WARN] DVL time error, skipping")
             return False
 
         self.is_valid = data["isAUV_velocity_valid"]
         if not self.is_valid:
-            logging.warn("DVL velocity not valid, skipping")
+            print("[WARN] DVL velocity not valid, skipping")
             return False
 
         self.prev_time = current_time
@@ -171,7 +171,7 @@ class DVL:
     def start(self):
         # ensure not running
         if self.__running or self.__thread_vel.is_alive():
-            logging.warn("DVL already running")
+            print("[WARN] DVL already running")
             return
 
         self.__running = True

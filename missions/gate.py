@@ -1,20 +1,11 @@
-import logging
-import logging.config
 import os
 import time
-
-import yaml
-from dotenv import dotenv_values
 
 from auv.mission import gate_mission
 from auv.utils import arm, deviceHelper
 
-# load sub config and logging config (usefull to see the logs in the console)
+# load sub config
 config = deviceHelper.variables
-log_config = yaml.safe_load(open(config.get("LOG_CFG_PATH", "../logging.yaml"), "r"))
-
-logging.config.dictConfig(log_config)
-logger = logging.getLogger(__name__)
 
 # arm.arm()
 # time.sleep(5)
@@ -29,4 +20,4 @@ gateMission.run()
 gateMission.cleanup()
 
 # end
-logger.info("Mission ended")
+print("[INFO] Mission ended")

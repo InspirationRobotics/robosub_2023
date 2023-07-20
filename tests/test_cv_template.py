@@ -7,7 +7,7 @@ import pytest
 
 from auv.cv import template_cv
 
-import logging
+
 
 
 def test_cv_function():

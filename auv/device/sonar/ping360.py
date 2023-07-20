@@ -1,11 +1,9 @@
-import brping
-import logging
 import time
+
+import brping
 import numpy as np
 
 from . import utils
-
-logger = logging.getLogger(__name__)
 
 
 class Ping360(brping.Ping360):
@@ -61,7 +59,7 @@ class Ping360(brping.Ping360):
         self.set_max_range(max_range)
         self.set_gain_setting(gain)
 
-        logger.debug("Ping360 initialized")
+        print("[DEBUG] Ping360 initialized")
 
     def set_scan_mode(self, scan_mode):
         if scan_mode != 0 and scan_mode != 1:

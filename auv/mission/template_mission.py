@@ -5,16 +5,12 @@ Template file to create a mission class
 # import what you need from within the package
 
 import json
-import logging
 
 import rospy
 from std_msgs.msg import String
 
 from auv.device import cvHandler
 from auv.motion import robot_control
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class TemplateMission:
@@ -41,7 +37,7 @@ class TemplateMission:
         for file_name, dummy in zip(self.cv_files, dummys):
             self.cv_handler.start_cv(file_name, self.callback, dummy=dummy)
 
-        logger.info("Template mission init")
+        print("[INFO] Template mission init")
 
     def callback(self, msg):
         """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
@@ -50,7 +46,7 @@ class TemplateMission:
         self.next_data[file_name] = data
         self.received = True
 
-        logger.debug("Received data from {}".format(file_name))
+        print("[DEBUG] Received data from {}".format(file_name))
 
     def run(self):
         """
@@ -77,7 +73,7 @@ class TemplateMission:
 
             break  # TODO: remove this line when making your mission
 
-        logger.info("Template mission run")
+        print("[INFO] Template mission run")
 
     def cleanup(self):
         """
@@ -89,7 +85,7 @@ class TemplateMission:
 
         # idle the robot
         self.robot_control.movement()
-        logger.info("Template mission terminate")
+        print("[INFO] Template mission terminate")
 
 
 if __name__ == "__main__":
@@ -98,8 +94,6 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
-
-    logging.basicConfig(level=logging.DEBUG)
 
     config = {
         # # this dummy video file will be used instead of the camera if uncommented
