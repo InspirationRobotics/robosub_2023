@@ -130,10 +130,12 @@ class CV:
             else:
                 boardCenter = lines[0].midpoint
         elif len(lines)==1:
-            if(lines[0].slope<1): #means its a horizontal line
+            if(lines[0].slope<0.6): #means its a horizontal line
                 boardCenterX = lines[0].midpoint[0]
-            else: # means its a vertical
+            elif(lines[0].slope>1.4): # means its a vertical
                 boardCenterY = lines[0].midpoint[1]
+            else: #means its a diagnol line
+                boardCenterX, boardCenterY = lines[0].midpoint
             boardCenter = (boardCenterX, boardCenterY)
         
         if boardDetect != None and boardCenter != None:
@@ -142,7 +144,7 @@ class CV:
         elif boardDetect != None:
             boardCenter = boardDetect
         if boardCenter != None:
-            boardCenter = [100 if v is None else v for v in boardCenter]
+            boardCenter = [0 if v is None else v for v in boardCenter]
             cv2.circle(frame, boardCenter, 5, (255,255,255),-1)
         targetCenter = detectedLabels[target]
     
@@ -157,6 +159,9 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
+
+        frame, avgOffset, targetCenter, boardCenter = self.calculate_data(frame, target, oakd_data)
+
         #print("[INFO] Buoy CV run")
         
         return {"lateral": 0, "forward": 0, "end": False}, frame
