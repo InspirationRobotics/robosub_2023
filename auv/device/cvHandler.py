@@ -165,12 +165,12 @@ class _ScriptHandler:
         topic = self.camera_topic
         toSend = {}
         if not self.is_oakd:
-            self.camID = int(topic[-1])
+            self.camID = int(topic[-1]) # by default the low-light cameras are ID'd as 0 for forward and 1 for bottom so this matches instantly
         else:
-            if "Forward" in topic:
-                self.camID = 10
-            elif "Bottom" in topic:
-                self.camID = 20
+            if "Forward" in topic:  # the ID>=10 helps camsVers determine it is an oak-d; OakDs are ID'd after lowlight (i.e lowlight, lowlight, oakd) so this becomes a simple operation of id/10 + amount of low-lights-1
+                self.camID = 10 # so for Onyx this would be ID 1 since 10/10 = 1 and low-lights (there is 1) - 1=0. For Graey with two low-lights, it is 10/10 = 1 then + 2-1=1 so ID 2
+            elif "Bottom" in topic: 
+                self.camID = 20 # the multiples of 10 allow me to do the same simple equation and still get the right matching ID
             elif "Poe" in topic:
                 self.camID = 30
             model = getattr(self.cv_object, "model", None)
