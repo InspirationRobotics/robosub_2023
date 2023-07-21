@@ -38,7 +38,7 @@ class GateMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        self.cv_handler.set_oakd_model("gate_cv", "gate")
+        #self.cv_handler.switch_oakd_model("gate_cv", "gate") # model is now selected in cv script itself
         print("[INFO] Gate mission init")
 
     def callback(self, msg):

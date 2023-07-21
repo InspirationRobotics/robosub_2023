@@ -69,7 +69,7 @@ class CVHandler:
         self.subs[file_name].unregister()
         del self.subs[file_name]
 
-    def set_oakd_model(self, file_name, model_name):
+    def switch_oakd_model(self, file_name, model_name):
         if file_name not in self.active_cv_scripts:
             print("[ERROR] [cvHandler] Cannot change model of a script that is not running")
             return
@@ -111,6 +111,7 @@ class _ScriptHandler:
         self.sub_cv = rospy.Subscriber(self.camera_topic, Image, self.callback_cam)
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
         self.pub_out = rospy.Publisher(f"auv/cv_handler/{file_name}", String, queue_size=10)
+        self.pub_cam_select = rospy.Publisher("/auv/camsVersatile/cameraSelect", String, queue_size=10)
 
         # init the oakd stuff
         if "OAKd" in self.camera_topic:
@@ -124,6 +125,8 @@ class _ScriptHandler:
             self.is_oakd = False
             self.pub_oakd_model = None
             self.sub_oakd_data = None
+
+        self.initCameraStream() #sends json to camsVersatile for which camera to start and with model or not
 
         self.target = "main"
         self.oakd_data = None
@@ -157,6 +160,36 @@ class _ScriptHandler:
             print("[ERROR] [cvHandler] Error while converting oakd data to json")
             print(f"[ERROR] {e}")
             return
+    
+    def initCameraStream(self):
+        topic = self.camera_topic
+        toSend = {}
+        if not self.is_oakd:
+            self.camID = int(topic[-1])
+        else:
+            if "Forward" in topic:
+                self.camID = 10
+            elif "Bottom" in topic:
+                self.camID = 20
+            elif "Poe" in topic:
+                self.camID = 30
+            model = getattr(self.cv_object, "model", None)
+            if model is None:
+                print("[INFO] No oakD model specified, defaulting to raw")
+                model = "raw"
+            toSend["model"] = model
+        toSend["camera_ID"] = self.camID
+        toSend["mode"] = "start"
+        data = json.dumps(toSend)
+        self.pub_cam_select.publish(data)
+
+    def killCameraStream(self, killAll=False):
+        if killAll:
+            data = json.dumps({["kill"]: True})
+        else:
+            toSend = {["camera_id"]: self.camID, ["mode"]: "stop"}
+            data = json.dumps(toSend)
+        self.pub_cam_select.publish(data)
 
     def run(self):
         self.running = True
@@ -196,10 +229,11 @@ class _ScriptHandler:
     def stop(self):
         self.running = False
         self.thread.join()
-
+        #self.killCameraStream() # commented out temporarily so we can continue watching stream post mission
         self.sub_cv.unregister()
         self.pub_viz.unregister()
         self.pub_out.unregister()
+        self.pub_cam_select.unregister()
         self.closed = True
 
 

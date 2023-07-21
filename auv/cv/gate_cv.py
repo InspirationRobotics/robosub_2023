@@ -16,6 +16,7 @@ class CV:
     """Template CV class, don't change the name of the class"""
 
     camera = "/auv/camera/videoOAKdRawForward"
+    model = "gate"
 
     def __init__(self, **config):
         """

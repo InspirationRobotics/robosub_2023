@@ -31,7 +31,6 @@ class oakCamera:
         self.loop_rate = self.rospy.Rate(30)
         self.isKilled = True
         self.modelPath = -1
-        self.isValid = None
         self.fake = pyfakewebcam.FakeWebcam(newDevice, self.IMG_W, self.IMG_H)
         self.pubFrame = self.rospy.Publisher(f"/auv/camera/videoOAKdRaw{self.name}", Image, queue_size=10)
         self.pubData = self.rospy.Publisher(f"/auv/camera/videoOAKdData{self.name}", String, queue_size=10)
@@ -41,11 +40,8 @@ class oakCamera:
         print(f"Camera ID {str(id)}: Oak-D {self.name} is available at {newDevice}")
 
     def createPipeline(self, modelPath=None, confidence=0.5):
-        if self.isValid:
-            self.modelPath = modelPath
-        else:
-            print("Invalid model detected, using previous state")
-
+        
+        self.modelPath = modelPath
         if self.modelPath == None:
             pipeline = dai.Pipeline()
             xoutRgb = pipeline.createXLinkOut()
@@ -156,36 +152,30 @@ class oakCamera:
             print(e)
 
     def modelSelect(self, modelName):
-        modelsList = ["gate", "dhd", "gateAug", "raw"]
+        modelsList = ["gate", "dhd", "gateAug", "buoy", "raw"]
         if modelName not in modelsList:
             if modelName[0] == "/":
                 print("Detected direct path")
                 if os.path.exists(modelName):
                     print(f"Switching {self.name} oakD to model at: {modelName}")
-                    if modelName[len(modelName) - 1] != "/":
+                    if not modelName.endswith("/"):
                         modelName += "/"
                     modelPath = modelName
-                    self.isValid = True
                 else:
                     print(f"Path not detected ({self.name} oakD error")
-                    self.isValid = False
                     return
             else:
                 print(f"Model {modelName} not found ({self.name} oakD error)")
-                self.isValid = False
                 return
         elif modelName == "raw":
             print(f"Switching {self.name} oakD to raw view")
             modelPath = None
-            self.isValid = True
         else:
             print(f"Switching {self.name} oakD to {modelName} model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
             modelPath = f"{folderPath + modelName}Model/"
-            self.isValid = True
         if self.modelPath == modelPath:
             print("Model already running...")
-            self.isValid = False
             return
         return modelPath
 
@@ -196,6 +186,8 @@ class oakCamera:
             modelName = msg
         else:
             modelName = msg.data
+        if(self.modelSelect(modelName)==None):
+            return
         self.kill()
         self.start(modelName)
 
