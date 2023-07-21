@@ -12,24 +12,25 @@ from ...utils.deviceHelper import dataFromConfig
 class DVL:
     """DVL class to enable position estimation"""
 
-    def __init__(self, autostart=True):
-        self.dvlPort = dataFromConfig("dvl")
+    def __init__(self, autostart=True, test=False):
+        if not test:
+            self.dvlPort = dataFromConfig("dvl")
 
-        self.ser = serial.Serial(
-            port=self.dvlPort,
-            baudrate=115200,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-        )
+            self.ser = serial.Serial(
+                port=self.dvlPort,
+                baudrate=115200,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                bytesize=serial.EIGHTBITS,
+            )
 
-        self.ser.isOpen()
-        self.ser.reset_input_buffer()
-        self.ser.send_break()
-        time.sleep(1)
-        startPing = "CS"
-        self.ser.write(startPing.encode())
-        time.sleep(2)
+            self.ser.isOpen()
+            self.ser.reset_input_buffer()
+            self.ser.send_break()
+            time.sleep(1)
+            startPing = "CS"
+            self.ser.write(startPing.encode())
+            time.sleep(2)
 
         self.__running = False
         self.__thread_vel = None
@@ -37,14 +38,13 @@ class DVL:
         self.prev_time = None
 
         # sensor error
-        self.heading_error = 1.0  # deg/s
+        self.compass_error = math.radians(1.0)  # rad/s
         self.dvl_error = 0.001  # m/s
+        self.error = [0, 0, 0]  # accumulated error
 
-        # [0 -> 1], close to 0 is perfect, 1 is random basically
-        self.error_rate = (self.heading_error / 360) + self.dvl_error
-        self.accumulated_error = 0  # accumulated error (+/- m)
+        # NORTH = 0, EAST = pi/2, SOUTH = pi, WEST = 3pi/2
+        self.compass_rad = None  # rad
 
-        self.compass = None
         self.vel_rot = [0, 0, 0]  # rotated velocity vector
         self.position = [0, 0, 0]  # position in meters
         self.is_valid = False
@@ -59,19 +59,19 @@ class DVL:
     def __get_velocity(self):
         """Get velocity"""
         data = {
-            "Timestamp": [],  # year, month, day, hour:minute:second
+            "Time": 0,  # year, month, day, hour:minute:second
             "Attitude": [],  # roll, pitch, and heading in degrees
-            "Salinity": [],  # in ppt (parts per thousand)
-            "Temp": [],  # celcius
-            "Transducer_depth": [],  # meters
+            "Salinity": 0,  # in ppt (parts per thousand)
+            "Temp": 0,  # celcius
+            "Transducer_depth": 0,  # meters
             "Speed_of_sound": [],  # meters per second
-            "Result_code": [],
-            "DVL_velocity": [],  # mm/s # xyz error
-            "isDVL_velocity_valid": [],  # boolean
+            "Result_code": 0,
+            "DVL_velocity": [],  # mm/s # xyz
+            "isDVL_velocity_valid": False,  # boolean
             "AUV_velocity": [],  # mm/s # xyz
-            "isAUV_velocity_valid": [],  # boolean
-            "Distance_from_bottom": [],  # meters
-            "Time_since_valid": [],  # seconds
+            "isAUV_velocity_valid": False,  # boolean
+            "Distance_from_bottom": 0,  # meters
+            "Time_since_valid": 0,  # seconds
         }
         SA = self.__parseLine(self.ser.readline())
         if SA[0] != ":SA":
@@ -105,13 +105,13 @@ class DVL:
 
         return data
 
-    def __process_data(self, packet):
+    def process_packet(self, packet):
         """integrate velocity into position"""
 
-        vel = dataPacket.get("AUV_velocity", [0, 0, 0])  # mm/s # xyz
-        current_time = dataPacket.get("Time", 0)  # seconds
+        vel = packet.get("AUV_velocity", [0, 0, 0])  # mm/s # xyz
+        current_time = packet.get("Time", 0)  # seconds
 
-        if self.prev_time is None or self.compass is None:
+        if self.prev_time is None or self.compass_rad is None:
             self.prev_time = current_time
             print("[WARN] DVL not ready, waiting for compass or some more sample")
             return False
@@ -121,26 +121,25 @@ class DVL:
             print("[WARN] DVL time error, skipping")
             return False
 
-        self.is_valid = data["isAUV_velocity_valid"]
+        self.is_valid = packet["isAUV_velocity_valid"]
         if not self.is_valid:
             print("[WARN] DVL velocity not valid, skipping")
             return False
 
         self.prev_time = current_time
-
-        # rotate velocity vector using compass heading
-        # Y = forward, X = lateral, Z = vertical
-        vel_rot = [
-            vel[0] * math.cos(self.compass) - vel[1] * math.sin(self.compass),
-            vel[0] * math.sin(self.compass) + vel[1] * math.cos(self.compass),
-            vel[2],
+        # convert vel to m/s
+        vel = [
+            vel[0] / 1000,
+            vel[1] / 1000,
+            vel[2] / 1000,
         ]
 
-        # in metters per second
+        # rotate velocity vector using compass heading
+        # X = lateral, Y = forward, Z = vertical
         self.vel_rot = [
-            vel_rot[0] / 1000,
-            vel_rot[1] / 1000,
-            vel_rot[2] / 1000,
+            vel[0] * math.cos(self.compass_rad) + vel[1] * math.sin(self.compass_rad),
+            vel[1] * math.cos(self.compass_rad) - vel[0] * math.sin(self.compass_rad),
+            vel[2],
         ]
 
         # integrate velocity to position with respect to time
@@ -150,7 +149,21 @@ class DVL:
             self.position[2] + self.vel_rot[2] * dt,
         ]
 
-        self.accumulated_error += math.sqrt(vel[0] ** 2 + vel[1] ** 2 + vel[2] ** 2) * dt * self.error_rate
+        vel_rot_error = [
+            (vel[0] + self.dvl_error) * math.cos(self.compass_rad + self.compass_error)
+            + (vel[1] + self.dvl_error) * math.sin(self.compass_rad + self.compass_error),
+            (vel[1] + self.dvl_error) * math.cos(self.compass_rad + self.compass_error)
+            - (vel[0] + self.dvl_error) * math.sin(self.compass_rad + self.compass_error),
+            vel[2] + self.dvl_error,  # we actually have a sensor for depth, so useless
+        ]
+
+        # calculate accumulated error
+        self.error = [
+            self.error[0] + abs(self.vel_rot[0] - vel_rot_error[0]) * dt,
+            self.error[1] + abs(self.vel_rot[1] - vel_rot_error[1]) * dt,
+            self.error[2] + abs(self.vel_rot[2] - vel_rot_error[2]) * dt,
+        ]
+
         return True
 
     def reset_position(self):
@@ -164,8 +177,7 @@ class DVL:
                 vel_packet = self.__get_velocity(self.ser.readline())
                 if vel_packet is None:
                     continue
-
-                ret = self.__process_data(vel_packet)
+                ret = self.process_packet(vel_packet)
                 self.newData = ret
 
     def start(self):

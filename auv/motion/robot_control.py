@@ -38,7 +38,7 @@ class RobotControl:
         def _callback_compass_dvl(msg):
             """Get compass heading from dvl"""
             self.compass = msg.data
-            self.dvl.compass = msg.data
+            self.dvl.compass_rad = math.radians(msg.data)
 
         if self.dvl:
             return _callback_compass_dvl
