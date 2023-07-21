@@ -241,3 +241,12 @@
 
 # while state:
 #     pass
+
+
+listTemp = [None, "Hello"]
+boardDetect = [100,10]
+
+
+listTemp = [boardDetect[i] if v is None else v for i,v in enumerate(listTemp)]
+
+print(listTemp)

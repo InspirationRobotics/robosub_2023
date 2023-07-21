@@ -8,7 +8,8 @@ Author: Team Inspiration
 import time
 import cv2
 import numpy as np
-
+from shapely.geometry import LineString
+import math
 
 class CV:
     """Buoy CV class, don't change the name of the class"""
@@ -55,23 +56,6 @@ class CV:
         #             #cv2.drawContours(frame,[box],0,(255,0,0),2)
         return
 
-    def line_intersection(line1, line2):
-        xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-        ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
-
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
-
-        div = det(xdiff, ydiff)
-        if div == 0:
-            print("Lines do not intersect")
-            return None
-
-        d = (det(*line1), det(*line2))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
-        return x, y
-
     class point:
         def __init__(self, x, y):
             self.x = x
@@ -84,8 +68,25 @@ class CV:
             return True
         def getPoint(self):
             return (self.x, self.y)
+        
+    class line:
+        def __init__(self, point1, point2):
+            self.slope = abs((point2.y - point1.y) / ((point2.x/point1.x)+0.0001)) # so we dont divide by 0
+            self.midpoint = ((point2.x + point1.x)/2, (point2.y + point1.y)/2)
+            self.length = math.hypot(point1.x - point2.x, point1.y - point2.y)
+            self.point1 = point1
+            self.point2 = point2
 
-    def calculate_ratios(self, frame, target, detections):
+        def intersects(self, lineToCheck):
+            line1 = LineString([self.point1.getPoint(), self.point2.getPoint()])
+            line2 = LineString([lineToCheck.point1.getPoint(), lineToCheck.point2.getPoint()])
+            int_pt = line1.intersection(line2)
+            if int_pt == None:
+                return None
+            point_of_intersection = (int_pt.x, int_pt.y)
+            return point_of_intersection
+
+    def calculate_data(self, frame, target, detections):
 
         correctRatios = {["A1"]: 1.0324, ["A2"]: 0.3057, ["E1"]: 1.1809, ["E2"]: 1.5506, ["board"]: 1} # based off sample footage with sub looking straight at them
         detectedLabels = {}
@@ -106,23 +107,42 @@ class CV:
         avgOffset = avgOffset/len(detections)
         #Forming lines between points
         testPoints = []
+        lines = []
         for i in detectedLabels.values:
             testPoints.append(i)
         totalLines = (len(testPoints)*(len(testPoints)-1))/2
-        lineCount=nextPoint=0
-        while(lineCount<totalLines):
+        nextPoint=0
+        while(len(lines)<totalLines):
             nextPoint+=1
             for i in range(len(testPoints)):
                 nextPoint = nextPoint%4
                 if testPoints[i].visit(testPoints[nextPoint]) and testPoints[nextPoint].visit(testPoints[i]):
                     cv2.line(frame, testPoints[i].getPoint(), testPoints[nextPoint].getPoint(), (0, 255, 0), 3)
-                    lineCount+=1
+                    lines.append(self.line(testPoints[i], testPoints[nextPoint]))
         ######
+        #Now calculating center of board based off lines
+        if len(lines)>1:
+            def getLength(line):
+                return line.length
+            lines = lines.sort(reverse=True, key=getLength)
+            if len(lines)>4:
+                boardCenter = lines[0].intersects(lines[1])
+            else:
+                boardCenter = lines[0].midpoint
+        elif len(lines)==1:
+            if(lines[0].slope<1): #means its a horizontal line
+                boardCenterX = lines[0].midpoint[0]
+            else: # means its a vertical
+                boardCenterY = lines[0].midpoint[1]
+            boardCenter = (boardCenterX, boardCenterY)
+        
         if boardDetect != None and boardCenter != None:
-            boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
+                boardCenter = [boardDetect[i] if v is None else v for i,v in enumerate(boardCenter)]
+                boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
         elif boardDetect != None:
             boardCenter = boardDetect
         if boardCenter != None:
+            boardCenter = [100 if v is None else v for v in boardCenter]
             cv2.circle(frame, boardCenter, 5, (255,255,255),-1)
         targetCenter = detectedLabels[target]
     
