@@ -72,8 +72,20 @@ class CV:
         y = det(d, ydiff) / div
         return x, y
 
+    class point:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+            self.visited = [(self.x, self.y)]
+        def visit(self, point):
+            if((point.x, point.y) in self.visited):
+                return False
+            self.visited.append((point.x, point.y))
+            return True
+        def getPoint(self):
+            return (self.x, self.y)
 
-    def calculate_ratios(self, target, detections):
+    def calculate_ratios(self, frame, target, detections):
 
         correctRatios = {["A1"]: 1.0324, ["A2"]: 0.3057, ["E1"]: 1.1809, ["E2"]: 1.5506, ["board"]: 1} # based off sample footage with sub looking straight at them
         detectedLabels = {}
@@ -88,29 +100,34 @@ class CV:
             y_length = abs(detection.ymax-detection.ymin)
             xy_ratio = x_length/y_length
             avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
-            detectedLabels[label] = (detection.xmin+x_length/2, detection.ymin+y_length/2) # x y is center of detection
+            if label != "board": detectedLabels[label] = self.point(detection.xmin+x_length/2, detection.ymin+y_length/2) # x y is center of detection
+            else: boardDetect = (detection.xmin+x_length/2, detection.ymin+y_length/2)
+            cv2.circle(frame, detectedLabels[label].getPoint(), 5, (0,0,255),-1)
         avgOffset = avgOffset/len(detections)
-        if all(i in detectedLabels.keys for i in ("A1", "A2", "E1", "E2")): #meaning we can use both lines
-            line1 = (detectedLabels["A1"],detectedLabels["A2"])
-            line2 = (detectedLabels["E1"],detectedLabels["E2"])
-            boardCenter = self.line_intersection(line1,line2)
-        elif all(i in detectedLabels.keys for i in ("A1", "A2")):
-            x1,y1 = detectedLabels["A1"]
-            x2,y2 = detectedLabels["A2"]
-            boardCenter = ((x1 + x2)/2, (y1 + y2)/2)
-        elif all(i in detectedLabels.keys for i in ("E1", "E2")):
-            x1,y1 = detectedLabels["E1"]
-            x2,y2 = detectedLabels["E2"]
-            boardCenter = ((x1 + x2)/2, (y1 + y2)/2)
-        temp = detectedLabels.get("board", None)
-        if temp != None and boardCenter != None:
-            boardCenter = [(boardCenter[0]+temp[0])/2, (boardCenter[1]+temp[1])/2] #averaging
-        elif temp != None:
-            boardCenter = temp
+        #Forming lines between points
+        testPoints = []
+        for i in detectedLabels.values:
+            testPoints.append(i)
+        totalLines = (len(testPoints)*(len(testPoints)-1))/2
+        lineCount=nextPoint=0
+        while(lineCount<totalLines):
+            nextPoint+=1
+            for i in range(len(testPoints)):
+                nextPoint = nextPoint%4
+                if testPoints[i].visit(testPoints[nextPoint]) and testPoints[nextPoint].visit(testPoints[i]):
+                    cv2.line(frame, testPoints[i].getPoint(), testPoints[nextPoint].getPoint(), (0, 255, 0), 3)
+                    lineCount+=1
+        ######
+        if boardDetect != None and boardCenter != None:
+            boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
+        elif boardDetect != None:
+            boardCenter = boardDetect
+        if boardCenter != None:
+            cv2.circle(frame, boardCenter, 5, (255,255,255),-1)
         targetCenter = detectedLabels[target]
     
-        return avgOffset, targetCenter, boardCenter
-        
+        return frame, avgOffset, targetCenter, boardCenter
+
     def run(self, frame, target, oakd_data):
         """
         frame: the frame from the camera
