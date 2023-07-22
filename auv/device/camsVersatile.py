@@ -109,11 +109,11 @@ class cameraStreams:
 
     def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
         if not id.isnumeric():
-            print(f"Invalid ID, please pick from {str(self.camID)}")
+            print(f"Invalid ID {id}, please pick from {str(self.camID)}")
             return
         id = int(id)
         if id not in self.camID:
-            print(f"Invalid ID, please pick from {str(self.camID)}")
+            print(f"Invalid ID of {id}, please pick from {str(self.camID)}")
             return False
         if state and len(self.activeCams) == 2 and id not in self.activeCams:
             print(f"2 camera streams are already active with ids: {str(self.activeCams)}")
@@ -182,11 +182,11 @@ class cameraStreams:
         mode = data.get("mode")
         model = data.get("model")
         if camID >= 10:
-            camID = camAmt - 1 + camID / 10
+            camID = (camAmt - 1) + camID / 10
         if mode == "start":
-            self.camCtrl(camID, True, model)
+            self.camCtrl(str(int(camID)), True, model)
         if mode == "stop":
-            self.camCtrl(camID, False)
+            self.camCtrl(str(int(camID)), False)
 
     def stop(self):
         for i in self.cams:
