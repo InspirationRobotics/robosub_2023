@@ -175,7 +175,7 @@ class Ping360(brping.Ping360):
 
         return img
 
-    def get_obstacles(self, threshold=60):
+    def get_obstacles(self, threshold=60, smallest_area=20):
         """Get a list of obstacles by doing a sweep of the sonar
 
         Returns:
@@ -184,8 +184,11 @@ class Ping360(brping.Ping360):
         img = self.get_polar_image()
 
         # object detection
-        return utils.object_detection(
+        obs = utils.object_detection(
             img,
             dist_factor=self.norm_dist_factor,
             threshold=threshold,
         )
+
+        # filter out small obstacles
+        obs = [o for o in obs if o.area > smallest_area]

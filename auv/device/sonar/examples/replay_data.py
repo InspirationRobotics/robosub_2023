@@ -63,7 +63,7 @@ for timestamp, angle, data in p:
     # detect obstacles
     detection_counter += 1
     if detection_counter == detection_every:
-        obstacles = utils.object_detection(polar_img, threshold=100)
+        obstacles = utils.object_detection(polar_img)
 
         # draw obstacles
         # obs_img = cv2.fillPoly(np.zeros_like(polar_img), [obs.points for obs in obstacles], 255)
