@@ -10,10 +10,11 @@ if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
 import json
-
 import os
+import sys
 import threading
 import time
+import traceback
 
 import cv2
 import rospy
@@ -126,7 +127,7 @@ class _ScriptHandler:
             self.pub_oakd_model = None
             self.sub_oakd_data = None
 
-        self.initCameraStream() #sends json to camsVersatile for which camera to start and with model or not
+        self.initCameraStream()  # sends json to camsVersatile for which camera to start and with model or not
 
         self.target = "main"
         self.oakd_data = None
@@ -160,17 +161,19 @@ class _ScriptHandler:
             print("[ERROR] [cvHandler] Error while converting oakd data to json")
             print(f"[ERROR] {e}")
             return
-    
+
     def initCameraStream(self):
         topic = self.camera_topic
         toSend = {}
         if not self.is_oakd:
-            self.camID = int(topic[-1]) # by default the low-light cameras are ID'd as 0 for forward and 1 for bottom so this matches instantly
+            self.camID = int(topic[-1])  # by default the low-light cameras are ID'd as 0 for forward and 1 for bottom so this matches instantly
         else:
-            if "Forward" in topic:  # the ID>=10 helps camsVers determine it is an oak-d; OakDs are ID'd after lowlight (i.e lowlight, lowlight, oakd) so this becomes a simple operation of id/10 + amount of low-lights-1
-                self.camID = 10 # so for Onyx this would be ID 1 since 10/10 = 1 and low-lights (there is 1) - 1=0. For Graey with two low-lights, it is 10/10 = 1 then + 2-1=1 so ID 2
-            elif "Bottom" in topic: 
-                self.camID = 20 # the multiples of 10 allow me to do the same simple equation and still get the right matching ID
+            if (
+                "Forward" in topic
+            ):  # the ID>=10 helps camsVers determine it is an oak-d; OakDs are ID'd after lowlight (i.e lowlight, lowlight, oakd) so this becomes a simple operation of id/10 + amount of low-lights-1
+                self.camID = 10  # so for Onyx this would be ID 1 since 10/10 = 1 and low-lights (there is 1) - 1=0. For Graey with two low-lights, it is 10/10 = 1 then + 2-1=1 so ID 2
+            elif "Bottom" in topic:
+                self.camID = 20  # the multiples of 10 allow me to do the same simple equation and still get the right matching ID
             elif "Poe" in topic:
                 self.camID = 30
             model = getattr(self.cv_object, "model", None)
@@ -229,7 +232,7 @@ class _ScriptHandler:
     def stop(self):
         self.running = False
         self.thread.join()
-        #self.killCameraStream() # commented out temporarily so we can continue watching stream post mission
+        # self.killCameraStream() # commented out temporarily so we can continue watching stream post mission
         self.sub_cv.unregister()
         self.pub_viz.unregister()
         self.pub_out.unregister()
@@ -283,8 +286,8 @@ class _DummyScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e}")
-                print(e)
+                tb = traceback.format_exc()
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name}\n{tb}")
                 continue
 
             if isinstance(ret, tuple) and len(ret) == 2:
