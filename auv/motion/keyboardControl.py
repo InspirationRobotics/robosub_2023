@@ -7,15 +7,15 @@ import rospy
 
 from ..utils.disarm import disarm
 from .robot_control import RobotControl
-from .servo import Servo
+#from .servo import Servo
 
-from auv.motion.servo import Servo
+#from auv.motion.servo import Servo
 
-servo = Servo()
+#servo = Servo()
 rospy.init_node("Keyboard", anonymous=True)
 
 rc = RobotControl()
-servo = Servo()
+#servo = Servo()
 time.sleep(1)
 
 rc.setDepth(0.55)
@@ -60,7 +60,8 @@ while flag:
         elif var == "x":
             rc.setDepth(rc.depth + 0.1)
         elif var == "t":
-            servo.torpedo()
+            #servo.torpedo()
+            pass
         elif var == "q":
             lateral = 0
             forward = 0

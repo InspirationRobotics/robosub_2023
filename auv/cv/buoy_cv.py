@@ -99,7 +99,8 @@ class CV:
         boardDetect = None
         for detection in detections:
             if(detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10):
-                continue #disregard if detection is going off the screen since bad data # maybe remove?
+                #continue #disregard if detection is going off the screen since bad data # maybe remove?
+                pass
             label = detection.label
             if label in detectedLabels.keys():
                 continue #ignore multiple of same label

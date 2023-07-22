@@ -7,8 +7,8 @@ from auv.utils import arm, deviceHelper
 # load sub config
 config = deviceHelper.variables
 
-# arm.arm()
-# time.sleep(5)
+#arm.arm()
+time.sleep(5)
 
 # create the mission object
 gateMission = gate_mission.GateMission(**config)

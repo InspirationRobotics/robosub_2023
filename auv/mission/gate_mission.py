@@ -45,7 +45,7 @@ class GateMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print(f"[DEBUG] Received data from {file_name}")
+        #print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -77,11 +77,16 @@ class GateMission:
             lateral = self.data["gate_cv"].get("lateral", None)
             forward = self.data["gate_cv"].get("forward", None)
             yaw = self.data["gate_cv"].get("yaw", None)
-            print(forward, lateral, yaw)
-            if any(i == None for i in (lateral, forward, yaw)):
-                continue
+            end = self.data["gate_cv"].get("end", None)
+            #if any(i == None for i in (lateral, forward, yaw)):
+            #    continue
             # direcly feed the cv output to the robot control
-            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+            if(end):
+                print("Ending...")
+                #self.robot_control.forwardDist(3, 2)
+            else:
+                #self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+                print(forward, lateral, yaw)
 
         print("[INFO] Gate mission run")
 
