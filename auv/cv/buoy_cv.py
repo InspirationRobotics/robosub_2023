@@ -1,6 +1,6 @@
 """
 Description: Buoy CV
-Author: Team Inspiration
+Author: Eesh Vij
 """
 
 # import what you need from within the package
@@ -92,29 +92,40 @@ class CV:
         if len(detections)==0:
             return frame, False
         correctRatios = {"A1": 1.0324, "A2": 0.3057, "E1": 1.1809, "E2": 1.5506, "board": 1} # based off sample footage with sub looking straight at them
+        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 2} #each one has its own pixel size at a set distance. currentDist/currentPix = setDist/setPix so to find currentDist it becomes currentPix*setDist/setPix and then avg it #dist is in meters
+        validDetections = {}
         detectedLabels = {}
-        avgOffset = 0
-        targetCenter = None
-        boardCenter = None
-        boardDetect = None
+        avgOffset = avgDist = c = 0
+        targetCenter=boardCenter=boardDetect=None
+        # first parse for valid dections and ignore duplicates/reflections
         for detection in detections:
-            if(detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10):
-                #continue #disregard if detection is going off the screen since bad data # maybe remove?
-                pass
+            if detection.label in validDetections.keys():
+                if detection.ymin<validDetections[detection.label].ymin:
+                    continue #ignore reflection of same label, otherwise overwrite
+            validDetections[detection.label] = detection
+        # now parse all the valid detections
+        for detection in validDetections.values():
             label = detection.label
-            if label in detectedLabels.keys():
-                continue #ignore multiple of same label
             x_length = abs(detection.xmax-detection.xmin)
             y_length = abs(detection.ymax-detection.ymin)
-            xy_ratio = x_length/y_length
-            avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
+            xMid = detection.xmin+x_length/2
+            yMid = detection.ymin+y_length/2
             if label != "board": 
-                detectedLabels[label] = self.point(detection.xmin+x_length/2, detection.ymin+y_length/2) # x y is center of detection
+                detectedLabels[label] = self.point(xMid, yMid) # x y is center of detection
                 cv2.circle(frame, detectedLabels[label].getPointInt(), 5, (0,0,255),-1)
             else: 
-                boardDetect = [detection.xmin+x_length/2, detection.ymin+y_length/2]
+                boardDetect = [xMid, yMid]
                 cv2.circle(frame, (int(boardDetect[0]), int(boardDetect[1])), 5, (0,0,255),-1)
-        avgOffset = avgOffset/len(detections)
+            if(not (detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10)):
+                # if not on edge of frame do area and ratio calculation
+                area = x_length*y_length
+                dist = area*(correctSizes["dist"]/correctSizes[label])
+                avgDist+=dist
+                xy_ratio = x_length/y_length
+                avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
+                c+=1 #counter for averaging
+        avgOffset = avgOffset/c
+        avgDist = avgDist/c
         #Forming lines between points
         testPoints = []
         lines = []
@@ -125,15 +136,13 @@ class CV:
         while(len(lines)<totalLines):
             nextPoint+=1
             for i in range(len(testPoints)):
-                nextPoint = nextPoint%4
+                nextPoint = nextPoint%len(testPoints)
                 if testPoints[i].visit(testPoints[nextPoint]) and testPoints[nextPoint].visit(testPoints[i]):
                     cv2.line(frame, testPoints[i].getPointInt(), testPoints[nextPoint].getPointInt(), (0, 255, 0), 3)
                     lines.append(self.line(testPoints[i], testPoints[nextPoint]))
         ######
         #Now calculating center of board based off lines
-        boardCenterX=None
-        boardCenterY=None
-        if len(lines)>1:
+        if len(lines)>=1:
             def getLength(line):
                 return line.length
             lines.sort(reverse=True, key=getLength)
@@ -141,16 +150,8 @@ class CV:
                 boardCenter = lines[0].intersects(lines[1])
             else:
                 boardCenter = lines[0].midpoint
-        elif len(lines)==1:
-            if(lines[0].slope<0.6): #means its a horizontal line
-                boardCenterX = lines[0].midpoint[0]
-            elif(lines[0].slope>1.4): # means its a vertical
-                boardCenterY = lines[0].midpoint[1]
-            else: #means its a diagnol line
-                boardCenterX, boardCenterY = lines[0].midpoint
-            boardCenter = (boardCenterX, boardCenterY)
         if boardDetect != None and boardCenter != None:
-                boardCenter = [boardDetect[i] if v is None else v for i,v in enumerate(boardCenter)]
+                boardCenter = [boardDetect[i] if abs(v-boardDetect[i])>100 else v for i,v in enumerate(boardCenter)]
                 boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
         elif boardDetect != None:
             boardCenter = boardDetect
@@ -158,7 +159,7 @@ class CV:
             boardCenter = [0 if v is None else v for v in boardCenter]
             cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
         targetCenter = detectedLabels.get(target, None)
-        return frame, avgOffset, targetCenter, boardCenter
+        return frame, avgOffset, targetCenter, boardCenter, avgDist
 
     def run(self, frame, target, oakd_data):
         """
@@ -172,7 +173,9 @@ class CV:
         if oakd_data == None:
             return
         result = self.calculate_data(frame, target, oakd_data)
-
+        # ratio is x/y so a the smaller the ratio the more askew you are yaw wise
+        # if ratio is close to 1 then you are perfectly aligned
+        
         #print("[INFO] Buoy CV run")
         
         return {"lateral": 0, "forward": 0, "end": False}, result[0]
