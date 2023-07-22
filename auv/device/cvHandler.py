@@ -287,8 +287,8 @@ class _DummyScriptHandler:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
                 tb = sys.exc_info()[-1]
-                stk = traceback.extract_tb(tb, 1)[-1][1]
-                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e} \n{stk}")
+                stk = traceback.extract_tb(tb, 1)
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name}\n{stk}")
                 continue
 
             if isinstance(ret, tuple) and len(ret) == 2:
