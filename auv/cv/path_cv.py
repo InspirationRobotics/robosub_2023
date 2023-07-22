@@ -38,7 +38,7 @@ class CV:
         # frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         into_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         L_limit = np.array([0, 0, 150])
-        U_limit = np.array([50, 255, 255])
+        U_limit = np.array([60, 255, 255])
         frame_b, frame_g, frame_r = cv2.split(frame)
         frame_g = cv2.equalizeHist(frame_g)
         frame_b = cv2.equalizeHist(frame_b)
