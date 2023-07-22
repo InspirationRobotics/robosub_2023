@@ -89,10 +89,11 @@ class CV:
             return point_of_intersection
 
     def calculate_data(self, frame, target, detections):
+        toReturn = {"frame": frame}
         if len(detections)==0:
-            return frame, False
+            return toReturn
         correctRatios = {"A1": 1.0324, "A2": 0.3057, "E1": 1.1809, "E2": 1.5506, "board": 1} # based off sample footage with sub looking straight at them
-        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 2} #each one has its own pixel size at a set distance. currentDist/currentPix = setDist/setPix so to find currentDist it becomes currentPix*setDist/setPix and then avg it #dist is in meters
+        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 2} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
         avgOffset = avgDist = c = 0
@@ -104,6 +105,7 @@ class CV:
                     continue #ignore reflection of same label, otherwise overwrite
             validDetections[detection.label] = detection
         # now parse all the valid detections
+        #print("Reached 1")
         for detection in validDetections.values():
             label = detection.label
             x_length = abs(detection.xmax-detection.xmin)
@@ -119,13 +121,15 @@ class CV:
             if(not (detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10)):
                 # if not on edge of frame do area and ratio calculation
                 area = x_length*y_length
-                dist = area*(correctSizes["dist"]/correctSizes[label])
+                dist = (correctSizes["dist"]*correctSizes[label])/area
                 avgDist+=dist
                 xy_ratio = x_length/y_length
                 avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
                 c+=1 #counter for averaging
-        avgOffset = avgOffset/c
-        avgDist = avgDist/c
+        #print("Reached 2")
+        if c>0:
+            avgOffset = avgOffset/c
+            avgDist = avgDist/c
         #Forming lines between points
         testPoints = []
         lines = []
@@ -138,10 +142,11 @@ class CV:
             for i in range(len(testPoints)):
                 nextPoint = nextPoint%len(testPoints)
                 if testPoints[i].visit(testPoints[nextPoint]) and testPoints[nextPoint].visit(testPoints[i]):
-                    cv2.line(frame, testPoints[i].getPointInt(), testPoints[nextPoint].getPointInt(), (0, 255, 0), 3)
+                    cv2.line(frame, testPoints[i].getPointInt(), testPoints[nextPoint].getPointInt(), (219, 112, 147), 2)
                     lines.append(self.line(testPoints[i], testPoints[nextPoint]))
         ######
         #Now calculating center of board based off lines
+        #print("Reached 3")
         if len(lines)>=1:
             def getLength(line):
                 return line.length
@@ -159,7 +164,15 @@ class CV:
             boardCenter = [0 if v is None else v for v in boardCenter]
             cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
         targetCenter = detectedLabels.get(target, None)
-        return frame, avgOffset, targetCenter, boardCenter, avgDist
+        if targetCenter!=None:
+            targetCenter = targetCenter.getPointInt()
+            cv2.circle(frame, targetCenter, 5, (0,255,0),-1)
+        toReturn["frame"] = frame
+        toReturn["offset"] = avgOffset
+        toReturn["avgDist"] = round(avgDist,3)
+        toReturn["targetCenter"] = targetCenter
+        toReturn["boardCenter"] = boardCenter
+        return toReturn
 
     def run(self, frame, target, oakd_data):
         """
@@ -171,14 +184,14 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         if oakd_data == None:
-            return
+            return frame
         result = self.calculate_data(frame, target, oakd_data)
         # ratio is x/y so a the smaller the ratio the more askew you are yaw wise
         # if ratio is close to 1 then you are perfectly aligned
-        
+        print(result.get("targetCenter"))
         #print("[INFO] Buoy CV run")
         
-        return {"lateral": 0, "forward": 0, "end": False}, result[0]
+        return {"lateral": 0, "forward": 0, "end": False}, result["frame"]
 
 
 if __name__ == "__main__":
