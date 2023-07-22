@@ -144,7 +144,7 @@ class RobotControl:
 
         print(f"[INFO] Finished setting heading to {target}")
 
-    def navigate_dvl(self, x, y, z, end_heading=None, relative=True, update_freq=10):
+    def navigate_dvl(self, x, y, z, end_heading=None, relative_coord=True, relative_heading=True, update_freq=10):
         """
         Navigate to a given point, blocking function
         x, y are in meters, by default relative to the current position and heading ; z is absolute
@@ -160,25 +160,26 @@ class RobotControl:
         for pid in self.PIDs.values():
             pid.reset()
 
-        if relative:
-            # rotate [x, y] according to the current heading
-            x, y = rotate_vector(x, y, self.compass)
-        else:
+        if not relative_coord:
             # convert to relative coordinates
             # heading 0 is north so y "+" axis is going to the north
             x -= self.position[0]
             y -= self.position[1]
-    
-        # set the depth independently
-        self.set_depth(z)
 
-        # enter a context manager to handle the DVL position nicely
+        if relative_heading:
+            # rotate [x, y] according to the current heading
+            x, y = rotate_vector(x, y, self.compass)
+
+        # enter a local scope to handle coordinates nicely
         with self.dvl:
             target_heading = get_heading_from_coords(x, y)  # angle to reach at the target point
             end_heading = end_heading or target_heading  # angle to reach at the end of the navigation
             target_distance = get_distance(x, y)
 
             print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg, {target_distance}m")
+
+            # set the depth independently
+            self.set_depth(z)
 
             # navigate to the target point
             while not rospy.is_shutdown():
@@ -197,15 +198,27 @@ class RobotControl:
                 current_x, current_y, _ = self.dvl.position
                 origin_distance = get_distance(current_x, current_y)
                 error_distance = get_distance(x - current_x, y - current_y)
+
+                # progress from 0 to 1
+                # 0 = start, 1 = end or past the end
                 progress = (origin_distance - error_distance) / target_distance
 
-                # get error in relative coords
+                # get error
+                x_abs_err, y_abs_err = (x - current_x, y - current_y)
                 x_err, y_err = inv_rotate_vector(x - current_x, y - current_y, current_heading)
 
                 # calculate heading error
-                target_heading = get_heading_from_coords(x_err, y_err)
+                target_h_error = get_heading_from_coords(x_abs_err, y_abs_err)
                 end_h_error = heading_error(current_heading, end_heading)
-                h_error = progress * target_heading + (1 - progress) * end_h_error
+                h_error = progress * target_h_error + (1 - progress) * end_h_error
+
+                # check if we reached the target
+                # absolute coordinates
+                if x_abs_err <= 0.1 + self.dvl.error[0] and y_abs_err <= 0.1 + self.dvl.error[1]:
+                    print(f"[INFO] Target reached accuracy: {error_distance}m, +/- {tolerance}m")
+                    break
+                else:
+                    print(f"[DEBUG] Distance error: x={x_err}, y={y_err}, h={h_error} dvl_error={self.dvl.error}")
 
                 # calculate PID outputs they are already normalized to -2, 2
                 # We don't really need to go faster
@@ -215,14 +228,6 @@ class RobotControl:
 
                 self.movement(forward=forward, lateral=lateral, yaw=yaw)
                 time.sleep(1 / update_freq)  # fine tune this value
-
-                # check if we reached the target
-                if x_err <= 0.1 + self.dvl.error[0] and y_err <= 0.1 + self.dvl.error[1]:
-                    print(f"[INFO] Target reached accuracy: {error_distance}m, +/- {tolerance}m")
-                    break
-                else:
-                    print(f"[DEBUG] Distance error: x={x_err}, y={y_err}, h={h_error} dvl_error={self.dvl.error}")
-
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -368,6 +373,7 @@ def rotate_vector(x, y, heading):
     y_rot = y * math.cos(math.radians(heading)) - x * math.sin(math.radians(heading))
     return x_rot, y_rot
 
+
 def inv_rotate_vector(x, y, heading):
     """
     Rotate a vector by heading
@@ -375,6 +381,7 @@ def inv_rotate_vector(x, y, heading):
     x_rot = x * math.cos(math.radians(heading)) - y * math.sin(math.radians(heading))
     y_rot = y * math.cos(math.radians(heading)) + x * math.sin(math.radians(heading))
     return x_rot, y_rot
+
 
 def get_heading_from_coords(x, y):
     """
