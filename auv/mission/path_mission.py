@@ -80,9 +80,10 @@ class PathMission:
                 # get the lateral and forward values from the cv (if they exist)
                 yaw = self.data["path_cv"].get("yaw", 0)
                 forward = self.data["path_cv"].get("forward", 0)
-                print(yaw, forward)
+                lateral = self.data["path_cv"].get("lateral", 0)
+                print(yaw, forward, lateral)
                 # direcly feed the cv output to the robot control
-                self.robot_control.movement(yaw=yaw, forward=forward)
+                self.robot_control.movement(yaw=yaw, forward=forward, lateral=lateral)
 
             except Exception as e:
                 print(f"[ERROR] {e}")
