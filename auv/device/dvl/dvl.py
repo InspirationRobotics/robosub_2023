@@ -13,7 +13,8 @@ class DVL:
     """DVL class to enable position estimation"""
 
     def __init__(self, autostart=True, test=False):
-        if not test:
+        self.test = test
+        if not self.test:
             self.dvlPort = dataFromConfig("dvl")
 
             self.ser = serial.Serial(
@@ -34,7 +35,6 @@ class DVL:
 
         self.__running = False
         self.__thread_vel = None
-        self.newData = False
         self.prev_time = None
 
         # sensor error
@@ -48,6 +48,11 @@ class DVL:
         self.vel_rot = [0, 0, 0]  # rotated velocity vector
         self.position = [0, 0, 0]  # position in meters
         self.is_valid = False
+        self.data_available = False
+
+        # stores position and error history for context manager
+        self.position_memory = []
+        self.error_memory = []
 
         if autostart:
             self.start()
@@ -169,6 +174,7 @@ class DVL:
     def reset_position(self):
         """Reset position to 0"""
         self.position = [0, 0, 0]
+        self.error = [0, 0, 0]
 
     def update(self):
         """Update DVL data (runs in a thread)"""
@@ -178,7 +184,7 @@ class DVL:
                 if vel_packet is None:
                     continue
                 ret = self.process_packet(vel_packet)
-                self.newData = ret
+                self.data_available = ret
 
     def start(self):
         # ensure not running
@@ -193,3 +199,35 @@ class DVL:
     def stop(self):
         self.__running = False
         self.__thread_vel.join()
+
+    def __enter__(self):
+        """Context manager for DVL"""
+        if not self.__running and not self.test:
+            self.start()
+
+        # begin a context, store current position
+        self.position_memory.append(self.position)
+        self.error_memory.append(self.error)
+
+        # reset position
+        self.reset_position()
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exit context manager"""
+        prev_pos = self.position_memory.pop()
+        prev_error = self.error_memory.pop()
+
+        # restore previous position and error
+        self.position = [
+            self.position[0] + prev_pos[0],
+            self.position[1] + prev_pos[1],
+            self.position[2] + prev_pos[2],
+        ]
+
+        self.error = [
+            self.error[0] + prev_error[0],
+            self.error[1] + prev_error[1],
+            self.error[2] + prev_error[2],
+        ]

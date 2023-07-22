@@ -47,9 +47,9 @@ class CoinTossMission:
         print("[INFO] Coin Toss")
 
         time.sleep(1)
-        self.robot_control.setDepth(depth)  # setting depth, robot decends
+        self.robot_control.set_depth(depth)  # setting depth, robot decends
         time.sleep(5)  # wait
-        self.robot_control.setHeading(heading)  # turning to the heading
+        self.robot_control.set_heading(heading)  # turning to the heading
 
     def cleanup(self):
         """

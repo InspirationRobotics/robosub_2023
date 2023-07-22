@@ -46,7 +46,7 @@ class StyleMission:
 
         self.robot_control.movement(yaw=3)  # turn
         time.sleep(8)  # keep turning
-        self.robot_control.setHeading(heading)  # return to heading
+        self.robot_control.set_heading(heading)  # return to heading
 
     def cleanup(self):
         """

@@ -18,7 +18,7 @@ rc = RobotControl()
 #servo = Servo()
 time.sleep(1)
 
-rc.setDepth(0.55)
+rc.set_depth(0.55)
 
 forward = 0
 lateral = 0
@@ -56,9 +56,9 @@ while flag:
         elif var == "l":
             yaw = 1
         elif var == "z":
-            rc.setDepth(rc.depth - 0.1)
+            rc.set_depth(rc.depth - 0.1)
         elif var == "x":
-            rc.setDepth(rc.depth + 0.1)
+            rc.set_depth(rc.depth + 0.1)
         elif var == "t":
             #servo.torpedo()
             pass

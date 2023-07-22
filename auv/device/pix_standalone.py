@@ -167,7 +167,7 @@ class AUV(RosHandler):
             print("Baro Failed")
             print(e)
 
-    def setDepth(self, setDValue):
+    def set_depth(self, setDValue):
         if setDValue.data < 0:
             return
         self.pid.setpoint = setDValue.data
@@ -188,7 +188,7 @@ class AUV(RosHandler):
         self.topic_subscriber(self.AUV_GET_ARM)
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
-        self.topic_subscriber(self.AUV_GET_DEPTH, self.setDepth)
+        self.topic_subscriber(self.AUV_GET_DEPTH, self.set_depth)
         self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
         # -Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)

@@ -53,7 +53,7 @@ class PathMission:
         """
 
         # move the sub up
-        self.robot_control.setDepth(0.6)
+        self.robot_control.set_depth(0.6)
         print(self.robot_control)
         while not rospy.is_shutdown():
             try:

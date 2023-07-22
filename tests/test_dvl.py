@@ -114,10 +114,35 @@ def test_dvl_heading():
     packet = {
         "AUV_velocity": [10, 500, 0], # mm/s
         "isAUV_velocity_valid": True,
-        "Time": 10,
+        "Time": 4,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True
     # we just rotated 360 degrees, so we should be back at the origin
     assert dvl.position == pytest.approx([0, 0, 0], abs=0.001)
     assert dvl.vel_rot == pytest.approx([-0.50, 0.01, 0], abs=0.001)
+
+def test_dvl_context_manager():
+    dvl = DVL(autostart=False, test=True)
+
+    dvl.compass_rad = 42
+    dvl.position = [1, 2, 3]
+    dvl.error = [0.5, 0.5, 0]
+
+    with dvl:
+        assert dvl.compass_rad == 42
+        assert dvl.position == [0, 0, 0]
+        assert dvl.error == [0, 0, 0]
+        assert dvl.position_memory[-1] == [1, 2, 3]
+        assert dvl.error_memory[-1] == [0.5, 0.5, 0]
+
+    assert dvl.compass_rad == 42
+    assert dvl.position == [1, 2, 3]
+    assert dvl.error == [0.5, 0.5, 0]
+
+    with dvl:
+        dvl.position = [4, 5, 6]
+        dvl.error = [0.1, 0.2, 0.3]
+
+    assert dvl.position == [5, 7, 9]
+    assert dvl.error == [0.6, 0.7, 0.3]

@@ -4,6 +4,7 @@ import mavros_msgs.msg
 import mavros_msgs.srv
 import rospy
 from std_msgs.msg import Float64, Float32MultiArray
+from simple_pid import PID
 
 from ..device.dvl import dvl
 
@@ -30,6 +31,31 @@ class RobotControl:
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
+        # set of PIDs to handle movement of the robot
+        self.PIDs = {
+            "yaw": PID(
+                self.config.get("YAW_PID_P", 7),
+                self.config.get("YAW_PID_I", 0.5),
+                self.config.get("YAW_PID_D", 0.05),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+            "forward": PID(
+                self.config.get("FORWARD_PID_P", 1),
+                self.config.get("FORWARD_PID_I", 0.1),
+                self.config.get("FORWARD_PID_D", 0.05),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+            "lateral": PID(
+                self.config.get("LATERAL_PID_P", 1),
+                self.config.get("LATERAL_PID_I", 0.1),
+                self.config.get("LATERAL_PID_D", 0.05),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+        }
+
     def get_callback_compass(self):
         def _callback_compass(msg):
             """Get compass heading from /auv/devices/compass topic"""
@@ -49,7 +75,7 @@ class RobotControl:
         """Get depth data from barometer /auv/devices/baro topic"""
         self.depth = msg.data[0]
 
-    def setDepth(self, d):
+    def set_depth(self, d):
         """Set depth to a given value"""
         depth = Float64()
         depth.data = d
@@ -63,9 +89,16 @@ class RobotControl:
         lateral=None,
         pitch=None,
         roll=None,
-        **kwargs,  # here so that it doesn't break if you give something else
+        **kwargs,
     ):
-        # inputs are from -5 to 5
+        """
+        Move the robot in a given direction, non blocking function
+        Inputs are from -5 to 5
+        This controls directly the pwm of the thrusters, no feedback from dvl involved
+
+        # TODO Handle timeout of the pixhawk
+        """
+
         pwm = mavros_msgs.msg.OverrideRCIn()
 
         channels = [1500] * 18
@@ -80,7 +113,7 @@ class RobotControl:
         # publishing pwms to /auv/devices/thrusters
         self.pub_thrusters.publish(pwm)
 
-    def setHeading(self, target: int):
+    def set_heading(self, target: int):
         """Yaw to target heading, heading is absolute, blocking function"""
 
         pwm = mavros_msgs.msg.OverrideRCIn()
@@ -89,33 +122,107 @@ class RobotControl:
 
         print(f"[INFO] Setting heading to {target}")
 
-        # direct variable is direction; clockwise and counterclockwise
         while not rospy.is_shutdown():
-            current = int(self.compass)
-            diff = abs(target - current)
-            direct = 1  # cw
+            if self.compass is None:
+                print("[WARN] Compass not ready")
+                time.sleep(0.5)
+                continue
 
-            if diff >= 180:
-                direct *= -1
-            if current > target:
-                direct *= -1
-            if diff >= 180:
-                diff = 360 - diff
-            # if farther from desired heading, speed will be faster, if closer to heading, speed will decrease
-            if diff <= 10:
-                speed = 55
-            else:
-                speed = 70
-            # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
-            if diff <= 1:
-                pwm.channels[3] = 1500
-                self.pub_thrusters.publish(pwm)  # publishing pwms to stop yawing
+            error = heading_error(self.compass, target)
+            # normalize error to -1, 1 for the PID controller
+            output = self.PIDs["yaw"](error / 180)
+
+            print(f"[DEBUG] Heading error: {error}, output: {output}")
+            pwm.channels[3] = int((output * 80) + 1500)
+
+            if abs(error) <= 1:
+                print("[INFO] Heading reached")
                 break
-            else:
-                pwm.channels[3] = 1500 + (direct * speed)
-                self.pub_thrusters.publish(pwm)  # publishing pwms to continue yawing
+
+            self.pub_thrusters.publish(pwm)
+            time.sleep(0.1)
 
         print(f"[INFO] Finished setting heading to {target}")
+
+    def navigate_dvl(self, x, y, z, end_heading=None, relative=True, update_freq=10):
+        """
+        Navigate to a given point, blocking function
+        x, y are in meters, by default relative to the current position and heading ; z is absolute
+        x = lateral, y = forward, z = depth
+
+        end_heading (optionnal) is the heading to reach at the end of the navigation
+        it defaults to the heading to reach the target point from start in a straight line
+
+        update_freq is the frequency at which the PID controllers are updated
+        """
+
+        # reset PID integrals
+        for pid in self.PIDs.values():
+            pid.reset()
+
+        if relative:
+            # rotate [x, y] according to the current heading
+            x, y = rotate_vector(x, y, self.compass)
+        else:
+            # convert to relative coordinates
+            # heading 0 is north so y "+" axis is going to the north
+            x -= self.position[0]
+            y -= self.position[1]
+    
+        # set the depth independently
+        self.set_depth(z)
+
+        # enter a context manager to handle the DVL position nicely
+        with self.dvl:
+            target_heading = get_heading_from_coords(x, y)  # angle to reach at the target point
+            end_heading = end_heading or target_heading  # angle to reach at the end of the navigation
+            target_distance = get_distance(x, y)
+
+            print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg, {target_distance}m")
+
+            # navigate to the target point
+            while not rospy.is_shutdown():
+                if not self.dvl.is_valid:
+                    # TODO: how can we handle this case better ?
+                    print("[WARN] DVL data not valid, skipping")
+                    time.sleep(0.5)
+                    continue
+                if not self.dvl.data_available:
+                    continue
+
+                self.dvl.data_available = False
+
+                # get current state
+                current_heading = self.compass
+                current_x, current_y, _ = self.dvl.position
+                origin_distance = get_distance(current_x, current_y)
+                error_distance = get_distance(x - current_x, y - current_y)
+                progress = (origin_distance - error_distance) / target_distance
+
+                # get error in relative coords
+                x_err, y_err = inv_rotate_vector(x - current_x, y - current_y, current_heading)
+
+                # calculate heading error
+                target_heading = get_heading_from_coords(x_err, y_err)
+                end_h_error = heading_error(current_heading, end_heading)
+                h_error = progress * target_heading + (1 - progress) * end_h_error
+
+                # calculate PID outputs they are already normalized to -2, 2
+                # We don't really need to go faster
+                forward = self.PIDs["forward"](y_err)
+                lateral = self.PIDs["lateral"](x_err)
+                yaw = self.PIDs["yaw"](h_error / 180)
+
+                self.movement(forward=forward, lateral=lateral, yaw=yaw)
+                time.sleep(1 / update_freq)  # fine tune this value
+
+                # check if we reached the target
+                if x_err <= 0.1 + self.dvl.error[0] and y_err <= 0.1 + self.dvl.error[1]:
+                    print(f"[INFO] Target reached accuracy: {error_distance}m, +/- {tolerance}m")
+                    break
+                else:
+                    print(f"[DEBUG] Distance error: x={x_err}, y={y_err}, h={h_error} dvl_error={self.dvl.error}")
+
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -232,3 +339,45 @@ class RobotControl:
         elif power == 1:
             time = (inches - 3.4) / 7.8
             self.forwardHeadingUni(1, time)
+
+
+def heading_error(heading, target):
+    """
+    Calculate heading error
+    handling the case where 359 and 0 are close
+    """
+    error = target - heading
+    if abs(error) > 180:
+        error = (error + 360) % 360
+    return error
+
+
+def get_distance(x, y):
+    """
+    Calculate distance
+    """
+    dist = math.sqrt(x**2 + y**2)
+    return dist
+
+
+def rotate_vector(x, y, heading):
+    """
+    Rotate a vector by heading
+    """
+    x_rot = x * math.cos(math.radians(heading)) + y * math.sin(math.radians(heading))
+    y_rot = y * math.cos(math.radians(heading)) - x * math.sin(math.radians(heading))
+    return x_rot, y_rot
+
+def inv_rotate_vector(x, y, heading):
+    """
+    Rotate a vector by heading
+    """
+    x_rot = x * math.cos(math.radians(heading)) - y * math.sin(math.radians(heading))
+    y_rot = y * math.cos(math.radians(heading)) + x * math.sin(math.radians(heading))
+    return x_rot, y_rot
+
+def get_heading_from_coords(x, y):
+    """
+    Get heading from coordinates
+    """
+    return math.degrees(math.atan2(y, x)) % 360
