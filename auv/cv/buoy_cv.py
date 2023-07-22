@@ -68,6 +68,8 @@ class CV:
             return True
         def getPoint(self):
             return (self.x, self.y)
+        def getPointInt(self):
+            return [int(self.x), int(self.y)]
         
     class line:
         def __init__(self, point1, point2):
@@ -87,28 +89,35 @@ class CV:
             return point_of_intersection
 
     def calculate_data(self, frame, target, detections):
-
-        correctRatios = {["A1"]: 1.0324, ["A2"]: 0.3057, ["E1"]: 1.1809, ["E2"]: 1.5506, ["board"]: 1} # based off sample footage with sub looking straight at them
+        if len(detections)==0:
+            return frame, False
+        correctRatios = {"A1": 1.0324, "A2": 0.3057, "E1": 1.1809, "E2": 1.5506, "board": 1} # based off sample footage with sub looking straight at them
         detectedLabels = {}
         avgOffset = 0
         targetCenter = None
         boardCenter = None
+        boardDetect = None
         for detection in detections:
-            if(detection.xmax==640 or detection.xmin==0 or detection.ymax==480 or detection.ymin==0):
+            if(detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10):
                 continue #disregard if detection is going off the screen since bad data # maybe remove?
             label = detection.label
+            if label in detectedLabels.keys():
+                continue #ignore multiple of same label
             x_length = abs(detection.xmax-detection.xmin)
             y_length = abs(detection.ymax-detection.ymin)
             xy_ratio = x_length/y_length
             avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
-            if label != "board": detectedLabels[label] = self.point(detection.xmin+x_length/2, detection.ymin+y_length/2) # x y is center of detection
-            else: boardDetect = (detection.xmin+x_length/2, detection.ymin+y_length/2)
-            cv2.circle(frame, detectedLabels[label].getPoint(), 5, (0,0,255),-1)
+            if label != "board": 
+                detectedLabels[label] = self.point(detection.xmin+x_length/2, detection.ymin+y_length/2) # x y is center of detection
+                cv2.circle(frame, detectedLabels[label].getPointInt(), 5, (0,0,255),-1)
+            else: 
+                boardDetect = [detection.xmin+x_length/2, detection.ymin+y_length/2]
+                cv2.circle(frame, (int(boardDetect[0]), int(boardDetect[1])), 5, (0,0,255),-1)
         avgOffset = avgOffset/len(detections)
         #Forming lines between points
         testPoints = []
         lines = []
-        for i in detectedLabels.values:
+        for i in detectedLabels.values():
             testPoints.append(i)
         totalLines = (len(testPoints)*(len(testPoints)-1))/2
         nextPoint=0
@@ -117,14 +126,16 @@ class CV:
             for i in range(len(testPoints)):
                 nextPoint = nextPoint%4
                 if testPoints[i].visit(testPoints[nextPoint]) and testPoints[nextPoint].visit(testPoints[i]):
-                    cv2.line(frame, testPoints[i].getPoint(), testPoints[nextPoint].getPoint(), (0, 255, 0), 3)
+                    cv2.line(frame, testPoints[i].getPointInt(), testPoints[nextPoint].getPointInt(), (0, 255, 0), 3)
                     lines.append(self.line(testPoints[i], testPoints[nextPoint]))
         ######
         #Now calculating center of board based off lines
+        boardCenterX=None
+        boardCenterY=None
         if len(lines)>1:
             def getLength(line):
                 return line.length
-            lines = lines.sort(reverse=True, key=getLength)
+            lines.sort(reverse=True, key=getLength)
             if len(lines)>4:
                 boardCenter = lines[0].intersects(lines[1])
             else:
@@ -137,7 +148,6 @@ class CV:
             else: #means its a diagnol line
                 boardCenterX, boardCenterY = lines[0].midpoint
             boardCenter = (boardCenterX, boardCenterY)
-        
         if boardDetect != None and boardCenter != None:
                 boardCenter = [boardDetect[i] if v is None else v for i,v in enumerate(boardCenter)]
                 boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
@@ -145,9 +155,8 @@ class CV:
             boardCenter = boardDetect
         if boardCenter != None:
             boardCenter = [0 if v is None else v for v in boardCenter]
-            cv2.circle(frame, boardCenter, 5, (255,255,255),-1)
-        targetCenter = detectedLabels[target]
-    
+            cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
+        targetCenter = detectedLabels.get(target, None)
         return frame, avgOffset, targetCenter, boardCenter
 
     def run(self, frame, target, oakd_data):
@@ -159,12 +168,13 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-
-        frame, avgOffset, targetCenter, boardCenter = self.calculate_data(frame, target, oakd_data)
+        if oakd_data == None:
+            return
+        result = self.calculate_data(frame, target, oakd_data)
 
         #print("[INFO] Buoy CV run")
         
-        return {"lateral": 0, "forward": 0, "end": False}, frame
+        return {"lateral": 0, "forward": 0, "end": False}, result[0]
 
 
 if __name__ == "__main__":

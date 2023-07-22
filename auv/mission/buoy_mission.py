@@ -45,7 +45,7 @@ class BuoyMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print(f"[DEBUG] Received data from {file_name}")
+        #print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -85,7 +85,7 @@ class BuoyMission:
             self.cv_handler.stop_cv(file_name)
 
         # idle the robot
-        self.robot_control.movement()
+        #self.robot_control.movement()
         print("[INFO] Buoy mission terminate")
 
 
