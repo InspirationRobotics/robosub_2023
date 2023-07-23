@@ -245,9 +245,13 @@ class CV:
                     print("[INFO] Left")
                     lateral = -1
 
-                if self.center_x < x + self.threshold_far:  # Strafe Right
+                if self.center_x < x - self.threshold_far:  # Strafe Right
                     print("[INFO] Right")
                     lateral = 1
+
+                if lateral == 0:
+                    print("[INFO] Centered on X axis")
+
 
                 # Y alignment
                 if self.center_y < y - self.threshold_far:  # Dive
@@ -272,11 +276,11 @@ class CV:
                 self.open_is_top = True if y > last_y else None
 
                 # X alignment
-                if self.target_center_x < x - self.threshold_near:  # Strafe Left
+                if self.target_center_x < x + self.threshold_near:  # Strafe Left
                     print("[INFO] Left")
                     lateral = -1
 
-                if self.target_center_x > x + self.threshold_near:  # Strafe Right
+                if self.target_center_x > x - self.threshold_near:  # Strafe Right
                     print("[INFO] Right")
                     lateral = 1
 
@@ -287,6 +291,10 @@ class CV:
                 if self.target_center_y > y + self.threshold_near:  # Ascend
                     self.depth -= 0.02
                     print("[INFO] Ascend")
+
+                if lateral == 0:
+                    print("[INFO] X Centered")
+
 
                 # Print motors and return commands
                 return {
@@ -299,7 +307,9 @@ class CV:
         else:  # No circles detected
             # Potentially can resort to scanning sonar with 180 degree sweep
             # and find if the object is on the left or right of the sub
-            self.lostSight += 1
+            self.lostSight += 1                    
+            print("[INFO] Lost Sight for " + str(self.lostSight) + " frames")
+
 
             if self.lostSight > 3000:
                 # Target has been lost for too long and mission needs to terminate
@@ -308,6 +318,8 @@ class CV:
             if self.lostSight > 400:
                 # No circles detected and need to back up looking any
                 forward = -1
+                print("[INFO] Backing up")
+
 
             return {
                 "lateral": 0,
@@ -336,7 +348,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        time.sleep(0.02)
+        time.sleep(0.1)
         # run the cv
         result, img_viz = cv.run(frame, None, None)
         print(f"[INFO] {result}")
