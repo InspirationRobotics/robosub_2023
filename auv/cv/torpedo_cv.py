@@ -23,7 +23,7 @@ class CV:
         """
 
         # TODO Change when testing
-        self.deploy = True
+        self.deploy = False
 
         self.frame = None
         self.lostSight = 0
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/TorpedoTest1.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo1.mp4")
 
     while True:
         # grab a frame

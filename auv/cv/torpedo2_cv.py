@@ -10,6 +10,8 @@ import argparse
 
 import os
 import time
+import matplotlib.pyplot as plt
+
 
 from auv.device.sonar import Ping360, utils, io
 
@@ -74,43 +76,75 @@ class CV:
             else None
         )
 
-    def get_circles(self, frame):
+    def get_sift(self, frame):
         """
         Returns the center and radius of the detected circle in the frame
         using a Hough circle detection on Canny edge detection
         """
 
+        img1 = cv2.imread("testing_data/Torp_IMG.png")#,cv2.IMREAD_GRAYSCALE) # queryImage
+        img2 = cv2.imread("testing_data/Torp_ENV.png")#,cv2.IMREAD_GRAYSCALE) # trainImage
+
         # equalize channels
-        frame_b, frame_g, frame_r = cv2.split(frame)
+        frame_b, frame_g, frame_r = cv2.split(img1)
         frame_g = cv2.equalizeHist(frame_g)
         frame_b = cv2.equalizeHist(frame_b)
         frame_r = cv2.equalizeHist(frame_r)
-        frame = cv2.merge((frame_b, frame_g, frame_r))
+        img1 = cv2.merge((frame_b, frame_g, frame_r))
 
-        # filter the image to red objects, filters what is white
-        gray = cv2.inRange(frame, (0, 0, 150), (20, 20, 255))
-        cv2.imshow("red", frame_r)
-        cv2.imshow("raw", frame)
 
-        contours, _ = cv2.findContours(gray.copy(), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_L1)
-        if len(contours) != 0:
-            print(f"Length: {str(len(contours))}")
-        centres = []
-        for i in range(len(contours)):
-            moments = cv2.moments(contours[i])
-            try:
-                centres.append((int(moments["m10"] / moments["m00"]), int(moments["m01"] / moments["m00"])))
-                cv2.circle(frame, centres[-1], 3, (0, 0, 0), -1, thickness=40)
-            except:
-                print()
+        # equalize channels
+        frame_b, frame_g, frame_r = cv2.split(img2)
+        frame_g = cv2.equalizeHist(frame_g)
+        frame_b = cv2.equalizeHist(frame_b)
+        frame_r = cv2.equalizeHist(frame_r)
+        img2 = cv2.merge((frame_b, frame_g, frame_r))
 
-        if centres:
-            print("Centers:")
-            print(centres)
+
+        # Initiate SIFT detector
+        sift = cv2.SIFT_create()
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = sift.detectAndCompute(img1,None)
+        kp2, des2 = sift.detectAndCompute(img2,None)
+        # BFMatcher with default params
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1,des2,k=2)
+        # Apply ratio test
+        good = []
+        for m,n in matches:
+            if m.distance < 0.55*n.distance:
+                good.append([m])
+        # cv.drawMatchesKnn expects list of lists as matches.
+        img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        plt.imshow(img3),plt.show()
+
+
+    def get_orb(self,frame):
+        img1 = cv2.imread("testing_data/Torp_IMG.png")#,cv2.IMREAD_GRAYSCALE) # queryImage
+        #img2 = cv2.imread("testing_data/Torp_IMG.png",cv2.IMREAD_GRAYSCALE) # queryImage
+
+        img2 = cv2.imread("testing_data/T.png")#,cv2.IMREAD_GRAYSCALE) # trainImage
+        # Initiate ORB detector
+        orb = cv2.ORB_create()
+        # find the keypoints and descriptors with ORB
+        kp1, des1 = orb.detectAndCompute(img1,None)
+        kp2, des2 = orb.detectAndCompute(img2,None)
+        # create BFMatcher object
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # Match descriptors.
+        matches = bf.match(des1,des2)
+        # Sort them in the order of their distance.
+        matches = sorted(matches, key = lambda x:x.distance)
+        # Draw first 10 matches.
+        img3 = cv2.drawMatches(img1,kp1,img2,kp2,matches[:20],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        plt.imshow(img3),plt.show()
+
+
+        
 
     def run(self, frame):
         """
-        Here should be all the code required to run the CV.
+        Here should be all the code required to run the cv2.
         This could be a loop, grabing frames using ROS, etc.
         """
         # print("[INFO] Torpedo CV run")
@@ -128,7 +162,9 @@ class CV:
 
         # video is 480 by 640, at end we want the point approx. (210, 350)
         self.frame = frame
-        self.get_circles(frame)
+        self.get_sift(frame)
+
+        #self.get_orb(frame)
         # print("here")
         return {"lateral": 0, "forward": 0, "vertical": 0, "end": False}, self.frame
 
@@ -311,7 +347,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo2.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo4.mp4")
 
     while True:
         # grab a frame
@@ -319,12 +355,14 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        # time.sleep(0.15)
+        #time.sleep(0.01)
         # run the cv
         result, img_viz = cv.run(frame)
-        # print(f"[info]{result}")
+        # logger.info(result)
 
         # show the frame
         cv2.imshow("frame", frame)
+
+        break 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
