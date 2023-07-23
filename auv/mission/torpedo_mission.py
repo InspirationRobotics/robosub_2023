@@ -51,7 +51,7 @@ class TorpedoMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print(f"[DEBUG] Received data from {file_name}")
+        #print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -59,8 +59,6 @@ class TorpedoMission:
         This could be a loop, a finite state machine, etc.
         """
         while not rospy.is_shutdown():
-            print("[INFO] Template mission run")
-
             try:
                 if not self.received:
                     continue
@@ -88,16 +86,19 @@ class TorpedoMission:
                 torpedo1 = self.data["torpedo_cv"].get("fire1", False)
                 torpedo2 = self.data["torpedo_cv"].get("fire2", False)
 
-                if torpedo1 and self.torpedo_1_fired:
-                    # Fire torpedo 2
+                if torpedo1 and not self.torpedo_1_fired:
+                    # Fire torpedo 1
                     servo.torpedo()
                     self.torpedo_1_fired = True
 
-                if torpedo2 and self.torpedo_2_fired:
+                if torpedo2 and not self.torpedo_2_fired:
                     # Fire torpedo 2
                     servo.torpedo()
                     self.torpedo_2_fired = True
 
+                
+                if any(i == None for i in (lateral, forward)):
+                    continue
                 # direcly feed the cv output to the robot control
                 self.robot_control.movement(lateral=lateral, forward=forward)
                 self.robot_control.set_depth(self.robot_control.depth + vertical)
@@ -105,12 +106,15 @@ class TorpedoMission:
                 # here is an example of how to set a target
                 # self.cv_handler.set_target("torpedo_cv", "albedo")
 
+
             except Exception as e:
                 print(f"[ERROR] {e}")
                 print(e)
                 # idle the robot (just in case something went wrong)
                 self.robot_control.movement()
                 break
+        print("[INFO] Torpedo mission run")
+
 
     def cleanup(self):
         """

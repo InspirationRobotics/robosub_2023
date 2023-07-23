@@ -29,7 +29,7 @@ class BuoyMission:
 
         rospy.init_node("buoy_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
+        self.cv_handler = cvHandler.CVHandler(**self.config)
 
         # init the cv handlers
         # dummys are used to input a video file instead of the camera

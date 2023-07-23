@@ -71,7 +71,7 @@ class CV:
             else None
         )
 
-    def get_circles(self, frame):
+    def get_circles(self, frame, p1, p2):
         """
         Returns the center and radius of the detected circle in the frame
         using a Hough circle detection on Canny edge detection
@@ -91,8 +91,8 @@ class CV:
             cv2.HOUGH_GRADIENT,
             1,
             edges.shape[0] / 8,
-            param1=50,
-            param2=65,
+            param1=p1,
+            param2=p2,
             minRadius=1,
             maxRadius=600,
         )
@@ -142,6 +142,11 @@ class CV:
         """
         # print("[INFO] Torpedo CV run")
 
+        forward = 0
+        lateral = 0
+        yaw = 0
+        end = False
+
         if self.fired_torpedo_1 and self.fired_torpedo_2:
             print("[INFO] Mission complete!!")
             return {
@@ -155,7 +160,10 @@ class CV:
 
         # video is 480 by 640, at end we want the point approx. (210, 350)
         self.frame = frame
-        circles = self.get_circles(frame)
+        if self.near:
+            circles = self.get_circles(frame, 50, 80)
+        if not self.near:
+            circles = self.get_circles(frame, 50, 65)
 
         # Image processing
         if circles is not None:  # Circles detected
@@ -186,54 +194,60 @@ class CV:
             print(f"[INFO] Y: {str(np.round(y).astype('int'))}")
             last_y = y
 
+            # Sleep delay for letting motors move
+            #time.sleep(1)
+
             if self.distance_to_target < self.fire_distance:
-                if not self.fired_torpedo_1:
-                    if self.open_is_top:
-                        self.depth += 0.1
-                    if not self.open_is_top:
-                        self.depth += 0.1
-                    print("[INFO] Fire torpedo 1!!!")
-                    self.fired_torpedo_1 = True
-                    return {
-                        "lateral": 0,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "fire1": True,
-                        "fire2": False,
-                        "end": False,
-                    }, frame
-                else:
-                    print("[INFO] Fire torpedo 2!!!")
-                    self.fired_torpedo_2 = True
-                    return {
-                        "lateral": 0,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "fire1": True,
-                        "fire2": True,
-                        "end": False,
-                    }, frame
+                # Fire both and dont worry about moving to different one
+                print("[INFO] Fire torpedos!!!")
+                self.fired_torpedo_1 = True
+                return {
+                    "lateral": 0,
+                    "forward": 0,
+                    "vertical": self.depth,
+                    "fire1": True,
+                    "fire2": True,
+                    "end": False,
+                }, frame
+
+                # if not self.fired_torpedo_1:
+                #     if self.open_is_top:
+                #         self.depth += 0.1
+                #     if not self.open_is_top:
+                #         self.depth += 0.1
+                #     print("[INFO] Fire torpedo 1!!!")
+                #     self.fired_torpedo_1 = True
+                #     return {
+                #         "lateral": 0,
+                #         "forward": 0,
+                #         "vertical": self.depth,
+                #         "fire1": True,
+                #         "fire2": False,
+                #         "end": False,
+                #     }, frame
+                # else:
+                #     print("[INFO] Fire torpedo 2!!!")
+                #     self.fired_torpedo_2 = True
+                #     return {
+                #         "lateral": 0,
+                #         "forward": 0,
+                #         "vertical": self.depth,
+                #         "fire1": True,
+                #         "fire2": True,
+                #         "end": False,
+                #     }, frame
 
             if not self.near:
                 # Aligning from afar
 
                 # X alignment
-                if self.center_x > x - self.threshold_far:  # Strafe Left
+                if self.center_x > x + self.threshold_far:  # Strafe Left
                     print("[INFO] Left")
-                    return {
-                        "lateral": -1,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "end": False,
-                    }, frame
+                    lateral = -1
+
                 if self.center_x < x + self.threshold_far:  # Strafe Right
                     print("[INFO] Right")
-                    return {
-                        "lateral": 1,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "end": False,
-                    }, frame
+                    lateral = 1
 
                 # Y alignment
                 if self.center_y < y - self.threshold_far:  # Dive
@@ -244,7 +258,7 @@ class CV:
                     print("[INFO] Ascend")
 
                 return {
-                    "lateral": 1,
+                    "lateral": lateral,
                     "forward": 1,
                     "vertical": self.depth,
                     "end": False,
@@ -260,21 +274,11 @@ class CV:
                 # X alignment
                 if self.target_center_x < x - self.threshold_near:  # Strafe Left
                     print("[INFO] Left")
-                    return {
-                        "lateral": -1,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "end": False,
-                    }, frame
+                    lateral = -1
 
                 if self.target_center_x > x + self.threshold_near:  # Strafe Right
                     print("[INFO] Right")
-                    return {
-                        "lateral": 1,
-                        "forward": 0,
-                        "vertical": self.depth,
-                        "end": False,
-                    }, frame
+                    lateral = 1
 
                 # Y alignment
                 if self.target_center_y < y - self.threshold_near:  # Dive
@@ -286,8 +290,8 @@ class CV:
 
                 # Print motors and return commands
                 return {
-                    "lateral": 0,
-                    "forward": 0,
+                    "lateral": lateral,
+                    "forward": 1,
                     "vertical": self.depth,
                     "end": False,
                 }, frame
@@ -297,32 +301,20 @@ class CV:
             # and find if the object is on the left or right of the sub
             self.lostSight += 1
 
-            if self.lostSight > 300:
+            if self.lostSight > 3000:
                 # Target has been lost for too long and mission needs to terminate
-                return {
-                    "lateral": 0,
-                    "forward": 0,
-                    "vertical": 0,
-                    "end": True,
-                }, self.frame
+                end = True
 
-            elif self.lostSight > 3000:
+            if self.lostSight > 400:
                 # No circles detected and need to back up looking any
-                return {
-                    "lateral": 0,
-                    "forward": -1,
-                    "vertical": 0,
-                    "end": False,
-                }, self.frame
-            else:
-                # Lost image for a short duration so waiting to see
-                # if the image will detect another circle
-                return {
-                    "lateral": 0,
-                    "forward": 0,
-                    "vertical": 0,
-                    "end": False,
-                }, self.frame
+                forward = -1
+
+            return {
+                "lateral": 0,
+                "forward": forward,
+                "vertical": 0,
+                "end": end,
+            }, self.frame
 
         # return {"lateral": 0, "forward": 0, "vertical": 0, "end": False}, self.frame
 
