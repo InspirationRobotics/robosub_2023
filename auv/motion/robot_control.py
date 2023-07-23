@@ -6,6 +6,7 @@ import rospy
 from std_msgs.msg import Float64, Float32MultiArray
 from simple_pid import PID
 
+from .utils import get_distance, get_heading_from_coords, heading_error, rotate_vector, inv_rotate_vector
 from ..device.dvl import dvl
 
 
@@ -35,22 +36,22 @@ class RobotControl:
         self.PIDs = {
             "yaw": PID(
                 self.config.get("YAW_PID_P", 7),
-                self.config.get("YAW_PID_I", 0.5),
-                self.config.get("YAW_PID_D", 0.05),
+                self.config.get("YAW_PID_I", 0.01),
+                self.config.get("YAW_PID_D", 0.0),
                 setpoint=0,
                 output_limits=(-2, 2),
             ),
             "forward": PID(
-                self.config.get("FORWARD_PID_P", 1),
-                self.config.get("FORWARD_PID_I", 0.1),
-                self.config.get("FORWARD_PID_D", 0.05),
+                self.config.get("FORWARD_PID_P", 1.0),
+                self.config.get("FORWARD_PID_I", 0.01),
+                self.config.get("FORWARD_PID_D", 0.1),
                 setpoint=0,
                 output_limits=(-2, 2),
             ),
             "lateral": PID(
-                self.config.get("LATERAL_PID_P", 1),
-                self.config.get("LATERAL_PID_I", 0.1),
-                self.config.get("LATERAL_PID_D", 0.05),
+                self.config.get("LATERAL_PID_P", 1.0),
+                self.config.get("LATERAL_PID_I", 0.01),
+                self.config.get("LATERAL_PID_D", 0.0),
                 setpoint=0,
                 output_limits=(-2, 2),
             ),
@@ -116,10 +117,7 @@ class RobotControl:
     def set_heading(self, target: int):
         """Yaw to target heading, heading is absolute, blocking function"""
 
-        pwm = mavros_msgs.msg.OverrideRCIn()
-        pwm.channels = [1500] * 18
         target = (target) % 360
-
         print(f"[INFO] Setting heading to {target}")
 
         while not rospy.is_shutdown():
@@ -133,13 +131,12 @@ class RobotControl:
             output = self.PIDs["yaw"](error / 180)
 
             print(f"[DEBUG] Heading error: {error}, output: {output}")
-            pwm.channels[3] = int((output * 80) + 1500)
 
             if abs(error) <= 1:
                 print("[INFO] Heading reached")
                 break
 
-            self.pub_thrusters.publish(pwm)
+            self.movement(yaw=output)
             time.sleep(0.1)
 
         print(f"[INFO] Finished setting heading to {target}")
@@ -163,71 +160,55 @@ class RobotControl:
         if not relative_coord:
             # convert to relative coordinates
             # heading 0 is north so y "+" axis is going to the north
-            x -= self.position[0]
-            y -= self.position[1]
+            x -= self.dvl.position[0]
+            y -= self.dvl.position[1]
 
         if relative_heading:
             # rotate [x, y] according to the current heading
-            x, y = rotate_vector(x, y, self.compass)
+            rel_x, rel_y = rotate_vector(x, y, self.compass)
+
+        target_heading = get_heading_from_coords(x, y)
+        print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg")
+
+        # rotate and set depth
+        self.set_heading(target_heading)
+        self.set_depth(z)
 
         # enter a local scope to handle coordinates nicely
         with self.dvl:
-            target_heading = get_heading_from_coords(x, y)  # angle to reach at the target point
-            end_heading = end_heading or target_heading  # angle to reach at the end of the navigation
-            target_distance = get_distance(x, y)
-
-            print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg, {target_distance}m")
-
             # set the depth independently
             self.set_depth(z)
 
             # navigate to the target point
             while not rospy.is_shutdown():
                 if not self.dvl.is_valid:
-                    # TODO: how can we handle this case better ?
                     print("[WARN] DVL data not valid, skipping")
                     time.sleep(0.5)
                     continue
+
+                # ensure position data is updated
                 if not self.dvl.data_available:
                     continue
-
                 self.dvl.data_available = False
 
-                # get current state
-                current_heading = self.compass
-                current_x, current_y, _ = self.dvl.position
-                origin_distance = get_distance(current_x, current_y)
-                error_distance = get_distance(x - current_x, y - current_y)
-
-                # progress from 0 to 1
-                # 0 = start, 1 = end or past the end
-                progress = (origin_distance - error_distance) / target_distance
-
-                # get error
-                x_abs_err, y_abs_err = (x - current_x, y - current_y)
-                x_err, y_err = inv_rotate_vector(x - current_x, y - current_y, current_heading)
-
-                # calculate heading error
-                target_h_error = get_heading_from_coords(x_abs_err, y_abs_err)
-                end_h_error = heading_error(current_heading, end_heading)
-                h_error = progress * target_h_error + (1 - progress) * end_h_error
+                err_x, err_y = inv_rotate_vector(
+                    x - self.dvl.position[0],
+                    y - self.dvl.position[1],
+                    self.compass,
+                )
 
                 # check if we reached the target
-                # absolute coordinates
-                if x_abs_err <= 0.1 + self.dvl.error[0] and y_abs_err <= 0.1 + self.dvl.error[1]:
-                    print(f"[INFO] Target reached accuracy: {error_distance}m, +/- {tolerance}m")
+                x_err_th = 0.1 + self.dvl.error[0]
+                y_err_th = 0.1 + self.dvl.error[1]
+                if abs(err_x) <= x_err_th and abs(err_y) <= y_err_th:
+                    print("[INFO] Target reached")
                     break
-                else:
-                    print(f"[DEBUG] Distance error: x={x_err}, y={y_err}, h={h_error} dvl_error={self.dvl.error}")
 
-                # calculate PID outputs they are already normalized to -2, 2
-                # We don't really need to go faster
-                forward = self.PIDs["forward"](y_err)
-                lateral = self.PIDs["lateral"](x_err)
-                yaw = self.PIDs["yaw"](h_error / 180)
-
-                self.movement(forward=forward, lateral=lateral, yaw=yaw)
-                time.sleep(1 / update_freq)  # fine tune this value
+                # calculate PID outputs
+                output_x = self.PIDs["lateral"](-err_x)
+                output_y = self.PIDs["forward"](-err_y)
+                print(f"[DEBUG] err_x={err_x}, err_y={err_y}, output_x={output_x}, output_y={output_y}")
+                self.movement(lateral=output_x, forward=output_y)
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -344,47 +325,3 @@ class RobotControl:
         elif power == 1:
             time = (inches - 3.4) / 7.8
             self.forwardHeadingUni(1, time)
-
-
-def heading_error(heading, target):
-    """
-    Calculate heading error
-    handling the case where 359 and 0 are close
-    """
-    error = target - heading
-    if abs(error) > 180:
-        error = (error + 360) % 360
-    return error
-
-
-def get_distance(x, y):
-    """
-    Calculate distance
-    """
-    dist = math.sqrt(x**2 + y**2)
-    return dist
-
-
-def rotate_vector(x, y, heading):
-    """
-    Rotate a vector by heading
-    """
-    x_rot = x * math.cos(math.radians(heading)) + y * math.sin(math.radians(heading))
-    y_rot = y * math.cos(math.radians(heading)) - x * math.sin(math.radians(heading))
-    return x_rot, y_rot
-
-
-def inv_rotate_vector(x, y, heading):
-    """
-    Rotate a vector by heading
-    """
-    x_rot = x * math.cos(math.radians(heading)) - y * math.sin(math.radians(heading))
-    y_rot = y * math.cos(math.radians(heading)) + x * math.sin(math.radians(heading))
-    return x_rot, y_rot
-
-
-def get_heading_from_coords(x, y):
-    """
-    Get heading from coordinates
-    """
-    return math.degrees(math.atan2(y, x)) % 360

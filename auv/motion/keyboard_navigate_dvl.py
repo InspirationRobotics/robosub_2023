@@ -14,7 +14,7 @@ rc = RobotControl()
 arm.arm()
 time.sleep(1)
 
-while True:
+while not rospy.is_shutdown():
     try:
         inp = input()
         inputs = inp.split(" ")
