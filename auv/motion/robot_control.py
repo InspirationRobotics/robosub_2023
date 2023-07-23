@@ -31,6 +31,7 @@ class RobotControl:
         self.sub_depth = rospy.Subscriber("/auv/devices/baro", Float32MultiArray, self.callback_depth)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
+        self.pub_rel_depth = rospy.Publisher("auv/devices/setRelativeDepth", Float64, queue_size=10)
 
         # set of PIDs to handle movement of the robot
         self.PIDs = {
@@ -82,6 +83,13 @@ class RobotControl:
         depth.data = d
         self.pub_depth.publish(depth)
         print(f"[INFO] Depth set to {d}")
+
+    def set_relative_depth(self, delta_depth):
+        """Set depth to a relative value"""
+        rel_depth = Float64()
+        rel_depth.data = delta_depth
+        self.pub_rel_depth.publish(rel_depth)
+        print(f"[INFO] Changing Depth relatively by {d}")
 
     def movement(
         self,
