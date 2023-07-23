@@ -23,7 +23,7 @@ class CV:
         """
 
         # TODO Change when testing
-        self.deploy = False
+        self.deploy = True
 
         self.frame = None
         self.lostSight = 0
@@ -176,17 +176,20 @@ class CV:
 
             if obstacles is not None:
                 # Sort obstacles by size
-                sorted_obstacles = sorted(obstacles, key=lambda x: x.area, reverse=True)
+                #sorted_obstacles = sorted(obstacles, key=lambda x: x.area, reverse=True)
 
                 # Grab the distance of the first object in the list
-                largest_object = sorted_obstacles[0]
-                self.distance_to_target = largest_object.distance
-                # print("[INFO] Distance: " + self.distance_to_target)
-                print(f"Distance: {self.distance_to_target}")
+                try:
+                    largest_object = sorted_obstacles[0]
+                    self.distance_to_target = largest_object.distance
+                    # print("[INFO] Distance: " + self.distance_to_target)
+                    print(f"Distance: {self.distance_to_target}")
 
-                if self.distance_to_target < self.far_near_boundary:
-                    self.near = True
-                    print("[INFO] Near")
+                    if self.distance_to_target < self.far_near_boundary:
+                        self.near = True
+                        print("[INFO] Near")
+                except:
+                    print(["[ERROR] Ping360 Error"])
 
             # Center of largest circle - aim for this
             x, y = circles[0, 0], circles[0, 1]
