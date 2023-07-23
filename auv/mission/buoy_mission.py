@@ -28,7 +28,7 @@ class BuoyMission:
         self.received = False
 
         rospy.init_node("buoy_mission", anonymous=True)
-        #self.robot_control = robot_control.RobotControl()
+        self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler()
 
         # init the cv handlers
@@ -69,10 +69,20 @@ class BuoyMission:
             if not "buoy_cv" in self.data.keys():
                 continue
 
-            # here is an example of how to set a target
-            self.cv_handler.set_target("buoy_cv", "A1")
+            if self.data["buoy_cv"].get("end", False):
+                # idle the robot
+                self.robot_control.movement()
+                break
 
-            #break  # TODO: remove this line when making your mission
+            self.cv_handler.set_target("buoy_cv", "A2")
+            lateral = self.data["buoy_cv"].get("lateral", None)
+            yaw = self.data["buoy_cv"].get("yaw", None)
+            forward = self.data["buoy_cv"].get("forward", None)
+
+            if any(i == None for i in (lateral, forward)):
+               continue
+            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+            print(forward, lateral, yaw)
 
         print("[INFO] Buoy mission run")
 
@@ -85,7 +95,7 @@ class BuoyMission:
             self.cv_handler.stop_cv(file_name)
 
         # idle the robot
-        #self.robot_control.movement()
+        self.robot_control.movement()
         print("[INFO] Buoy mission terminate")
 
 

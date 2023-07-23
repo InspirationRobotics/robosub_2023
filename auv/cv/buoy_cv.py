@@ -25,6 +25,9 @@ class CV:
         """
         self.midX = 320
         self.midY = 240
+        self.prevYaw=1.3
+        self.prevOffset=1
+        self.step=0
         print("[INFO] Buoy CV init")
 
 
@@ -89,11 +92,9 @@ class CV:
             return point_of_intersection
 
     def calculate_data(self, frame, target, detections):
-        toReturn = {"frame": frame}
-        if len(detections)==0:
-            return toReturn
-        correctRatios = {"A1": 1.0324, "A2": 0.3057, "E1": 1.1809, "E2": 1.5506, "board": 1} # based off sample footage with sub looking straight at them
-        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 2} #each one has its own pixel size at a set distance. # dist is in meters
+        toReturn = {}
+        correctRatios = {"A1": 0.9753, "A2": 0.2812, "E1": 1.2769, "E2": 1.6812, "board": 1.0084} # based off sample footage with sub looking straight at them
+        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
         avgOffset = avgDist = c = 0
@@ -124,6 +125,7 @@ class CV:
                 dist = (correctSizes["dist"]*correctSizes[label])/area
                 avgDist+=dist
                 xy_ratio = x_length/y_length
+                cv2.putText(frame, str(round(xy_ratio,4)), (int(xMid) + 10, int(yMid) + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                 avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
                 c+=1 #counter for averaging
         #print("Reached 2")
@@ -183,15 +185,48 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
+        forward = 0
+        lateral = 0
+        yaw=0
         if oakd_data == None:
-            return frame
+            return {}, frame
+        elif len(oakd_data)==0:
+            return {}, frame
         result = self.calculate_data(frame, target, oakd_data)
+        tolerance = 20
         # ratio is x/y so a the smaller the ratio the more askew you are yaw wise
         # if ratio is close to 1 then you are perfectly aligned
-        print(result.get("targetCenter"))
+        dist = result["avgDist"]
+        if(dist!=0):
+            if(dist>2.5):
+                forward = 1.3
+                boardCenter = result["boardCenter"]
+            else:
+                forward=0
+                boardCenter = result["targetCenter"]
+                self.step=1
+        else:
+            boardCenter = result["boardCenter"]
+        if boardCenter!=None:
+            if boardCenter[0]<320-tolerance:
+                lateral = -2
+            elif boardCenter[1]>320-tolerance:
+                lateral=2
+            else:
+                if self.step==1:
+                    forward=1
+        offset = result["offset"]
+        if offset!=0:
+            if offset>1:
+                if(self.prevOffset>offset):
+                    yaw = self.prevYaw
+                else:
+                    yaw = -1*self.prevYaw
+            self.prevYaw = yaw
+            self.prevOffset = offset
         #print("[INFO] Buoy CV run")
         
-        return {"lateral": 0, "forward": 0, "end": False}, result["frame"]
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": False}, result["frame"]
 
 
 if __name__ == "__main__":

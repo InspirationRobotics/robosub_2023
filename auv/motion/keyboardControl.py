@@ -67,6 +67,13 @@ while flag:
             forward = 0
             yaw = 0
             flag = False
+            disarm()
+            break
+        elif var == "m":
+            lateral = 0
+            forward = 0
+            yaw = 0
+            flag = False
             break
         else:
             print("Bad Input")
@@ -74,7 +81,6 @@ while flag:
         break
 
 flag = False
-disarm()
 thread_mov.join()
 
 rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)
