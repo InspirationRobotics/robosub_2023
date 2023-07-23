@@ -52,7 +52,7 @@ oakAmt = len(oaks)
 print(oaks)
 camAmt = len(ogDev)
 print(ogDev)
-os.system("sudo modprobe v4l2loopback devices=" + str(camAmt + oakAmt))
+os.system(f"sudo modprobe v4l2loopback devices={str(camAmt + oakAmt)}")
 postDevices = os.popen("ls /dev/video*").read()
 diff = difference(preDevices, postDevices)
 if len(diff) == 0:
@@ -109,14 +109,14 @@ class cameraStreams:
 
     def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
         if not id.isnumeric():
-            print("Invalid ID, please pick from " + str(self.camID))
+            print(f"Invalid ID {id}, please pick from {str(self.camID)}")
             return
         id = int(id)
         if id not in self.camID:
-            print("Invalid ID, please pick from " + str(self.camID))
+            print(f"Invalid ID of {id}, please pick from {str(self.camID)}")
             return False
         if state and len(self.activeCams) == 2 and id not in self.activeCams:
-            print("2 camera streams are already active with ids: " + str(self.activeCams))
+            print(f"2 camera streams are already active with ids: {str(self.activeCams)}")
             print("Please stop one of these streams first\n")
             return False
         if state and id not in self.activeCams:
@@ -140,7 +140,7 @@ class cameraStreams:
             self.cams[id].callbackModel(model, True)
             return True
 
-    '''
+    """
     Essentially it will be a ROS string message formatted as a json.
     The json will include the following information:
 
@@ -169,24 +169,24 @@ class cameraStreams:
     {[“camera_ID”]: 30, [“mode”]: True, [“Model”]: “raw”} or
     {[“camera_ID”]: 30, [“mode”]: True}
 
-    Kill all active cameras: {[“Kill”]: True}'''
+    Kill all active cameras: {[“Kill”]: True}"""
 
     def callbackCamSelect(self, msg):
         data = json.loads(msg.data)
         print("Received data:", data)
         kill = data.get("kill")
-        if(kill!=None):
+        if kill != None:
             for i in self.activeCams:
                 self.camCtrl(i, False)
         camID = data.get("camera_ID")
         mode = data.get("mode")
         model = data.get("model")
-        if camID>=10: 
-            camID = camAmt-1 + camID/10
-        if(mode=="start"):
-            self.camCtrl(camID, True, model)
-        if(mode=="stop"):
-            self.camCtrl(camID, False)
+        if camID >= 10:
+            camID = (camAmt - 1) + camID / 10
+        if mode == "start":
+            self.camCtrl(str(int(camID)), True, model)
+        if mode == "stop":
+            self.camCtrl(str(int(camID)), False)
 
     def stop(self):
         for i in self.cams:

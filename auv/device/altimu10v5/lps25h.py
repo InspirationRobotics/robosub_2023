@@ -14,25 +14,23 @@ from .constants import *
 
 
 class LPS25H(I2C):
-    """ Set up and access LPS25H digital barometer.
-    """
+    """Set up and access LPS25H digital barometer."""
 
     # Output registers used by the barometer sensor
     barometer_registers = [
         LPS25H_PRESS_OUT_XL,  # lowest byte of pressure value
-        LPS25H_PRESS_OUT_L,   # low byte of pressure value
-        LPS25H_PRESS_OUT_H,   # high byte of pressure value
+        LPS25H_PRESS_OUT_L,  # low byte of pressure value
+        LPS25H_PRESS_OUT_H,  # high byte of pressure value
     ]
 
     def __init__(self, bus_id=8):
-        """ Set up and access LPS25H digital barometer.
-        """
+        """Set up and access LPS25H digital barometer."""
 
         super(LPS25H, self).__init__(bus_id)
         self.is_barometer_enabled = False
 
     def __del__(self):
-        """ Clean up. """
+        """Clean up."""
         try:
             # Power down barometer
             self.write_register(LPS25H_ADDR, LPS25H_CTRL_REG1, 0x00)
@@ -41,20 +39,20 @@ class LPS25H(I2C):
             pass
 
     def enable(self):
-        """ Enable and set up the LPS25H barometer. """
+        """Enable and set up the LPS25H barometer."""
         # Power down device first
         self.write_register(LPS25H_ADDR, LPS25H_CTRL_REG1, 0x00)
 
         # Output data rate 12.5Hz
         # binary value -> 10110000, hex value -> 0xb0
-        self.write_register(LPS25H_ADDR, LPS25H_CTRL_REG1, 0xb0)
+        self.write_register(LPS25H_ADDR, LPS25H_CTRL_REG1, 0xB0)
 
         self.is_barometer_enabled = True
 
     def get_barometer_raw(self):
-        """ Return the raw barometer sensor data. """
+        """Return the raw barometer sensor data."""
         # Check if barometer has been enabled
         if not self.is_barometer_enabled:
-            raise(Exception('Barometer is not enabled'))
+            raise (Exception("Barometer is not enabled"))
 
         return self.read_1d_sensor(LPS25H_ADDR, self.barometer_registers)

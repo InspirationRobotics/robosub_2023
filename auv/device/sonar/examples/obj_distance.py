@@ -3,17 +3,13 @@ Script designed to experiment with the Ping360 sonar and collect some data.
 """
 
 import argparse
-import logging
 import os
 import time
 
-from auv.device.sonar import Ping360, io
-
-import numpy as np
 import cv2
+import numpy as np
 
-logging.basicConfig(level=logging.INFO)
-
+from auv.device.sonar import Ping360, io
 
 parser = argparse.ArgumentParser(description="Ping360 data collection script")
 parser.add_argument(
@@ -36,7 +32,7 @@ parser.add_argument(
     "--output",
     action="store",
     required=False,
-    default=str(time.time()) + ".txt",
+    default=f"{str(time.time())}.txt",
     type=str,
     help="Output file name",
 )
@@ -64,28 +60,27 @@ d = p.get_device_data()
 print(d)
 
 # make a full scan and save it to a file
-logging.info("Starting Ping360 full scan")
+print("[INFO] Starting Ping360 full scan")
 
 while True:
     try:
         start_time = time.time()
-        
+
         # get objstacle detection from scan
         obj = p.get_obstacles(threshold=60)
 
         # sort the obstacles by distance
         obj = sorted(obj, key=lambda x: x.distance * x.size)
-        logging.info(obj)
+        print(f"[DEBUG] {obj}")
 
-        if not len(obj)
-            continue 
-        
+        if not len(obj):
+            continue
+
         # this is the closest one
-        logging.info("closest: {}".format(obj[0]))
+        print(f"[INFO] closest: {obj[0]}")
 
     except KeyboardInterrupt as e:
         break
 
     except Exception as e:
-        logging.error(e)
-
+        print(f"[ERROR] {e}")

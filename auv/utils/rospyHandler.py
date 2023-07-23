@@ -24,11 +24,12 @@ class RosHandler:
     def topic_publisher(topic: TopicService):
         pub = rospy.Publisher(topic.get_name(), topic.get_type(), queue_size=10)
         pub.publish(topic.get_data())
-        #print("published to " + topic.get_name())
+        # print("published to " + topic.get_name())
 
     @staticmethod
     def topic_subscriber(topic: TopicService, function=None):
-        if(function==None): function=topic.set_data
+        if function == None:
+            function = topic.set_data
         rospy.Subscriber(topic.get_name(), topic.get_type(), function)
 
     @staticmethod
@@ -38,9 +39,9 @@ class RosHandler:
             typ = service.get_type()
             data = service.get_data()
 
-            rospy.loginfo("waiting for ROS service:" + srv)
+            rospy.loginfo(f"waiting for ROS service:{srv}")
             rospy.wait_for_service(srv, timeout=timeout)
-            rospy.loginfo("ROS service is up:" + srv)
+            rospy.loginfo(f"ROS service is up:{srv}")
             call_srv = rospy.ServiceProxy(srv, typ)
             return call_srv(data)
         except rospy.ROSException as e:
@@ -50,4 +51,3 @@ class RosHandler:
         except KeyError as e:
             print("ERROR:", e)
         return None
-

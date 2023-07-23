@@ -17,8 +17,7 @@ from .constants import *
 
 
 class LSM6DS33(I2C):
-    """ Set up and access LSM6DS33 accelerometer and gyroscope.
-    """
+    """Set up and access LSM6DS33 accelerometer and gyroscope."""
 
     # Output registers used by the gyroscope
     gyro_registers = [
@@ -41,8 +40,7 @@ class LSM6DS33(I2C):
     ]
 
     def __init__(self, bus_id=8):
-        """ Set up I2C connection and initialize some flags and values.
-        """
+        """Set up I2C connection and initialize some flags and values."""
 
         super(LSM6DS33, self).__init__(bus_id)
         self.is_accel_enabled = False
@@ -55,18 +53,18 @@ class LSM6DS33(I2C):
         self.accel_angle_cal = [0, 0]
 
     def __del__(self):
-        """ Clean up."""
+        """Clean up."""
         try:
             # Power down accelerometer and gyro
             self.writeRegister(LSM6DS33_ADDR, LSM6DS33_CTRL1_XL, 0x00)
             self.writeRegister(LSM6DS33_ADDR, LSM6DS33_CTRL2_G, 0x00)
             super(LSM6DS33, self).__del__()
-            print('Destroying')
+            print("Destroying")
         except:
             pass
 
     def enable(self, accelerometer=True, gyroscope=True, calibration=True):
-        """ Enable and set up the given sensors in the IMU."""
+        """Enable and set up the given sensors in the IMU."""
         if accelerometer:
             # 1.66 kHz (high performance) / +/- 4g
             # binary value -> 0b01011000, hex value -> 0x58
@@ -83,8 +81,8 @@ class LSM6DS33(I2C):
             self.is_accel_calibrated = True
 
     def calibrate(self, iterations=2000):
-        """ Calibrate the gyro's raw values."""
-        print('Calibrating Gryo and Accelerometer...')
+        """Calibrate the gyro's raw values."""
+        print("Calibrating Gryo and Accelerometer...")
 
         for i in range(iterations):
             gyro_raw = self.get_gyroscope_raw()
@@ -106,14 +104,13 @@ class LSM6DS33(I2C):
         self.accel_angle_cal[0] /= iterations
         self.accel_angle_cal[1] /= iterations
 
-        print('Calibration Done')
+        print("Calibration Done")
 
     def get_gyroscope_raw(self):
-        """ Return a 3D vector of raw gyro data.
-        """
+        """Return a 3D vector of raw gyro data."""
         # Check if gyroscope has been enabled
         if not self.is_gyro_enabled:
-            raise(Exception('Gyroscope is not enabled!'))
+            raise (Exception("Gyroscope is not enabled!"))
 
         sensor_data = self.read_3d_sensor(LSM6DS33_ADDR, self.gyro_registers)
 
@@ -128,16 +125,16 @@ class LSM6DS33(I2C):
             return sensor_data
 
     def get_gyro_angular_velocity(self):
-        """ Return a 3D vector of the angular velocity measured by the gyro
-            in degrees/second.
+        """Return a 3D vector of the angular velocity measured by the gyro
+        in degrees/second.
         """
         # Check if gyroscope has been enabled
         if not self.is_gyro_enabled:
-            raise(Exception('Gyroscope is not enabled!'))
+            raise (Exception("Gyroscope is not enabled!"))
 
         # Check if gyroscope has been calibrated
         if not self.is_gyro_calibrated:
-            raise(Exception('Gyroscope is not calibrated!'))
+            raise (Exception("Gyroscope is not calibrated!"))
 
         gyro_data = self.get_gyroscope_raw()
 
@@ -148,17 +145,16 @@ class LSM6DS33(I2C):
         return gyro_data
 
     def get_accelerometer_raw(self):
-        """ Return a 3D vector of raw accelerometer data.
-        """
+        """Return a 3D vector of raw accelerometer data."""
 
         # Check if accelerometer has been enabled
         if not self.is_accel_enabled:
-            raise(Exception('Accelerometer is not enabled!'))
+            raise (Exception("Accelerometer is not enabled!"))
 
         return self.read_3d_sensor(LSM6DS33_ADDR, self.accel_registers)
 
     def get_accelerometer_g_forces(self):
-        """ Return a 3D vector of the g forces measured by the accelerometer"""
+        """Return a 3D vector of the g forces measured by the accelerometer"""
         [x_val, y_val, z_val] = self.get_accelerometer_raw()
 
         x_val = (x_val * ACCEL_CONVERSION_FACTOR) / 1000
@@ -168,8 +164,8 @@ class LSM6DS33(I2C):
         return [x_val, y_val, z_val]
 
     def get_accelerometer_angles(self, round_digits=0):
-        """ Return a 2D vector of roll and pitch angles,
-            based on accelerometer g forces
+        """Return a 2D vector of roll and pitch angles,
+        based on accelerometer g forces
         """
 
         # Get raw accelerometer g forces

@@ -16,13 +16,13 @@
 #     available_devices = []
 #     for device in dai.Device.getAllAvailableDevices():
 #         available_devices.append(device.getMxId())
-    
+
 #     return available_devices
 
 # devices = list_devices()
 # print(devices)
 
-#def difference(string1, string2):
+# def difference(string1, string2):
 #    # Split both strings into list items
 #    string1 = string1.split()
 #    string2 = string2.split()
@@ -33,7 +33,7 @@
 #    str_diff = A.symmetric_difference(B)
 #    print(list(str_diff))
 
-#difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
+# difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
 
 # from altimu10v5.lsm6ds33 import LSM6DS33
 # from altimu10v5.lis3mdl import LIS3MDL
@@ -186,7 +186,7 @@
 
 # print(data)
 
-#params for each detection are: label, confidence, xmin, xmax, ymin, ymax
+# params for each detection are: label, confidence, xmin, xmax, ymin, ymax
 
 # import json
 
@@ -213,32 +213,40 @@
 # var2 = json.loads(var)
 # print(var2)
 
-import Jetson.GPIO as GPIO
-import sys
-import time
+# import Jetson.GPIO as GPIO
+# import sys
+# import time
 
-pin1 = 35
-pin2 = 36
-global state
-state = True
-GPIO.setmode(GPIO.BOARD)
+# pin1 = 35
+# pin2 = 36
+# global state
+# state = True
+# GPIO.setmode(GPIO.BOARD)
 
-GPIO.setup(pin1, GPIO.OUT)
-GPIO.setup(pin2, GPIO.IN)
-
-def printState(tp):
-    global state
-    print("Detected")
-    GPIO.cleanup()
-    state = False
-
-GPIO.output(pin1, GPIO.HIGH)
-print("Its high")
-
-GPIO.add_event_detect(pin2, GPIO.FALLING, callback=printState, bouncetime=10)
-
-while state:
-    pass
+# GPIO.setup(pin1, GPIO.OUT)
+# GPIO.setup(pin2, GPIO.IN)
 
 
+# def printState(tp):
+#     global state
+#     print("Detected")
+#     GPIO.cleanup()
+#     state = False
 
+
+# GPIO.output(pin1, GPIO.HIGH)
+# print("Its high")
+
+# GPIO.add_event_detect(pin2, GPIO.FALLING, callback=printState, bouncetime=10)
+
+# while state:
+#     pass
+
+
+listTemp = [None, "Hello"]
+boardDetect = [100,10]
+
+
+listTemp = [boardDetect[i] if v is None else v for i,v in enumerate(listTemp)]
+
+print(listTemp)

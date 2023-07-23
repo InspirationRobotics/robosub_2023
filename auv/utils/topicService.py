@@ -11,7 +11,7 @@ class TopicService:
         data = self.__data
         self.__data = None
         return data
-    
+
     def get_data_last(self):
         return self.__data
 

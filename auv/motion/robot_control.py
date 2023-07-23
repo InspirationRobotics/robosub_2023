@@ -1,15 +1,13 @@
-import logging
 import time
 
 import mavros_msgs.msg
 import mavros_msgs.srv
 import rospy
 from std_msgs.msg import Float64, Float32MultiArray
+from simple_pid import PID
 
+from .utils import get_distance, get_heading_from_coords, heading_error, rotate_vector, inv_rotate_vector
 from ..device.dvl import dvl
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class RobotControl:
@@ -29,12 +27,37 @@ class RobotControl:
             self.dvl = None
 
         # establishing thrusters and depth publishers
-        self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.callback_compass)
+        self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
         self.sub_depth = rospy.Subscriber("/auv/devices/baro", Float32MultiArray, self.callback_depth)
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
 
-    def callback_compass(self):
+        # set of PIDs to handle movement of the robot
+        self.PIDs = {
+            "yaw": PID(
+                self.config.get("YAW_PID_P", 7),
+                self.config.get("YAW_PID_I", 0.01),
+                self.config.get("YAW_PID_D", 0.0),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+            "forward": PID(
+                self.config.get("FORWARD_PID_P", 1.0),
+                self.config.get("FORWARD_PID_I", 0.01),
+                self.config.get("FORWARD_PID_D", 0.1),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+            "lateral": PID(
+                self.config.get("LATERAL_PID_P", 1.0),
+                self.config.get("LATERAL_PID_I", 0.01),
+                self.config.get("LATERAL_PID_D", 0.0),
+                setpoint=0,
+                output_limits=(-2, 2),
+            ),
+        }
+
+    def get_callback_compass(self):
         def _callback_compass(msg):
             """Get compass heading from /auv/devices/compass topic"""
             self.compass = msg.data
@@ -42,23 +65,23 @@ class RobotControl:
         def _callback_compass_dvl(msg):
             """Get compass heading from dvl"""
             self.compass = msg.data
-            self.dvl.compass = msg.data
+            self.dvl.compass_rad = math.radians(msg.data)
 
         if self.dvl:
-            return callback_compass_dvl
+            return _callback_compass_dvl
         else:
-            return callback_compass
+            return _callback_compass
 
     def callback_depth(self, msg):
         """Get depth data from barometer /auv/devices/baro topic"""
         self.depth = msg.data[0]
 
-    def setDepth(self, d):
+    def set_depth(self, d):
         """Set depth to a given value"""
         depth = Float64()
         depth.data = d
         self.pub_depth.publish(depth)
-        logger.info("Depth set to {}".format(d))
+        print(f"[INFO] Depth set to {d}")
 
     def movement(
         self,
@@ -67,13 +90,20 @@ class RobotControl:
         lateral=None,
         pitch=None,
         roll=None,
-        **kwargs, # here so that it doesn't break if you give something else
+        **kwargs,
     ):
-        # inputs are from -5 to 5
+        """
+        Move the robot in a given direction, non blocking function
+        Inputs are from -5 to 5
+        This controls directly the pwm of the thrusters, no feedback from dvl involved
+
+        # TODO Handle timeout of the pixhawk
+        """
+
         pwm = mavros_msgs.msg.OverrideRCIn()
 
         channels = [1500] * 18
-        #channels[2] = int((vertical * 80) + 1500) if vertical else 1500
+        # channels[2] = int((vertical * 80) + 1500) if vertical else 1500
         channels[3] = int((yaw * 80) + 1500) if yaw else 1500
         channels[4] = int((forward * 80) + 1500) if forward else 1500
         channels[5] = int((lateral * 80) + 1500) if lateral else 1500
@@ -84,42 +114,101 @@ class RobotControl:
         # publishing pwms to /auv/devices/thrusters
         self.pub_thrusters.publish(pwm)
 
-    def setHeading(self, target: int):
+    def set_heading(self, target: int):
         """Yaw to target heading, heading is absolute, blocking function"""
 
-        pwm = mavros_msgs.msg.OverrideRCIn()
-        pwm.channels = [1500] * 18
         target = (target) % 360
+        print(f"[INFO] Setting heading to {target}")
 
-        logger.info("Setting heading to {}".format(target))
-
-        # direct variable is direction; clockwise and counterclockwise
         while not rospy.is_shutdown():
-            current = int(self.compass)
-            diff = abs(target - current)
-            direct = 1  # cw
+            if self.compass is None:
+                print("[WARN] Compass not ready")
+                time.sleep(0.5)
+                continue
 
-            if diff >= 180:
-                direct *= -1
-            if current > target:
-                direct *= -1
-            if diff >= 180:
-                diff = 360 - diff
-            # if farther from desired heading, speed will be faster, if closer to heading, speed will decrease
-            if diff <= 10:
-                speed = 55
-            else:
-                speed = 70
-            # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
-            if diff <= 1:
-                pwm.channels[3] = 1500
-                self.pubThrusters.publish(pwm)  # publishing pwms to stop yawing
+            error = heading_error(self.compass, target)
+            # normalize error to -1, 1 for the PID controller
+            output = self.PIDs["yaw"](error / 180)
+
+            print(f"[DEBUG] Heading error: {error}, output: {output}")
+
+            if abs(error) <= 1:
+                print("[INFO] Heading reached")
                 break
-            else:
-                pwm.channels[3] = 1500 + (direct * speed)
-                self.pubThrusters.publish(pwm)  # publishing pwms to continue yawing
 
-        logger.info("Finished setting heading to {}".format(target))
+            self.movement(yaw=output)
+            time.sleep(0.1)
+
+        print(f"[INFO] Finished setting heading to {target}")
+
+    def navigate_dvl(self, x, y, z, end_heading=None, relative_coord=True, relative_heading=True, update_freq=10):
+        """
+        Navigate to a given point, blocking function
+        x, y are in meters, by default relative to the current position and heading ; z is absolute
+        x = lateral, y = forward, z = depth
+
+        end_heading (optionnal) is the heading to reach at the end of the navigation
+        it defaults to the heading to reach the target point from start in a straight line
+
+        update_freq is the frequency at which the PID controllers are updated
+        """
+
+        # reset PID integrals
+        for pid in self.PIDs.values():
+            pid.reset()
+
+        if not relative_coord:
+            # convert to relative coordinates
+            # heading 0 is north so y "+" axis is going to the north
+            x -= self.dvl.position[0]
+            y -= self.dvl.position[1]
+
+        if relative_heading:
+            # rotate [x, y] according to the current heading
+            rel_x, rel_y = rotate_vector(x, y, self.compass)
+
+        target_heading = get_heading_from_coords(x, y)
+        print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg")
+
+        # rotate and set depth
+        self.set_heading(target_heading)
+        self.set_depth(z)
+
+        # enter a local scope to handle coordinates nicely
+        with self.dvl:
+            # set the depth independently
+            self.set_depth(z)
+
+            # navigate to the target point
+            while not rospy.is_shutdown():
+                if not self.dvl.is_valid:
+                    print("[WARN] DVL data not valid, skipping")
+                    time.sleep(0.5)
+                    continue
+
+                # ensure position data is updated
+                if not self.dvl.data_available:
+                    continue
+                self.dvl.data_available = False
+
+                err_x, err_y = inv_rotate_vector(
+                    x - self.dvl.position[0],
+                    y - self.dvl.position[1],
+                    self.compass,
+                )
+
+                # check if we reached the target
+                x_err_th = 0.1 + self.dvl.error[0]
+                y_err_th = 0.1 + self.dvl.error[1]
+                if abs(err_x) <= x_err_th and abs(err_y) <= y_err_th:
+                    print("[INFO] Target reached")
+                    break
+
+                # calculate PID outputs
+                output_x = self.PIDs["lateral"](-err_x)
+                output_y = self.PIDs["forward"](-err_y)
+                print(f"[DEBUG] err_x={err_x}, err_y={err_y}, output_x={output_x}, output_y={output_y}")
+                self.movement(lateral=output_x, forward=output_y)
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
@@ -138,10 +227,10 @@ class RobotControl:
         pwm.channels[4] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
+            self.pub_thrusters.publish(pwm)  # publishing pwms for forward commands to thrusters
             time.sleep(0.1)
 
-        logger.info("finished forward")
+        print("[INFO] finished forward")
         # calculating gradual decrease for thruster power
         gradDec = int((forwardPower - powerStop) / (timeStop * 10))
         startTime = time.time()
@@ -149,18 +238,18 @@ class RobotControl:
         while time.time() - startTime < timeStop:
             current_p = pwm.channels[4]
             pwm.channels[4] = current_p - gradDec
-            self.pubThrusters.publish(pwm)  # publishing reduced pwms for forward thrust
+            self.pub_thrusters.publish(pwm)  # publishing reduced pwms for forward thrust
             time.sleep(0.1)
 
         t2 = 0
-        logger.info("finished backstopping")
+        print("[INFO] finished backstopping")
         pwm.channels = [1500] * 18
         startTime = time.time()
         # publishing idle pwms to sub to stop moving
         while time.time() - startTime <= 0.5:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
-        logger.info("finished forward heading")
+        print("[INFO] finished forward heading")
 
     # incorporates universal backstop function for lateral movement
     def lateralUni(self, power, t):
@@ -170,7 +259,7 @@ class RobotControl:
         pwm.channels[5] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
         self.backStop(pwm, t)
 
@@ -182,7 +271,7 @@ class RobotControl:
         pwm.channels[4] = forwardPower
         startTime = time.time()
         while time.time() - startTime < t:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
         self.backStop(pwm, t)
 
@@ -203,6 +292,7 @@ class RobotControl:
             for i in range(len(pwm.channels)):
                 if pwm.channels[i] != 1500:
                     pwm.channels[i] = int(
+                        # TODO: this doesn't exist anymore
                         self.mapping(
                             time.time() - startTime,
                             0,
@@ -211,14 +301,14 @@ class RobotControl:
                             powerStop[i],
                         )
                     )
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
         pwm.channels = [1500] * 18
         startTime = time.time()
         while time.time() - startTime <= 0.5:
-            self.pubThrusters.publish(pwm)
+            self.pub_thrusters.publish(pwm)
             time.sleep(0.05)
-        logger.info("finished backstopping")
+        print("[INFO] finished backstopping")
 
     # uses functions from testing to correlate pwms and time to distance and then utilizes forwardHeadingUni commmand to send pwms to thrusters for calculated pwms and time
     def forwardDist(self, dist, power):

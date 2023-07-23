@@ -27,6 +27,7 @@ We have two different subs, Onyx and Graey, they both run on similar software se
 * CVbridge (Noetic modified)
 
 Because of this, when we design our code, we need to make sure that it is compatible between both subs.
+
 ### Installing
 
 #### For Onyx or Graey
@@ -157,39 +158,59 @@ If you have trouble running this command, you can use the following command inst
 ```bash
 python3 -m black .
 ```
+
+(bonus) Code analysis is done using pylint. we will omit C0115 and C0116 for now, but try to fix the other errors.
+
+```bash
+pylint --disable=C0115,C0116 auv
+```
+
 ## Running the AUVs
 
 ### Graey and Onyx
-The first thing you must be doing before running any scripts on the sub is running mavros. Feel free to use screens to make things easier.
-```
-screen -S mavros
-roslaunch mavros apm.launch
-```
-Git pull if necessary
-```
-cd auv
-git pull
-```
-Now run the cams scripts:
-```
-screen -S cams
-python3 camsVersatile.py
-```
-Enter which camera id you are using and then enter "start" or "stop"
 
-If you would like camera feed
-```
-screen -S bash
-cd ~/rtsp
-./start_video.sh {Camera #}
-```
-Now run pix_standalone for sensor and thruster capabilities.
-```
-screen -S pix
-python3 pix_standalone.py
-```
-Now run your mission program
-```
-cd auv/missions/
-python3 yourMission.py
-```
+1. Git pull if necessary
+
+    ```bash
+    cd auv
+    git pull
+    ```
+
+2. First, start running roscore and mavros. This script will launch both at the same time in separate screens.
+
+    ```bash
+    bash ./scripts/mavros.sh
+    ```
+
+3. Now run the cams scripts:
+
+    ```bash
+    screen -S cams
+    python3 camsVersatile.py
+    ```
+
+    Follow the prompts, enter which camera id you are using and then enter "start" or "stop"
+
+4. If you would like camera feed
+
+    ```bash
+    screen -S bash
+    cd ~/rtsp
+    ./start_video.sh <camera_id>
+    ```
+
+5. Run pix_standalone for sensor and thruster capabilities.
+
+    ```bash
+    screen -S pix
+    python3 pix_standalone.py
+    ```
+
+    This will arm the sub by default. To disarm, run `python3 -m auv.utils.disarm`, to arm it back again use: `python3 -m auv.utils.arm`
+
+6. Run your mission program
+
+    ```bash
+    cd auv/missions/
+    python3 yourMission.py
+    ```

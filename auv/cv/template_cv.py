@@ -5,14 +5,10 @@ Author: Team Inspiration
 
 # import what you need from within the package
 
-import logging
 import time
 
 import cv2
 import numpy as np
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CV:
@@ -29,7 +25,7 @@ class CV:
 
         self.this_is_a_variable = config.get("this_is_a_variable", 42)
 
-        logger.info("Template CV init")
+        print("[INFO] Template CV init")
 
     def run(self, frame, target, oakd_data):
         """
@@ -40,7 +36,7 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        logging.info("Template CV run")
+        print("[INFO] Template CV run")
 
         return {"lateral": 0, "forward": 0, "end": False}, frame
 
@@ -49,7 +45,6 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.template_cv"
-    logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV(arg1="value1", arg2="value2")
@@ -67,7 +62,7 @@ if __name__ == "__main__":
         result = cv.run(frame, "some_info", None)
 
         # do something with the result
-        logger.info(result)
+        print(f"[INFO] {result}")
 
         # debug the frame
         cv2.imshow("frame", frame)

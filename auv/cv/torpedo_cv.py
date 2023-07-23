@@ -3,20 +3,14 @@ Description: CV torpedo class
 Author: Kyle Jacob
 """
 
-
-import logging
 import time
 import cv2
 import numpy as np
 import argparse
-import logging
 import os
 import time
 
 from auv.device.sonar import Ping360, utils, io
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CV:
@@ -33,7 +27,7 @@ class CV:
 
         self.frame = None
         self.lostSight = 0
-        logger.info("Torpedo CV init")
+        print("[INFO] Torpedo CV init")
 
         self.depth = 0.35
 
@@ -64,7 +58,7 @@ class CV:
 
         self.p = (
             Ping360(
-                "/dev/ttyUSB0",
+                "/dev/ttyUSB1",
                 115200,
                 scan_mode=1,
                 angle_range=(150, 250),
@@ -103,7 +97,7 @@ class CV:
             maxRadius=600,
         )
 
-        if(not self.deploy):
+        if not self.deploy:
             cv2.imshow("Edges", edges)
 
         # Draw all circles on the original image
@@ -111,8 +105,7 @@ class CV:
             i = 0
 
             circles = np.round(circles[0, :]).astype("int")
-            
-            
+
             for circle in circles:
                 x, y = circles[i, 0], circles[i, 1]
                 dist = circles[i, 2]
@@ -147,10 +140,10 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        # logging.info("Torpedo CV run")
+        # print("[INFO] Torpedo CV run")
 
         if self.fired_torpedo_1 and self.fired_torpedo_2:
-            logging.info("Mission complete!!")
+            print("[INFO] Mission complete!!")
             return {
                 "lateral": 0,
                 "forward": 0,
@@ -166,7 +159,7 @@ class CV:
 
         # Image processing
         if circles is not None:  # Circles detected
-            logging.info("Circle detected")
+            print("[INFO] Circle detected")
 
             self.lostSight = 0
 
@@ -180,27 +173,26 @@ class CV:
                 # Grab the distance of the first object in the list
                 largest_object = sorted_obstacles[0]
                 self.distance_to_target = largest_object.distance
-                #logging.info("Distance: " + self.distance_to_target)
-                print("Distance: " + self.distance_to_target)
+                # print("[INFO] Distance: " + self.distance_to_target)
+                print(f"Distance: {self.distance_to_target}")
 
                 if self.distance_to_target < self.far_near_boundary:
                     self.near = True
-                    logging.info("Near")
+                    print("[INFO] Near")
 
             # Center of largest circle - aim for this
             x, y = circles[0, 0], circles[0, 1]
-            logging.info("X: " + str(np.round(x).astype("int")))
-            logging.info("Y: " + str(np.round(y).astype("int")))
+            print(f"[INFO] X: {str(np.round(x).astype('int'))}")
+            print(f"[INFO] Y: {str(np.round(y).astype('int'))}")
             last_y = y
 
             if self.distance_to_target < self.fire_distance:
                 if not self.fired_torpedo_1:
-
                     if self.open_is_top:
                         self.depth += 0.1
                     if not self.open_is_top:
                         self.depth += 0.1
-                    logging.info("Fire torpedo 1!!!")
+                    print("[INFO] Fire torpedo 1!!!")
                     self.fired_torpedo_1 = True
                     return {
                         "lateral": 0,
@@ -211,7 +203,7 @@ class CV:
                         "end": False,
                     }, frame
                 else:
-                    logging.info("Fire torpedo 2!!!")
+                    print("[INFO] Fire torpedo 2!!!")
                     self.fired_torpedo_2 = True
                     return {
                         "lateral": 0,
@@ -227,7 +219,7 @@ class CV:
 
                 # X alignment
                 if self.center_x > x - self.threshold_far:  # Strafe Left
-                    logging.info("Left")
+                    print("[INFO] Left")
                     return {
                         "lateral": -1,
                         "forward": 0,
@@ -235,7 +227,7 @@ class CV:
                         "end": False,
                     }, frame
                 if self.center_x < x + self.threshold_far:  # Strafe Right
-                    logging.info("Right")
+                    print("[INFO] Right")
                     return {
                         "lateral": 1,
                         "forward": 0,
@@ -246,10 +238,10 @@ class CV:
                 # Y alignment
                 if self.center_y < y - self.threshold_far:  # Dive
                     self.depth += 0.02
-                    logging.info("Dive")
+                    print("[INFO] Dive")
                 if self.center_y > y + self.threshold_far:  # Ascend
                     self.depth -= 0.02
-                    logging.info("Ascend")
+                    print("[INFO] Ascend")
 
                 return {
                     "lateral": 1,
@@ -263,13 +255,11 @@ class CV:
                 sorted_obstacles = sorted(circles, key=lambda x: x.y, reverse=True)
                 x, y = circles[0, 0], circles[0, 1]
 
-                
                 self.open_is_top = True if y > last_y else None
-
 
                 # X alignment
                 if self.target_center_x < x - self.threshold_near:  # Strafe Left
-                    logging.info("Left")
+                    print("[INFO] Left")
                     return {
                         "lateral": -1,
                         "forward": 0,
@@ -278,7 +268,7 @@ class CV:
                     }, frame
 
                 if self.target_center_x > x + self.threshold_near:  # Strafe Right
-                    logging.info("Right")
+                    print("[INFO] Right")
                     return {
                         "lateral": 1,
                         "forward": 0,
@@ -289,10 +279,10 @@ class CV:
                 # Y alignment
                 if self.target_center_y < y - self.threshold_near:  # Dive
                     self.depth += 0.02
-                    logging.info("Dive")
+                    print("[INFO] Dive")
                 if self.target_center_y > y + self.threshold_near:  # Ascend
                     self.depth -= 0.02
-                    logging.info("Ascend")
+                    print("[INFO] Ascend")
 
                 # Print motors and return commands
                 return {
@@ -341,7 +331,6 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.torpedo_cv"
-    logging.basicConfig(level=logging.INFO)
 
     # Create a CV object with arguments
     cv = CV()
@@ -358,7 +347,7 @@ if __name__ == "__main__":
         time.sleep(0.02)
         # run the cv
         result, img_viz = cv.run(frame, None, None)
-        logger.info(result)
+        print(f"[INFO] {result}")
 
         # show the frame
         cv2.imshow("frame", frame)

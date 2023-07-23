@@ -10,19 +10,17 @@ if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
 import json
-import logging
 import os
+import sys
 import threading
 import time
+import traceback
 
 import cv2
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CVHandler:
@@ -37,33 +35,33 @@ class CVHandler:
     def start_cv(self, file_name, callback, dummy_camera=None):
         """Start a CV script"""
         if file_name in self.active_cv_scripts:
-            logger.error("Cannot start a script that is already running")
+            print("[ERROR] [cvHandler] Cannot start a script that is already running")
             return
 
         try:
             # module name is as follows: auv.cv.file_name
-            module = __import__("auv.cv.{}".format(file_name), fromlist=["CV"])
+            module = __import__(f"auv.cv.{file_name}", fromlist=["CV"])
         except Exception as e:
-            logger.error("Error while importing CV module from file name")
-            logger.error(e)
+            print("[ERROR] [cvHandler] Error while importing CV module from file name")
+            print(f"[ERROR] {e}")
             return
 
         # Import the CV class from the module
         cv_class = getattr(module, "CV", None)
         if cv_class is None:
-            logger.error("No CV class found in file, check the file name and file content")
+            print("[ERROR] [cvHandler] No CV class found in file, check the file name and file content")
             return
 
         if dummy_camera:  # Init dummy cv script handler
             self.active_cv_scripts[file_name] = _DummyScriptHandler(file_name, cv_class(**self.config), dummy_camera)
         else:  # Init individual cv script handler
             self.active_cv_scripts[file_name] = _ScriptHandler(file_name, cv_class(**self.config))
-        self.subs[file_name] = rospy.Subscriber("auv/cv_handler/{}".format(file_name), String, callback)
+        self.subs[file_name] = rospy.Subscriber(f"auv/cv_handler/{file_name}", String, callback)
 
     def stop_cv(self, file_name):
         """Stop a CV script"""
         if file_name not in self.active_cv_scripts:
-            logger.error("Cannot stop a script that is not running")
+            print("[ERROR] [cvHandler] Cannot stop a script that is not running")
             return
 
         self.active_cv_scripts[file_name].stop()
@@ -72,28 +70,25 @@ class CVHandler:
         self.subs[file_name].unregister()
         del self.subs[file_name]
 
-    def set_oakd_model(self, file_name, model_name):
+    def switch_oakd_model(self, file_name, model_name):
         if file_name not in self.active_cv_scripts:
-            logger.error("Cannot change model of a script that is not running")
-            print("Cannot change model of a script that is not running")
+            print("[ERROR] [cvHandler] Cannot change model of a script that is not running")
             return
 
         if not self.active_cv_scripts[file_name].is_oakd:
-            logger.error("Cannot change model of a script that is not running on an OAK-D camera")
-            print("Cannot change model of a script that is not running on an OAK-D camera")
+            print("[ERROR] [cvHandler] Cannot change model of a script that is not running on an OAK-D camera")
             return
 
         if not isinstance(model_name, str):
-            logger.error("Model name must be a string")
-            print("Model name must be a string")
+            print("[ERROR] [cvHandler] Model name must be a string")
             return
 
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
-        logger.info("model published {}".format(model_name))
+        print(f"[INFO] model published {model_name}")
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
-            logger.error("Cannot change target of a script that is not running")
+            print("[ERROR] [cvHandler] Cannot change target of a script that is not running")
             return
 
         self.active_cv_scripts[file_name].target = target
@@ -107,7 +102,7 @@ class _ScriptHandler:
         # Get the camera topic, if not specified, use the default front camera
         self.camera_topic = getattr(self.cv_object, "camera", None)
         if self.camera_topic is None:
-            logger.warning("No camera topic specified, using default front camera")
+            print("[WARN] No camera topic specified, using default front camera")
             self.camera_topic = "/auv/camera/videoUSBRaw0"
 
         # Create a cv bridge
@@ -116,7 +111,8 @@ class _ScriptHandler:
         # Create the ROS node, the subscribers and the publishers
         self.sub_cv = rospy.Subscriber(self.camera_topic, Image, self.callback_cam)
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
-        self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
+        self.pub_out = rospy.Publisher(f"auv/cv_handler/{file_name}", String, queue_size=10)
+        self.pub_cam_select = rospy.Publisher("/auv/camsVersatile/cameraSelect", String, queue_size=10)
 
         # init the oakd stuff
         if "OAKd" in self.camera_topic:
@@ -130,6 +126,8 @@ class _ScriptHandler:
             self.is_oakd = False
             self.pub_oakd_model = None
             self.sub_oakd_data = None
+
+        self.initCameraStream()  # sends json to camsVersatile for which camera to start and with model or not
 
         self.target = "main"
         self.oakd_data = None
@@ -148,8 +146,8 @@ class _ScriptHandler:
             self.next_frame = self.br.imgmsg_to_cv2(msg)
             self.last_received = time.time()
         except Exception as e:
-            logger.error("Error while converting image to cv2")
-            logger.error(e)
+            print("[ERROR] [cvHandler] Error while converting image to cv2")
+            print(f"[ERROR] {e}")
 
     def callback_oakd_data(self, msg):
         """Callback for the oakd data subscriber"""
@@ -160,9 +158,41 @@ class _ScriptHandler:
                 dataList.append(Detection(detections))
             self.oakd_data = dataList
         except Exception as e:
-            logger.error("Error while converting oakd data to json")
-            logger.error(e)
+            print("[ERROR] [cvHandler] Error while converting oakd data to json")
+            print(f"[ERROR] {e}")
             return
+
+    def initCameraStream(self):
+        topic = self.camera_topic
+        toSend = {}
+        if not self.is_oakd:
+            self.camID = int(topic[-1])  # by default the low-light cameras are ID'd as 0 for forward and 1 for bottom so this matches instantly
+        else:
+            if (
+                "Forward" in topic
+            ):  # the ID>=10 helps camsVers determine it is an oak-d; OakDs are ID'd after lowlight (i.e lowlight, lowlight, oakd) so this becomes a simple operation of id/10 + amount of low-lights-1
+                self.camID = 10  # so for Onyx this would be ID 1 since 10/10 = 1 and low-lights (there is 1) - 1=0. For Graey with two low-lights, it is 10/10 = 1 then + 2-1=1 so ID 2
+            elif "Bottom" in topic:
+                self.camID = 20  # the multiples of 10 allow me to do the same simple equation and still get the right matching ID
+            elif "Poe" in topic:
+                self.camID = 30
+            model = getattr(self.cv_object, "model", None)
+            if model is None:
+                print("[INFO] No oakD model specified, defaulting to raw")
+                model = "raw"
+            toSend["model"] = model
+        toSend["camera_ID"] = self.camID
+        toSend["mode"] = "start"
+        data = json.dumps(toSend)
+        self.pub_cam_select.publish(data)
+
+    def killCameraStream(self, killAll=False):
+        if killAll:
+            data = json.dumps({["kill"]: True})
+        else:
+            toSend = {["camera_id"]: self.camID, ["mode"]: "stop"}
+            data = json.dumps(toSend)
+        self.pub_cam_select.publish(data)
 
     def run(self):
         self.running = True
@@ -180,7 +210,7 @@ class _ScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                logger.error("Error while running CV {} {}".format(self.file_name, e))
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e}")
                 print(e)
                 continue
 
@@ -190,7 +220,7 @@ class _ScriptHandler:
                 result = ret
                 viz_img = None
             else:
-                logger.error("CV returned invalid type")
+                print("[ERROR] [cvHandler] CV returned invalid type")
                 continue
 
             # Publish the result
@@ -202,10 +232,11 @@ class _ScriptHandler:
     def stop(self):
         self.running = False
         self.thread.join()
-
+        # self.killCameraStream() # commented out temporarily so we can continue watching stream post mission
         self.sub_cv.unregister()
         self.pub_viz.unregister()
         self.pub_out.unregister()
+        self.pub_cam_select.unregister()
         self.closed = True
 
 
@@ -217,7 +248,7 @@ class _DummyScriptHandler:
         # Get the camera topic, if not specified, use the default front camera
         self.camera_topic = getattr(self.cv_object, "camera", None)
         if self.camera_topic is None:
-            logger.warning("No camera topic specified, using default front camera")
+            print("[WARN] No camera topic specified, using default front camera")
             self.camera_topic = "/auv/camera/videoUSBRaw0"
 
         self.is_oakd = False
@@ -230,7 +261,7 @@ class _DummyScriptHandler:
         self.dummy_video = dummy
         self.cap = cv2.VideoCapture(self.dummy_video)
         if not self.cap.isOpened():
-            logger.error("Error while opening dummy video")
+            print("[ERROR] [cvHandler] Error while opening dummy video")
             return
 
         # run the video in a thread, loop when it ends
@@ -238,7 +269,7 @@ class _DummyScriptHandler:
 
         # should we post the viz to the viz topic?
         self.pub_viz = rospy.Publisher(self.camera_topic.replace("Raw", "Output"), Image, queue_size=10)
-        self.pub_out = rospy.Publisher("auv/cv_handler/{}".format(file_name), String, queue_size=10)
+        self.pub_out = rospy.Publisher(f"auv/cv_handler/{file_name}", String, queue_size=10)
 
     def run(self):
         self.running = True
@@ -255,8 +286,8 @@ class _DummyScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                logger.error("Error while running CV {} {}".format(self.file_name, e))
-                print(e)
+                traceback.print_exception()
+                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name}")
                 continue
 
             if isinstance(ret, tuple) and len(ret) == 2:
@@ -265,7 +296,7 @@ class _DummyScriptHandler:
                 result = ret
                 viz_img = None
             else:
-                logger.error("CV returned invalid type")
+                print("[ERROR] [cvHandler] CV returned invalid type")
                 continue
 
             # Publish the result
@@ -296,10 +327,8 @@ class Detection:
 if __name__ == "__main__":
     # some small testings for CVHandler, requires camVersatile to run before
 
-    logging.basicConfig()
-
     def dummy_callback(msg):
-        logger.info("received: {}".format(msg.data))
+        print(f"[INFO] received: {msg.data}")
 
     cv = CVHandler()
     cv.start_cv("template_cv")

@@ -5,7 +5,6 @@ Template file to create a mission class
 # import what you need from within the package
 
 import json
-import logging
 
 import rospy
 from std_msgs.msg import String
@@ -14,9 +13,6 @@ from auv.device import cvHandler
 from auv.motion import robot_control
 from auv.motion.servo import Servo
 
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 servo = Servo()
 
@@ -45,7 +41,7 @@ class TorpedoMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        logger.info("Torpedo mission init")
+        print("[INFO] Torpedo mission init")
 
     def callback(self, msg):
         """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
@@ -55,7 +51,7 @@ class TorpedoMission:
         self.next_data[file_name] = data
         self.received = True
 
-        logger.debug("Received data from {}".format(file_name))
+        print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -63,7 +59,7 @@ class TorpedoMission:
         This could be a loop, a finite state machine, etc.
         """
         while not rospy.is_shutdown():
-            logger.info("Template mission run")
+            print("[INFO] Template mission run")
 
             try:
                 if not self.received:
@@ -104,13 +100,14 @@ class TorpedoMission:
 
                 # direcly feed the cv output to the robot control
                 self.robot_control.movement(lateral=lateral, forward=forward)
-                self.robot_control.setDepth(self.robot_control.depth + vertical)
+                self.robot_control.set_depth(self.robot_control.depth + vertical)
 
                 # here is an example of how to set a target
                 # self.cv_handler.set_target("torpedo_cv", "albedo")
 
             except Exception as e:
-                logger.error(e)
+                print(f"[ERROR] {e}")
+                print(e)
                 # idle the robot (just in case something went wrong)
                 self.robot_control.movement()
                 break
@@ -123,7 +120,7 @@ class TorpedoMission:
         for file_name in self.cv_files:
             self.cv_handler.stop_cv(file_name)
 
-        logger.info("Torpedo mission terminate")
+        print("[INFO] Torpedo mission terminate")
 
 
 if __name__ == "__main__":
@@ -132,8 +129,6 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.torpedo_mission"
     # You can also import it in a mission file outside of the package
     import time
-
-    logging.basicConfig(level=logging.DEBUG)
 
     # Create a mission object with arguments
     mission = TorpedoMission()

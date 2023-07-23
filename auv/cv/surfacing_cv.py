@@ -3,26 +3,20 @@ Description: CV class for surfacing
 Author: Maxime Ellerbach
 """
 
-import logging
-
 import cv2
 import numpy as np
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 
 class CV:
-
     def __init__(self, **config):
         """
         Init of surfacing CV
         """
         self.config = config
         self.current_sub = self.config.get("sub", "greay")
-        if self.current_sub == "greay" :
+        if self.current_sub == "greay":
             self.camera = "/auv/camera/videoUSBRaw1"
-        elif self.current_sub == "onyx" :
+        elif self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
 
         self.surfacing_sensitivity = config.get("surfacing_sensitivity", 3.0)
@@ -30,7 +24,7 @@ class CV:
         self.viz_frame = None
         self.error_buffer = []
 
-        logger.info("Surfacing CV init")
+        print("[INFO] Surfacing CV init")
 
     def get_octogon_center(self, frame):
         """
@@ -95,7 +89,7 @@ class CV:
         y_error *= self.surfacing_sensitivity
 
         # if greay, x = forward, y = lateral
-        if self.current_sub == "greay" :
+        if self.current_sub == "greay":
             return {"lateral": y_error, "forward": x_error, "end": False}, self.viz_frame
         else:
             return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
@@ -105,16 +99,6 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
-
-    import logging.config
-    import os
-
-    import yaml
-    from dotenv import dotenv_values
-    log_config = yaml.safe_load(open(os.environ.get("LOG_CFG_PATH", "logging.yaml"), "r"))
-
-    logging.config.dictConfig(log_config)
-    logger = logging.getLogger(__name__)
 
     # Create a CV object with arguments
     cv = CV()
@@ -131,7 +115,7 @@ if __name__ == "__main__":
 
         # run the CV
         result, img_viz = cv.run(img, None, None)
-        logger.info(result)
+        print(f"[INFO] {result}")
 
         # show the result
         cv2.imshow("frame", img_viz)

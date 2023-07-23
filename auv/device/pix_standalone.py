@@ -46,7 +46,7 @@ class AUV(RosHandler):
         self.channels = [0] * 18
         self.depthCalib = 0
         self.sub = True  # grey
-        self.limNeu = [200, 1475]  # grey
+        self.limNeu = [200, 1490]  # grey
         if "nx" in platform.node():
             self.sub = False  # onyx
             self.limNeu = [300, 1480]  # onyx
@@ -61,9 +61,8 @@ class AUV(RosHandler):
         self.SERVICE_GET_PARAM = TopicService("/mavros/param/get", mavros_msgs.srv.ParamGet)
 
         # movement
-        self.TOPIC_SET_VELOCITY = TopicService(
-            "/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist
-        )  # only works in auto/guided mode
+        # only works in auto/guided mode
+        self.TOPIC_SET_VELOCITY = TopicService("/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist)
         self.TOPIC_SET_RC_OVR = TopicService("/mavros/rc/override", mavros_msgs.msg.OverrideRCIn)
 
         # sensory
@@ -84,8 +83,10 @@ class AUV(RosHandler):
         self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
     def arm(self, status: bool):
-        if self.armed:
-            return
+        if status:
+            statusLed.red(True)
+        else:
+            statusLed.red(False)
         data = mavros_msgs.srv.CommandBoolRequest()
         data.value = status
         self.SERVICE_ARM.set_data(data)
@@ -166,7 +167,7 @@ class AUV(RosHandler):
             print("Baro Failed")
             print(e)
 
-    def setDepth(self, setDValue):
+    def set_depth(self, setDValue):
         if setDValue.data < 0:
             return
         self.pid.setpoint = setDValue.data
@@ -187,7 +188,7 @@ class AUV(RosHandler):
         self.topic_subscriber(self.AUV_GET_ARM)
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
-        self.topic_subscriber(self.AUV_GET_DEPTH, self.setDepth)
+        self.topic_subscriber(self.AUV_GET_DEPTH, self.set_depth)
         self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
         # -Begin reading core data
         self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)

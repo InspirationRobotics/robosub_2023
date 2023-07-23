@@ -59,8 +59,8 @@ for cnt in cnts:
     width = rect[1][1]
     height = rect[1][0]
     if (width) * (height) >= 30:
-        print('width is: ' + str(width))
-        print('height is: ' + str(height))
+        print(f"width is: {str(width)}")
+        print(f"height is: {str(height)}")
         redLegs = cv.drawContours(redLegs,[box],0,(0,255,255),2)
 
     else:

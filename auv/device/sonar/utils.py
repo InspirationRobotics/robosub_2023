@@ -14,11 +14,12 @@ class Obstacle:
         self.angle = (self.center[1] / 400) * 360
 
         self.size = np.max(points, axis=0) - np.min(points, axis=0)
-        self.area = cv2.contourArea(points)
+        self.area = cv2.contourArea(points) * dist_factor
         self.perimeter = cv2.arcLength(points, True)
 
     def __repr__(self):
-        return "Obstacle({}, {}, {})".format(self.distance, self.angle, self.size)
+        return f"Obstacle({self.distance}, {self.angle}, {self.size})"
+
 
 def plot_to_polar_gray(img, angle, points, imsize=(400, 400), step_angle=1):
     """
@@ -118,7 +119,13 @@ def render_obstacles(img, obstacles):
     return img
 
 
-def object_detection(img, dist_factor=1, threshold=60):
+def object_detection(
+    img,
+    dist_factor=0.02, # m / pixel
+    threshold=100, 
+    dist_crop=0.80, # 0.80m
+    smallest_area=0.25, # 0.25m^2
+):
     # type: (np.array, int, int) -> list[Obstacle]
     if img is None:
         return []
@@ -128,25 +135,30 @@ def object_detection(img, dist_factor=1, threshold=60):
     else:
         gray = img.copy()
 
-    # remove the first 8% of the points (sub own noise)
-    gray[:, : int(gray.shape[1] * 0.08)] = 0
+    # remove the first points (sub own noise)
+    # crop 0.5m
+    num_pixels = int(dist_crop / dist_factor)
+    gray[:, :num_pixels] = 0
 
     # blur the image
     gray = cv2.blur(gray, (5, 5), 0)
-    # cv2.imshow("gray", gray)
 
     # threshold the image
     _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
     # find contours
-    contours, hierarchy = cv2.findContours(
-        thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     img_contours = np.zeros_like(img)
     cv2.drawContours(img_contours, contours, -1, 255, 2)
+
+    # cv2.imshow("gray", gray)
+    # cv2.imshow("thresh", thresh)
     # cv2.imshow("contours", img_contours)
-    # cv2.waitKey(0)
+    cv2.waitKey(0)
 
     objects = [Obstacle(contour, dist_factor=dist_factor) for contour in contours]
+    objects = [obj for obj in objects if obj.area > smallest_area]
     return objects
