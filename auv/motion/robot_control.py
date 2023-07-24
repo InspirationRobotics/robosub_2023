@@ -98,6 +98,7 @@ class RobotControl:
         lateral=None,
         pitch=None,
         roll=None,
+        vertical=0,
         **kwargs,
     ):
         """
@@ -120,6 +121,7 @@ class RobotControl:
         pwm.channels = channels
 
         # publishing pwms to /auv/devices/thrusters
+        if vertical!=0: self.set_relative_depth(vertical)
         self.pub_thrusters.publish(pwm)
 
     def set_heading(self, target: int):

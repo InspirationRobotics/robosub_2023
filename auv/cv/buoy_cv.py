@@ -26,7 +26,8 @@ class CV:
         self.midX = 320
         self.midY = 240
         self.prevYaw=1.3
-        self.prevOffset=1
+        self.prevStrafe = 1
+        self.prevRatio=1
         self.step=0
         print("[INFO] Buoy CV init")
 
@@ -98,7 +99,7 @@ class CV:
         validDetections = {}
         detectedLabels = {}
         avgOffset = avgDist = c = 0
-        targetCenter=boardCenter=boardDetect=None
+        targetCenter=boardCenter=boardDetect=side=None
         # first parse for valid dections and ignore duplicates/reflections
         for detection in detections:
             if detection.label in validDetections.keys():
@@ -150,28 +151,36 @@ class CV:
         #Now calculating center of board based off lines
         #print("Reached 3")
         if len(lines)>=1:
-            def getLength(line):
-                return line.length
-            lines.sort(reverse=True, key=getLength)
+            lines.sort(reverse=True, key=lambda p: p.length)
             if len(lines)>4:
                 boardCenter = lines[0].intersects(lines[1])
+                leftLine = min(lines, key=lambda p: p.midpoint[0])
+                rightLine = max(lines, key=lambda p: p.midpoint[0])
+                if leftLine.length>rightLine.length:
+                    side="right"
+                elif leftLine.length<rightLine.length:
+                    side="left"
+                else:
+                    side="center"
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:
-                boardCenter = [boardDetect[i] if abs(v-boardDetect[i])>100 else v for i,v in enumerate(boardCenter)]
+                boardCenter = [boardDetect[i] if abs(v-boardDetect[i])>50 else v for i,v in enumerate(boardCenter)]
                 boardCenter = [(boardCenter[0]+boardDetect[0])/2, (boardCenter[1]+boardDetect[1])/2] #averaging
         elif boardDetect != None:
             boardCenter = boardDetect
-        if boardCenter != None:
-            boardCenter = [0 if v is None else v for v in boardCenter]
-            cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
+        if boardCenter == None:
+            boardCenter = testPoints[0].getPointInt()
+        boardCenter = [0 if v is None else v for v in boardCenter]
+        cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
         targetCenter = detectedLabels.get(target, None)
         if targetCenter!=None:
             targetCenter = targetCenter.getPointInt()
             cv2.circle(frame, targetCenter, 5, (0,255,0),-1)
         toReturn["frame"] = frame
-        toReturn["offset"] = avgOffset
+        toReturn["ratio"] = avgOffset
         toReturn["avgDist"] = round(avgDist,3)
+        toReturn["side"] = side #tells us which side of the buoy we are on
         toReturn["targetCenter"] = targetCenter
         toReturn["boardCenter"] = boardCenter
         return toReturn
@@ -184,49 +193,88 @@ class CV:
 
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
+
+        toReturn["frame"] = frame
+        toReturn["ratio"] = avgOffset
+        toReturn["side"] = side
+        toReturn["avgDist"] = round(avgDist,3)
+        toReturn["targetCenter"] = targetCenter
+        toReturn["boardCenter"] = boardCenter
         """
         forward = 0
         lateral = 0
         yaw=0
+        vertical=0
+        end=False
         if oakd_data == None:
             return {}, frame
         elif len(oakd_data)==0:
-            return {}, frame
+            yaw=1
+            return {"yaw": yaw}, frame
         result = self.calculate_data(frame, target, oakd_data)
-        tolerance = 20
+        ratioTol = 1.1
+        ratio = result["ratio"]
+        boardCenter = result["boardCenter"]
+        dist = result["avgDist"]
+        if dist>5:
+            forward=1.5
+        elif dist>2.5:
+            if(ratio>ratioTol):
+                if(self.step==0):
+                    xTol = 20
+                    if(boardCenter[0]>self.midX+xTol):
+                        yaw = 1
+                    elif(boardCenter[0]<self.midX-xTol):
+                        yaw = -1
+                    else:
+                        self.step=1
+                elif(self.step==1):
+                    xTol = 50
+                    side = result["side"]
+                    if(side=="left"):
+                        lateral=1
+                    elif(side=="right"):
+                        lateral=-1
+                    else:
+                        print("can't see all 4 or centered")
+                    if(boardCenter[0]<0+xTol or boardCenter[0]>self.midX*2-xTol):
+                        self.step=0
+            else:
+                tolerance = 20
+                if(ratio>self.prevRatio):
+                    yaw=self.prevYaw*-1
+                if boardCenter[0]<self.midX-tolerance:
+                    lateral = -1
+                elif boardCenter[1]>self.midX-tolerance:
+                    lateral=1
+                else:
+                    forward=1.3 # maybe default too?
+        elif dist>1.5:
+            targetCenter = result["targetCenter"]
+            centered = 0
+            if targetCenter[0]<self.midX-tolerance:
+                lateral = -1
+            elif targetCenter[1]>self.midX-tolerance:
+                lateral=1
+            else:
+                centered+=1
+            if targetCenter[1]>self.midY+tolerance:
+                vertical=-0.2
+            elif targetCenter[1]<self.midY-tolerance:
+                vertical=0.2
+            else:
+                centered+=1
+            if centered==2:
+                end = True
         # ratio is x/y so a the smaller the ratio the more askew you are yaw wise
         # if ratio is close to 1 then you are perfectly aligned
-        dist = result["avgDist"]
-        if(dist!=0):
-            if(dist>2.5):
-                forward = 1.3
-                boardCenter = result["boardCenter"]
-            else:
-                forward=0
-                boardCenter = result["targetCenter"]
-                self.step=1
-        else:
-            boardCenter = result["boardCenter"]
-        if boardCenter!=None:
-            if boardCenter[0]<320-tolerance:
-                lateral = -2
-            elif boardCenter[1]>320-tolerance:
-                lateral=2
-            else:
-                if self.step==1:
-                    forward=1
-        offset = result["offset"]
-        if offset!=0:
-            if offset>1:
-                if(self.prevOffset>offset):
-                    yaw = self.prevYaw
-                else:
-                    yaw = -1*self.prevYaw
-            self.prevYaw = yaw
-            self.prevOffset = offset
+
         #print("[INFO] Buoy CV run")
+
+        self.prevYaw = yaw
+        self.prevRatio = ratio
         
-        return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": False}, result["frame"]
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "end": end}, result["frame"]
 
 
 if __name__ == "__main__":
