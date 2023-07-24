@@ -22,7 +22,22 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
+        self.config = config
+        self.aligned = False
+        self.current_sub = self.config.get("sub", "greay")
+        if self.current_sub == "greay":
+            self.camera = "/auv/camera/videoUSBRaw1"
+        elif self.current_sub == "onyx":
+            self.camera = "/auv/camera/videoOAKdRawBottom"
         print("[INFO] Template CV init")
+
+    def equalizeHist(self, frame):
+        frame_b, frame_g, frame_r = cv2.split(frame)
+        frame_g = cv2.equalizeHist(frame_g)
+        frame_b = cv2.equalizeHist(frame_b)
+        frame_r = cv2.equalizeHist(frame_r)
+        frame = cv2.merge((frame_b, frame_g, frame_r))
+        return frame
 
     def run(self, frame, target, oakdData=None):
         """
@@ -34,18 +49,12 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         end = False
-        print("[INFO] Template CV run")
-        # frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        into_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # into_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        frame = self.equalizeHist(frame)
+        
+        # filter the image to orange objects, filters what is white
         L_limit = np.array([0, 0, 150])
         U_limit = np.array([60, 255, 255])
-        frame_b, frame_g, frame_r = cv2.split(frame)
-        frame_g = cv2.equalizeHist(frame_g)
-        frame_b = cv2.equalizeHist(frame_b)
-        frame_r = cv2.equalizeHist(frame_r)
-        frame = cv2.merge((frame_b, frame_g, frame_r))
-
-        # filter the image to red objects, filters what is white
         orange = cv2.inRange(frame, L_limit, U_limit)
         # L_limit=np.array([5, 25, 50])
         # U_limit=np.array([30, 255, 255])
@@ -57,25 +66,30 @@ class CV:
         # U_limit = np.array([50, 255, 255])
 
         # orange=cv2.inRange(into_hsv,L_limit,U_limit)
-        self.aligned = False
+        # Removing Noise
         kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
 
+        # Blur and Threshold 
         orange = cv2.GaussianBlur(orange, (11, 11), 0)
         ret, thresh = cv2.threshold(orange, 230, 255, cv2.THRESH_BINARY)
 
         blur = cv2.blur(thresh, (10, 10))
-
         ret2, thresh2 = cv2.threshold(blur, 1, 255, cv2.THRESH_OTSU)
+
+        # Find Contours
         contours, heirarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(frame, contours, -1, 255, 3)
-        yaw = 0
-        lateral = 0
-        forward = 0
-        hline = cv2.line(frame, (640, 0), (0, 0), (0, 255, 255), 8)
+
+        yaw = lateral = forward = 0
+        # hline = cv2.line(frame, (640, 0), (0, 0), (0, 255, 255), 8)
+
+        # Path Found
         if contours:
             c = max(contours, key=cv2.contourArea)
             cv2.drawContours(frame, c, -1, 255, 3)
+
+            # Find Center
             M = cv2.moments(c)
             if M["m00"] != 0:
                 cx = int(M["m10"] / M["m00"])
@@ -84,11 +98,15 @@ class CV:
                 cv2.putText(frame, "center", (cx - 20, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
             rows, cols = frame.shape[:2]
+
+            # Fit Line to Path
             [vx, vy, x, y] = cv2.fitLine(c, cv2.DIST_L2, 0, 0.01, 0.01)
             lefty = int((-x * vy / vx) + y)
             righty = int(((cols - x) * vy / vx) + y)
             cv2.line(frame, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
             cv2.line(frame, (righty, cols - 1), (lefty, 0), (0, 255, 0), 2)
+
+            # Calculate slope
             slope = (lefty - righty) / (0 - (cols - 1))
             print(slope)
             if slope == 0:
@@ -96,6 +114,8 @@ class CV:
             else:
                 slope = -1 / slope
             # cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+
+            # Movement Decisions
             if -20 < slope < 0:
                 print("yaw clockwise")
                 yaw = 1
