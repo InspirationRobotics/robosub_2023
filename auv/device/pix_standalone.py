@@ -41,7 +41,7 @@ class AUV(RosHandler):
         self.config = config
 
         super().__init__()
-        self.do_publish_thrusters = True
+        self.do_publish_thrusters = False
         self.do_get_sensors = True
         self.armed = False
         self.guided = False
@@ -83,7 +83,7 @@ class AUV(RosHandler):
         self.AUV_BARO = TopicService("/auv/devices/baro", std_msgs.msg.Float32MultiArray)
         self.AUV_GET_THRUSTERS = TopicService("/auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn)
         self.AUV_GET_DEPTH = TopicService("/auv/devices/setDepth", std_msgs.msg.Float64)
-        self.AUV_GET_REL_DEPTH = TopicService("/auv/devices/rel_depth", std_msgs.msg.Float64)
+        self.AUV_GET_REL_DEPTH = TopicService("/auv/devices/setRelativeDepth", std_msgs.msg.Float64)
         self.AUV_GET_ARM = TopicService("/auv/status/arm", std_msgs.msg.Bool)
         self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
@@ -119,7 +119,6 @@ class AUV(RosHandler):
         if mode == MODE_ALTHOLD:
             self.do_hold_depth = True
             mode = MODE_STABILIZE
-
         data = mavros_msgs.srv.SetModeRequest()
         data.custom_mode = mode
         self.SERVICE_SET_MODE.set_data(data)
@@ -204,11 +203,11 @@ class AUV(RosHandler):
                 statusLed.flashRed()
 
     def enable_topics_for_read(self):
-        self.topic_subscriber(self.TOPIC_STATE)
+        self.topic_subscriber(self.TOPIC_STATE, self.update_parameters_from_topic)
         self.topic_subscriber(self.TOPIC_GET_IMU_DATA)
         self.topic_subscriber(self.TOPIC_GET_CMP_HDG)
         self.topic_subscriber(self.TOPIC_GET_RC)
-        self.topic_subscriber(self.AUV_GET_THRUSTERS)
+        self.topic_subscriber(self.AUV_GET_THRUSTERS, self.publish_thrusters)
         self.topic_subscriber(self.AUV_GET_ARM)
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
@@ -232,21 +231,16 @@ class AUV(RosHandler):
             print("publish sensors failed")
             print(e)
 
-    def publish_thrusters(self):
-        time.sleep(2)
-        while not rospy.is_shutdown() and self.do_publish_thrusters:
+    def publish_thrusters(self, msg):
+        if self.do_publish_thrusters:
             try:
-                thrusters = self.AUV_GET_THRUSTERS.get_data()
-                self.channels = [1500] * 18
-                if thrusters != None:
-                    self.channels = list(thrusters.channels)
-                    print(f"Pre: {self.channels}")
+                self.channels = list(msg.channels)
+                #print(f"Pre: {self.channels}")
                 if self.do_hold_depth:
                     self.channels[2] = self.depth_pwm
-
                 thruster_data = mavros_msgs.msg.OverrideRCIn()
                 thruster_data.channels = self.channels
-                # print(f"Post: {thruster_data.channels}")
+                print(f"[THRUSTER_SEND]: {thruster_data.channels}")
                 self.TOPIC_SET_RC_OVR.set_data(thruster_data)
                 self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
             except Exception as e:
@@ -278,71 +272,45 @@ class AUV(RosHandler):
                     print(e)
                 time.sleep(0.1)
 
-    def update_parameters_from_topic(self):
-        while not rospy.is_shutdown():
-            if self.connected:
-                try:
-                    data = self.TOPIC_STATE.get_data_last()
-                    self.armed = data.armed
-                    self.mode = data.mode
-                    self.guided = data.guided
-                except Exception as e:
-                    print("state failed")
-                    print(e)
-                time.sleep(0.05)
-
-    def start_threads(self):
-        self.thread_sensor_updater = threading.Thread(target=self.get_sensors)
-        self.thread_sensor_updater.start()
-
-        self.thread_override = threading.Thread(target=self.publish_thrusters)
-        self.thread_override.start()
-    
-    def stop_threads(self):
-        self.do_get_sensors = False
-        self.do_publish_thrusters = False
-
-        self.thread_sensor_updater.join()
-        self.thread_override.join()
-
+    def update_parameters_from_topic(self, data):
+        if self.connected:
+            try:
+                self.armed = self.do_publish_thrusters = data.armed
+                self.mode = data.mode
+                self.guided = data.guided
+            except Exception as e:
+                print("state failed")
+                print(e)
 
 def main(auv: AUV):
-    # wait for connection
-    while not auv.connected:
-        print("Waiting to connect...")
-        time.sleep(0.5)
-    print("Connected!")
-    
-    # calibrate depth
-    auv.change_mode(MODE_ALTHOLD)
-    auv.calibrate_depth()
-    time.sleep(2)
-
-    # arming
-    while not auv.armed:
-        print("Attempting to arm...")
-        auv.arm(True)
-        time.sleep(3)
-    print("Armed!")
-    print("\nNow beginning loops...")
-    auv.start_threads()
-    auv.connect("pixStandalone", rate=20)  # change rate to 10 if issues arrive
-
     try:
-        # wait for threads to finish
-        auv.thread_sensor_updater.join()
-        auv.thread_override.join()
+        # wait for connection
+        while not auv.connected:
+            print("Waiting to connect...")
+            time.sleep(0.5)
+        print("Connected!")
+        
+        # calibrate depth
+        auv.change_mode(MODE_ALTHOLD)
+        auv.calibrate_depth()
+        time.sleep(2)
 
+        # arming
+        while not auv.armed:
+            print("Attempting to arm...")
+            auv.arm(True)
+            time.sleep(3)
+        print("Armed!")
+        print("\nNow beginning loops...")
+        auv.connect("pix_standalone", rate=20)  # change rate to 10 if issues arrive
     except KeyboardInterrupt:
-        # stop threads on keyboard interrupt
-        auv.stop_threads()
+        # stopping sub on keyboard interrupt
         auv.arm(False)
 
 def onExit(signum, frame):
     try:
         print("\nDisarming and exiting...")
         auv.arm(False)
-        auv.stop_threads()
         rospy.signal_shutdown("Rospy Exited")
         time.sleep(1)
         while not rospy.is_shutdown():
