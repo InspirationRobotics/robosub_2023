@@ -14,8 +14,6 @@ import numpy as np
 class CV:
     """Template CV class, don't change the name of the class"""
 
-    camera = "/auv/camera/videoUSBRaw2"
-
     def __init__(self, **config):
         """
         Init of the class,
@@ -27,7 +25,7 @@ class CV:
         if self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
         elif self.current_sub == "greay":
-            print(f"[INFO] No Gripper or Dropped on Greay")
+            print(f"[INFO] No Gripper or Dropper on Greay")
             self.camera = None
 
         self.viz_frame = None
@@ -44,9 +42,23 @@ class CV:
         This could be a loop, grabing frames using ROS, etc.
         """
         print("[INFO] Bin CV run")
-        
+        forward = 0
+        lateral = 0
+        yaw=0
+        vertical=0
+        end=False
+        if oakd_data == None:
+            return {}, frame
 
-        return {"lateral": 0, "forward": 0, "end": False}, frame
+        # TODO: Align with bins
+
+        # TODO: Remove Lids for each bin
+
+        # TODO: Detect Abydos or Earth
+
+        # TODO: Position to drop markers
+        
+        return {"lateral": lateral, "forward": forward, "vertical": vertical,"end": end}, frame
 
 
 if __name__ == "__main__":

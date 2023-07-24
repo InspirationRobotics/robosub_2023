@@ -15,7 +15,7 @@ from auv.motion.servo import gripper, dropper
 
 
 class BinMission:
-    cv_files = ["template_cv"]
+    cv_files = ["bin_cv"]
 
     def __init__(self, **config):
         """
@@ -68,13 +68,26 @@ class BinMission:
             self.next_data = {}
 
             # TODO: do something with the data
+            if self.data["bin_cv"].get("end", None):
+                    # idle the robot
+                    print("ending True")
+                    self.robot_control.movement()
+                    break
+
+            # get the lateral and forward values from the cv (if they exist)
+            lateral = self.data["bin_cv"].get("lateral", None)
+            yaw = self.data["bin_cv"].get("yaw", None)
+            forward = self.data["bin_cv"].get("forward", None)
+            vertical = self.data["bin_cv"].get("vertical", None)
+            
+            if None in (lateral, forward):
+                continue
+            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
+            print(forward, lateral, yaw, vertical)
 
             # here is an example of how to set a target
-            self.cv_handler.set_target("template_cv", "albedo")
-
-            break  # TODO: remove this line when making your mission
-
-        print("[INFO] Template mission run")
+            # self.cv_handler.set_target("template_cv", "albedo")
+        print("[INFO] Bin mission run")
 
     def cleanup(self):
         """
