@@ -3,14 +3,15 @@ Description: CV torpedo using sift class
 Author: Maxime Ellerbach
 """
 
-import time
-import cv2
-import numpy as np
 import argparse
+import math
 import os
 import time
 
-from auv.device.sonar import Ping360, utils, io
+import cv2
+import numpy as np
+
+from auv.device.sonar import Ping360, io, utils
 
 
 def equilize(img):
@@ -57,6 +58,10 @@ class CV:
         self.center_o = []
         self.on_top = None
 
+        # absolute, normalized
+        self.offset_center = 0.25
+        self.target_coords = (0.0, 0.0)
+
     def process_sift(self, ref_img, img, kp1, des1, kp2=None, des2=None, threshold=0.65, window_viz=None):
         """
         Sift matching with reference points
@@ -92,14 +97,42 @@ class CV:
             cv2.imshow(window_viz, img)
         return H
 
-    def get_center(self, H, src_shape):
+    def get_center(self, H, src_shape, norm=False):
         """Get center of a given homography H"""
         h, w, _ = src_shape
         center = np.array([[w / 2, h / 2]]).reshape(-1, 1, 2)
         center = cv2.perspectiveTransform(center, H).astype(np.int32)[0][0]
+        if norm:
+            center = [(center[0] - 320) / 320, (center[1] - 240) / 240]
         return center
 
-    def init_get_both_centers(self, img, threshold=0.65, window_viz=None):
+    def get_orientation(self, H, src_shape):
+        h, w, _ = src_shape
+        pts = (
+            np.array(
+                [
+                    [0, 0],
+                    [w, 0],
+                    [w, h],
+                    [0, h],
+                ]
+            )
+            .reshape(-1, 1, 2)
+            .astype(np.float32)
+        )
+        pts = cv2.perspectiveTransform(pts, H).astype(np.int32).reshape(4, 2)
+
+        # get an estimation of the Y axis rotation
+        left_h_dist = np.linalg.norm(pts[0] - pts[3])
+        right_h_dist = np.linalg.norm(pts[1] - pts[2])
+
+        # TODO find the right formula for this
+        yaw = math.atan((left_h_dist - right_h_dist) / (left_h_dist + right_h_dist))
+        yaw = math.degrees(yaw)
+        print(f"[INFO] Yaw: {yaw}")
+        return yaw
+
+    def init_find_both_centers(self, img, threshold=0.65, window_viz=None):
         """Get sift for both opened and closed torpedo"""
         kp2, des2 = self.sift.detectAndCompute(img, None)
         H_c = self.process_sift(self.reference_image_c, img, self.kp1_c, self.des1_c, kp2, des2, threshold, "H_c")
@@ -134,7 +167,7 @@ class CV:
 
         # find setup (closed or opened on top)
         if self.step == 0:
-            center_c, center_o = self.init_get_both_centers(frame, window_viz="centers")
+            center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
                 return {}, None
@@ -173,7 +206,7 @@ class CV:
                 self.center_c.append(center_c)
                 self.center_o.append(center_o)
 
-        # go for closed circle
+        # yaw and lateral to align with the torpedo
         elif self.step == 1:
             H = self.process_sift(self.reference_image, frame, self.kp1, self.des1, threshold=0.65, window_viz="H")
             if H is None:
@@ -181,9 +214,13 @@ class CV:
                 return {}, None
 
             center = self.get_center(H, self.reference_image.shape)
-            cv2.circle(frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1)
+            yaw = self.get_orientation(H, self.reference_image.shape)
+            # print(f"[INFO] Yaw: {yaw}")
 
-            
+            frame = cv2.circle(frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1)
+
+            if self.on_top == "closed":
+                self.target_coords = (0.0, -self.offset_center)
 
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
 
@@ -197,7 +234,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo1.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo2.mp4")
 
     while True:
         # grab a frame
