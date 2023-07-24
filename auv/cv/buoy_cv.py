@@ -94,7 +94,7 @@ class CV:
 
     def calculate_data(self, frame, target, detections):
         toReturn = {}
-        correctRatios = {"A1": 0.9753, "A2": 0.2812, "E1": 1.2769, "E2": 1.6812, "board": 1.0084} # based off sample footage with sub looking straight at them
+        correctRatios = {"A1": 1.1964, "A2": 0.2632, "E1": 1.8269, "E2": 1.6792, "board": 1.0949} # based off sample footage with sub looking straight at them
         correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
@@ -157,9 +157,9 @@ class CV:
                 leftLine = min(lines, key=lambda p: p.midpoint[0])
                 rightLine = max(lines, key=lambda p: p.midpoint[0])
                 if leftLine.length>rightLine.length:
-                    side="right"
-                elif leftLine.length<rightLine.length:
                     side="left"
+                elif leftLine.length<rightLine.length:
+                    side="right"
                 else:
                     side="center"
             else:
@@ -212,13 +212,14 @@ class CV:
             yaw=1
             return {"yaw": yaw}, frame
         result = self.calculate_data(frame, target, oakd_data)
-        ratioTol = 1.1
+        ratioTol = 1
         ratio = result["ratio"]
         boardCenter = result["boardCenter"]
         dist = result["avgDist"]
-        if dist>5:
-            forward=1.5
-        elif dist>2.5:
+        side = result["side"]
+        print(ratio, dist)
+        if dist>2:
+            forward = 1
             if(ratio>ratioTol):
                 if(self.step==0):
                     xTol = 20
@@ -228,16 +229,18 @@ class CV:
                         yaw = -1
                     else:
                         self.step=1
+                        print("switched to 1")
                 elif(self.step==1):
-                    xTol = 50
-                    side = result["side"]
+                    xTol = 250
+                    print(boardCenter[0])
                     if(side=="left"):
-                        lateral=1
+                        lateral=1.2
                     elif(side=="right"):
-                        lateral=-1
+                        lateral=-1.2
                     else:
                         print("can't see all 4 or centered")
                     if(boardCenter[0]<0+xTol or boardCenter[0]>self.midX*2-xTol):
+                        print("switched to 2")
                         self.step=0
             else:
                 tolerance = 20
@@ -249,23 +252,35 @@ class CV:
                     lateral=1
                 else:
                     forward=1.3 # maybe default too?
-        elif dist>1.5:
+        elif dist>1:
             targetCenter = result["targetCenter"]
+            if targetCenter==None:
+                targetCenter=boardCenter
             centered = 0
+            tolerance = 20
             if targetCenter[0]<self.midX-tolerance:
-                lateral = -1
-            elif targetCenter[1]>self.midX-tolerance:
-                lateral=1
+                lateral = -1.2
+            elif targetCenter[0]>self.midX+tolerance:
+                lateral=1.2
             else:
                 centered+=1
             if targetCenter[1]>self.midY+tolerance:
-                vertical=-0.2
+                vertical=0.02
             elif targetCenter[1]<self.midY-tolerance:
-                vertical=0.2
+                vertical=-0.02
             else:
                 centered+=1
             if centered==2:
-                end = True
+                forward=1
+                if dist<1: end = True
+
+        elif dist==0:
+            print("dist is 0", boardCenter[0])
+            tolerance = 20
+            if boardCenter[0]<self.midX-tolerance:
+                lateral = -1.5
+            elif boardCenter[0]>self.midX+tolerance:
+                lateral=1.5
         # ratio is x/y so a the smaller the ratio the more askew you are yaw wise
         # if ratio is close to 1 then you are perfectly aligned
 

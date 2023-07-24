@@ -78,11 +78,12 @@ class BuoyMission:
             lateral = self.data["buoy_cv"].get("lateral", None)
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)
+            vertical = self.data["buoy_cv"].get("vertical", None)
 
             if any(i == None for i in (lateral, forward)):
                continue
-            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
-            print(forward, lateral, yaw)
+            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=0)
+            print(forward, lateral, yaw, vertical)
 
         print("[INFO] Buoy mission run")
 

@@ -41,20 +41,22 @@ class AUV(RosHandler):
         self.config = config
 
         super().__init__()
-        self.do_publish_thrusters = False
+        self.do_publish_thrusters = True
         self.do_get_sensors = True
         self.armed = False
         self.guided = False
         self.mode = ""
 
         # depth hold
+        self.channels = [1500]*18
+        self.thrustTime = time.time() # timeout for no new thruster
         self.depth = None
         self.do_hold_depth = False
         self.depth_pwm = 0
         self.depth_calib = 0
-        self.depth_pid_params = config.get("depth_pid_params", [200, 0.5, 0.1])
-        self.depth_pid_offset = config.get("depth_pid_offset", 1500)
-        self.depth_pid = PID(*self.depth_pid_params, setpoint=0.5)
+        self.depth_pid_params = [200, 0.5, 0.1]
+        self.depth_pid_offset = 1500
+        self.depth_pid = PID(self.depth_pid_params[0], self.depth_pid_params[1], self.depth_pid_params[2], setpoint=0.5)
         self.depth_pid.output_limits = (-self.depth_pid_params[0], self.depth_pid_params[0])
 
         # init topics
@@ -150,12 +152,10 @@ class AUV(RosHandler):
 
     def depth_hold(self, depth):
         try:
-            depth = depth - self.depth_calib
             if depth < -9 or depth > 100:
                 return
             self.depth_pwm = int(self.depth_pid(depth) * -1 + self.depth_pid_offset)
-            print(f"[depth_hold] depth: {depth} depthMotorPower: {self.depth_pwm} Target: {self.depth_pid.setpoint}")
-            print(f"Depth: {depth:.4f} depthMotorPower: {self.depth_pwm} Target: {self.depth_pid.setpoint}")
+            print(f"[depth_hold] depth: {depth:.4f} depthMotorPower: {self.depth_pwm} Target: {self.depth_pid.setpoint}")
             # assume motor range is 1200-1800 so +-300
         except Exception as e:
             print("DepthHold error")
@@ -202,50 +202,63 @@ class AUV(RosHandler):
             if self.voltage < 13.5:
                 statusLed.flashRed()
 
+    def thrusterCallback(self, msg):
+        self.thrustTime = time.time()
+        self.channels = list(msg.channels)
+
+
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE, self.update_parameters_from_topic)
         self.topic_subscriber(self.TOPIC_GET_IMU_DATA)
         self.topic_subscriber(self.TOPIC_GET_CMP_HDG)
         self.topic_subscriber(self.TOPIC_GET_RC)
-        self.topic_subscriber(self.AUV_GET_THRUSTERS, self.publish_thrusters)
+        self.topic_subscriber(self.AUV_GET_THRUSTERS, self.thrusterCallback)
         self.topic_subscriber(self.AUV_GET_ARM)
         self.topic_subscriber(self.AUV_GET_MODE)
         self.topic_subscriber(self.TOPIC_GET_MAVBARO, self.get_baro)
         self.topic_subscriber(self.AUV_GET_DEPTH, self.set_depth)
         self.topic_subscriber(self.AUV_GET_REL_DEPTH, self.set_rel_depth)
         self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
-        # -Begin reading core data
-        self.thread_param_updater = threading.Timer(0, self.update_parameters_from_topic)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
+
+
+    def start_threads(self):
+        # start sensor and thruster thread
+        sensor_thread = threading.Thread(target=self.get_sensors, daemon=True)
+        thruster_thread = threading.Thread(target=self.publish_thrusters, daemon=True)
+        sensor_thread.start()
+        thruster_thread.start()
 
     def publish_sensors(self):
         try:
-            imu_data = self.imu
-            comp_data = self.hdg
-            self.AUV_IMU.set_data(imu_data)
-            self.AUV_COMPASS.set_data(comp_data)
-            self.topic_publisher(topic=self.AUV_IMU)
-            self.topic_publisher(topic=self.AUV_COMPASS)
+            if self.imu!=None:
+                imu_data = self.imu
+                self.AUV_IMU.set_data(imu_data)
+                self.topic_publisher(topic=self.AUV_IMU)
+            if self.hdg!=None:
+                comp_data = self.hdg
+                self.AUV_COMPASS.set_data(comp_data)
+                self.topic_publisher(topic=self.AUV_COMPASS)
         except Exception as e:
             print("publish sensors failed")
             print(e)
 
-    def publish_thrusters(self, msg):
-        if self.do_publish_thrusters:
-            try:
-                self.channels = list(msg.channels)
-                #print(f"Pre: {self.channels}")
-                if self.do_hold_depth:
-                    self.channels[2] = self.depth_pwm
-                thruster_data = mavros_msgs.msg.OverrideRCIn()
-                thruster_data.channels = self.channels
-                print(f"[THRUSTER_SEND]: {thruster_data.channels}")
-                self.TOPIC_SET_RC_OVR.set_data(thruster_data)
-                self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
-            except Exception as e:
-                print("Thrusters failed")
-                print(e)
+    def publish_thrusters(self):
+        while not rospy.is_shutdown() and self.do_publish_thrusters:
+            if self.connected:
+                try:
+                    channels = self.channels
+                    if(time.time()-self.thrustTime>1):
+                        channels = [1500]*18
+                    if self.do_hold_depth:
+                        channels[2] = self.depth_pwm
+                    thruster_data = mavros_msgs.msg.OverrideRCIn()
+                    thruster_data.channels = channels
+                    #print(f"[THRUSTER_SEND]: {thruster_data.channels}")
+                    self.TOPIC_SET_RC_OVR.set_data(thruster_data)
+                    self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
+                except Exception as e:
+                    print("Thrusters publish failed")
+                    print(e)
             time.sleep(0.1)
 
     def get_sensors(self):
@@ -275,14 +288,14 @@ class AUV(RosHandler):
     def update_parameters_from_topic(self, data):
         if self.connected:
             try:
-                self.armed = self.do_publish_thrusters = data.armed
+                self.armed = data.armed
                 self.mode = data.mode
                 self.guided = data.guided
             except Exception as e:
                 print("state failed")
                 print(e)
 
-def main(auv: AUV):
+def main():
     try:
         # wait for connection
         while not auv.connected:
@@ -294,7 +307,6 @@ def main(auv: AUV):
         auv.change_mode(MODE_ALTHOLD)
         auv.calibrate_depth()
         time.sleep(2)
-
         # arming
         while not auv.armed:
             print("Attempting to arm...")
@@ -302,7 +314,8 @@ def main(auv: AUV):
             time.sleep(3)
         print("Armed!")
         print("\nNow beginning loops...")
-        auv.connect("pix_standalone", rate=20)  # change rate to 10 if issues arrive
+        auv.start_threads()
+
     except KeyboardInterrupt:
         # stopping sub on keyboard interrupt
         auv.arm(False)
@@ -326,4 +339,7 @@ signal.signal(signal.SIGINT, onExit)
 if __name__ == "__main__":
     auv = AUV()
     auv.enable_topics_for_read()
-    main(auv)
+    mainTh = threading.Thread(target=main, daemon=True)
+    mainTh.start()
+    auv.connect("pix_standalone", rate=20)  # change rate to 10 if issues arrive
+    
