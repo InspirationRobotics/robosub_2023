@@ -83,7 +83,7 @@ class AUV(RosHandler):
         self.AUV_BARO = TopicService("/auv/devices/baro", std_msgs.msg.Float32MultiArray)
         self.AUV_GET_THRUSTERS = TopicService("/auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn)
         self.AUV_GET_DEPTH = TopicService("/auv/devices/setDepth", std_msgs.msg.Float64)
-        self.AUV_GET_REL_DEPTH = TopicService("/auv/devices/rel_depth", std_msgs.msg.Float64)
+        self.AUV_GET_REL_DEPTH = TopicService("/auv/devices/setRelativeDepth", std_msgs.msg.Float64)
         self.AUV_GET_ARM = TopicService("/auv/status/arm", std_msgs.msg.Bool)
         self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
