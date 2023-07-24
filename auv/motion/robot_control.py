@@ -8,7 +8,7 @@ from simple_pid import PID
 
 from .utils import get_distance, get_heading_from_coords, heading_error, rotate_vector, inv_rotate_vector
 from ..device.dvl import dvl
-
+import math
 
 class RobotControl:
     """Class to control the robot"""
@@ -89,7 +89,7 @@ class RobotControl:
         rel_depth = Float64()
         rel_depth.data = delta_depth
         self.pub_rel_depth.publish(rel_depth)
-        print(f"[INFO] Changing Depth relatively by {d}")
+        print(f"[INFO] Changing Depth relatively by {delta_depth}")
 
     def movement(
         self,
