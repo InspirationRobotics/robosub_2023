@@ -26,11 +26,9 @@ class CV:
         """
         # frame is going to be 640 x 480
         self.step = 0
-        self.prevTargetLength = 0
-        self.prevYaw = None
+        self.side=""
+        self.value=""
         self.CENTER_FRAME_X = 320
-        self.ratio = 1
-        self.yaw = 0
         print("[INFO] Gate CV init")
 
     def run(self, frame, target, detections):
@@ -46,6 +44,10 @@ class CV:
 
         target_x = -1
         target_area = -1
+
+        other_x = -1
+        other_length = -1
+        other_area = -1
         # confidenceGate = -1
         targetConfidences = []
         end = False
@@ -58,25 +60,82 @@ class CV:
         target_length = -1
         for det_confidence, det_x, det_label, det_length, det_area in targetConfidences:
             if det_label == "E":
-                maxConfidence = det_confidence
                 target_x = det_x
                 target_length = det_length
-                target_label = det_label
                 target_area = det_area
-                print(det_area)
+            if det_label == "A":
+                other_x = det_x
+                other_length = det_length
+                other_area = det_area
 
         forward = 0
         lateral = 0
         yaw = 0
-        tolerance = 20
+        tolerance = 10
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
-        if self.step == 0:
-            yaw = -1
-            if(len(detections)!= 0):
+
+        if self.step == 0:  
+            if target_x < self.CENTER_FRAME_X - tolerance:
+                # print("strafe left")
+                yaw = -2
+            elif target_x > self.CENTER_FRAME_X + tolerance:
+                # print("strafe right")
+                yaw = 2
+            else:
+                print("aligned, continue")
                 self.step = 1
 
-        if self.step == 1:  
+        # start turning process
+        elif self.step == 1:
+            if((target_x < other_x) and (other_area>target_area)):
+                self.side = "Right"
+                self.step = 2
+                self.value = "Other"
+            elif ((other_x < target_x) and (target_area>other_area)):
+                self.side = "Right"
+                self.step = 2
+                self.value = "Target"
+            elif ((other_x < target_x) and (target_area<other_area)):
+                self.side = "Left"
+                self.value = "Other"
+                self.step = 2
+            elif ((other_x > target_x) and (target_area>other_area)):
+                self.side = "Left"
+                self.value = "Target"
+                self.step = 2
+
+        elif self.step == 2:
+            if(self.value == "Target"):
+                x = target_x
+            elif(self.value == "Other"):
+                x = other_x
+
+            if(self.side == "Right"):
+                lateral = -2
+                if((640-tolerance)<x<640):
+                    self.step = 3
+            elif(self.side == "Left"):
+                if(0<x<tolerance):
+                    self.step = 3
+                lateral = 2
+
+        elif self.step == 3:
+            if(self.value == "Target"):
+                x = target_x
+            elif(self.value == "Other"):
+                x = other_x
+
+            if(self.side == "Right"):
+                yaw = 1
+                if(self.CENTER_FRAME_X-tolerance<x<self.CENTER_FRAME_X + tolerance):
+                    self.step = 4
+            elif(self.side == "Left"):
+                yaw = -1
+                if(self.CENTER_FRAME_X-tolerance<x<self.CENTER_FRAME_X + tolerance):
+                    self.step = 4
+
+        elif self.step == 4:
             if target_x < self.CENTER_FRAME_X - tolerance:
                 # print("strafe left")
                 lateral = -2
@@ -85,32 +144,9 @@ class CV:
                 lateral = 2
             else:
                 print("aligned, continue")
-                self.step = 2
+                self.step = 5
 
-        # start turning process
-        elif self.step == 2:
-            if(len(detections)>0):
-                if(self.prevYaw == None):
-                    yaw = 1
-                else:
-                    if(self.prevTargetLength<target_length):
-                        yaw = self.prevYaw
-                    elif (self.prevTargetLength>target_length):
-                        yaw = -1*(self.prevYaw)
-                        
-                forward = 2
-                if target_x < self.CENTER_FRAME_X - tolerance:
-                    # print("strafe left")
-                    lateral = -1
-                elif target_x > self.CENTER_FRAME_X + tolerance:
-                    # print("strafe right")
-                    lateral = 1
-
-            if(target_area > 2200):
-                forward=2
-                end = True
-        self.prevTargetLength = target_length
-        self.prevYaw = yaw
+        print(self.side)
 
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
 
