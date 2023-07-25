@@ -39,10 +39,10 @@ class oakCamera:
         self.time = time.time()
         print(f"Camera ID {str(id)}: Oak-D {self.name} is available at {newDevice}")
 
-    def createPipeline(self, modelPath=None, confidence=0.5):
+    def createPipeline(self, modelPath="raw", confidence=0.5):
         
         self.modelPath = modelPath
-        if self.modelPath == None:
+        if self.modelPath == "raw":
             pipeline = dai.Pipeline()
             xoutRgb = pipeline.createXLinkOut()
             xoutRgb.setStreamName("rgb")
@@ -152,7 +152,7 @@ class oakCamera:
             print(e)
 
     def modelSelect(self, modelName):
-        modelsList = ["gate", "dhd", "gateAug", "bins", "buoy", "raw"]
+        modelsList = ["gate", "dhd", "bins", "buoy", "raw"]
         if modelName not in modelsList:
             if modelName[0] == "/":
                 print("Detected direct path")
@@ -169,7 +169,7 @@ class oakCamera:
                 return
         elif modelName == "raw":
             print(f"Switching {self.name} oakD to raw view")
-            modelPath = None
+            modelPath = "raw"
         else:
             print(f"Switching {self.name} oakD to {modelName} model")
             folderPath = "/home/inspiration/auv/auv/device/cams/models/"
