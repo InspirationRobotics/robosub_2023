@@ -185,6 +185,50 @@ class CV:
         toReturn["boardCenter"] = boardCenter
         return toReturn
 
+    def yawAndLateralFix(self, center, side):
+        yaw=0
+        lateral=0
+        state = False
+        if(self.step==0):
+            xTol = 20
+            if(center[0]>self.midX+xTol):
+                yaw = 0.5
+            elif(center[0]<self.midX-xTol):
+                yaw = -0.5
+            else:
+                self.step=1
+                print("switched to 1")
+        elif(self.step==1):
+            xTol = 250
+            print(center[0])
+            if(side=="left"):
+                lateral=1.2
+            elif(side=="right"):
+                lateral=-1.2
+            elif(side=="center"):
+                state = True
+            else:
+                print("can't see all 4")
+            if(center[0]<0+xTol or center[0]>self.midX*2-xTol):
+                print("switched to 0")
+                self.step=0
+        return yaw, lateral, state
+
+    def yawAndLateralMaintain(self, center, ratio):
+        yaw=0
+        lateral=0
+        state = False
+        tolerance = 20
+        if(ratio>self.prevRatio):
+            yaw=self.prevYaw*-1
+        if center[0]<self.midX-tolerance:
+            lateral = -1
+        elif center[1]>self.midX-tolerance:
+            lateral=1
+        else:
+            state=True # maybe default too?
+        return yaw, lateral, state
+    
     def run(self, frame, target, oakd_data):
         """
         frame: the frame from the camera
@@ -221,37 +265,11 @@ class CV:
         if dist>2:
             forward = 1
             if(ratio>ratioTol):
-                if(self.step==0):
-                    xTol = 20
-                    if(boardCenter[0]>self.midX+xTol):
-                        yaw = 1
-                    elif(boardCenter[0]<self.midX-xTol):
-                        yaw = -1
-                    else:
-                        self.step=1
-                        print("switched to 1")
-                elif(self.step==1):
-                    xTol = 250
-                    print(boardCenter[0])
-                    if(side=="left"):
-                        lateral=1.2
-                    elif(side=="right"):
-                        lateral=-1.2
-                    else:
-                        print("can't see all 4 or centered")
-                    if(boardCenter[0]<0+xTol or boardCenter[0]>self.midX*2-xTol):
-                        print("switched to 2")
-                        self.step=0
+                yaw, lateral, do_forward = self.yawAndLateralFix(boardCenter, side)
             else:
-                tolerance = 20
-                if(ratio>self.prevRatio):
-                    yaw=self.prevYaw*-1
-                if boardCenter[0]<self.midX-tolerance:
-                    lateral = -1
-                elif boardCenter[1]>self.midX-tolerance:
-                    lateral=1
-                else:
-                    forward=1.3 # maybe default too?
+                yaw, lateral, do_forward = self.yawAndLateralMaintain(boardCenter, ratio)
+                if do_forward:
+                    forward=1.3
         elif dist>1:
             targetCenter = result["targetCenter"]
             if targetCenter==None:
@@ -265,9 +283,9 @@ class CV:
             else:
                 centered+=1
             if targetCenter[1]>self.midY+tolerance:
-                vertical=0.02
+                vertical=0.002
             elif targetCenter[1]<self.midY-tolerance:
-                vertical=-0.02
+                vertical=-0.002
             else:
                 centered+=1
             if centered==2:
