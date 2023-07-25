@@ -46,18 +46,52 @@ class CV:
         lateral = 0
         yaw=0
         vertical=0
+        targetConfidences = []
+        maxConfidence = 0
+        targetGate = (0,0)
+        targetPixel = (320,240)
         end=False
         if oakd_data == None:
             return {}, frame
-
+        for detection in detections:
+            x1 = int(detection.xmin * width)
+            x2 = int(detection.xmax * width)
+            y1 = int(detection.ymin * height)
+            y2 = int(detection.ymax * height)
+            label = detection.label
+            cv2.putText(frame, str(detection.label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"{detection.confidence * 100:.2f}", (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+            # Check Abydos
+            if(detection.label == target):
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0,0,255), cv2.FONT_HERSHEY_SIMPLEX)
+                centerOfDetection = (int((x1+x2)/2),int((y1+y2)/2))
+                targetConfidences.append((detection.confidence,centerOfDetection))
+        for confidence in targetConfidences:
+            if confidence[0]>maxConfidence:
+                maxConfidence = confidence[0]
+                targetGate = confidence[1]
+        frame[targetGate[0]][targetGate[1]] = (255,255,255)
         # TODO: Align with bins
-
+        tolerance = 10
+        if(targetGate[0]<targetPixel[0]-tolerance):
+            #strafe idk left
+            lateral = 2
+        elif(targetGate[0]>targetPixel[0]+tolerance):
+            #strafe right
+            lateral = -2
+        else:
+            if(targetGate[1]<targetPixel[1]-tolerance):
+                forward = -1
+            elif(targetGate[1]>targetPixel[1]+tolerance):
+                forward = 1
+            else:
+                #drop ball
+                print("drop the ball")
         # TODO: Remove Lids for each bin
 
-        # TODO: Detect Abydos or Earth
-
         # TODO: Position to drop markers
-        
+        #kind of already done
         return {"lateral": lateral, "forward": forward, "vertical": vertical,"end": end}, frame
 
 
