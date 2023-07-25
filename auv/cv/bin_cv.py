@@ -53,7 +53,7 @@ class CV:
         end=False
         if oakd_data == None:
             return {}, frame
-        for detection in detections:
+        for detection in oakd_data:
             x1 = int(detection.xmin * width)
             x2 = int(detection.xmax * width)
             y1 = int(detection.ymin * height)
