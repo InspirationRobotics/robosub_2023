@@ -121,12 +121,12 @@ class _ScriptHandler:
             pub_oakd_data_topic = self.camera_topic.replace("Raw", "Data")
             self.pub_oakd_model = rospy.Publisher(pub_oakd_model_topic, String, queue_size=10)
             self.sub_oakd_data = rospy.Subscriber(pub_oakd_data_topic, String, self.callback_oakd_data)
-            time.sleep(1)  # wait for the ros publisher / subscriber to be ready
         else:
             self.is_oakd = False
             self.pub_oakd_model = None
             self.sub_oakd_data = None
-
+        time.sleep(1.5)  # wait for the ros publisher / subscriber to be ready
+        
         self.initCameraStream()  # sends json to camsVersatile for which camera to start and with model or not
 
         self.target = "main"

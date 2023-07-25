@@ -193,12 +193,12 @@ class oakCamera:
 
     def runner(self):
         cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-        if self.modelPath != None:
+        if self.modelPath != "raw":
             qDet = self.device.getOutputQueue(name="nn", maxSize=4, blocking=False)
         while not self.rospy.is_shutdown() and not self.isKilled:
             try:
                 frame1 = cam.get().getCvFrame()
-                if self.modelPath != None:
+                if self.modelPath != "raw":
                     inDet = qDet.get()
                     detections = inDet.detections
                     dataToSend = {}
@@ -241,6 +241,7 @@ class oakCamera:
         self.rospy.loginfo(f"Killing Camera {str(self.id)} Stream...")
         self.oakThread.join()
         del self.device
+        self.modelPath = -1
         self.rospy.loginfo(f"Killed Camera {str(self.id)} Stream...")
         pass  # todo
 
