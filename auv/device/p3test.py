@@ -218,13 +218,11 @@
 # import time
 
 # pin1 = 35
-# pin2 = 36
 # global state
 # state = True
 # GPIO.setmode(GPIO.BOARD)
 
-# GPIO.setup(pin1, GPIO.OUT)
-# GPIO.setup(pin2, GPIO.IN)
+# GPIO.setup(pin1, GPIO.IN)
 
 
 # def printState(tp):
@@ -233,20 +231,16 @@
 #     GPIO.cleanup()
 #     state = False
 
-
-# GPIO.output(pin1, GPIO.HIGH)
-# print("Its high")
-
-# GPIO.add_event_detect(pin2, GPIO.FALLING, callback=printState, bouncetime=10)
+# GPIO.add_event_detect(pin1, GPIO.FALLING, callback=printState, bouncetime=10)
 
 # while state:
-#     pass
+#     print(GPIO.input(pin1))
+#     time.sleep(0.1)
+
+# listTemp = [None, "Hello"]
+# boardDetect = [100,10]
 
 
-listTemp = [None, "Hello"]
-boardDetect = [100,10]
+# listTemp = [boardDetect[i] if v is None else v for i,v in enumerate(listTemp)]
 
-
-listTemp = [boardDetect[i] if v is None else v for i,v in enumerate(listTemp)]
-
-print(listTemp)
+# print(listTemp)
