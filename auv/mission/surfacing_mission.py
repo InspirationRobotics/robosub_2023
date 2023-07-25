@@ -53,7 +53,7 @@ class SurfacingMission:
         """
 
         # move the sub up
-        self.robot_control.set_depth(0.6)
+        self.robot_control.set_depth(0.5)
 
         while not rospy.is_shutdown():
             try:

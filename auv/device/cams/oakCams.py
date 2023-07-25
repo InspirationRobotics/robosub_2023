@@ -152,7 +152,7 @@ class oakCamera:
             print(e)
 
     def modelSelect(self, modelName):
-        modelsList = ["gate", "dhd", "gateAug", "buoy", "raw"]
+        modelsList = ["gate", "dhd", "gateAug", "bins", "buoy", "raw"]
         if modelName not in modelsList:
             if modelName[0] == "/":
                 print("Detected direct path")

@@ -19,7 +19,7 @@ class CV:
         elif self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
 
-        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 3.0)
+        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 2.0)
 
         self.viz_frame = None
         self.error_buffer = []
@@ -73,7 +73,7 @@ class CV:
         (x_center, y_center) = self.get_octogon_center(frame)
 
         if x_center is None or y_center is None:
-            return {}, self.viz_frame
+            return {}, frame
 
         (x_error, y_error) = self.get_error(x_center, y_center, frame.shape)
         self.error_buffer.append((x_error, y_error))
@@ -82,17 +82,17 @@ class CV:
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.05 and len(self.error_buffer) == 30:
-            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
+            return {"lateral": 0, "forward": 0, "end": True}, frame
 
         # TODO: implement a simple PID controller for everyone to use
-        x_error *= self.surfacing_sensitivity
+        x_error *= -self.surfacing_sensitivity
         y_error *= self.surfacing_sensitivity
 
         # if greay, x = forward, y = lateral
         if self.current_sub == "greay":
-            return {"lateral": y_error, "forward": x_error, "end": False}, self.viz_frame
+            return {"lateral": y_error, "forward": x_error, "end": False}, frame
         else:
-            return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+            return {"lateral": x_error, "forward": y_error, "end": False}, frame
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import os
 import time
 
 from auv.mission import surfacing_mission
-from auv.utils import arm, deviceHelper
+from auv.utils import arm, disarm, deviceHelper
 
 # load sub config
 config = deviceHelper.variables

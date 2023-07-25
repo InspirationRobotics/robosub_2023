@@ -88,26 +88,28 @@ class DVL:
         BE = self.__parseLine(self.ser.readline())  # unused
         BD = self.__parseLine(self.ser.readline())
 
-        milli = int(TS[1][12:14]) * 0.01
-        seconds = int(TS[1][10:12])
-        minutes = int(TS[1][8:10]) * 60
-        hours = int(TS[1][6:8]) * 60 * 60
-        time = hours + minutes + seconds + milli
-
-        data["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
-        data["Time"] = time
-        data["Salinity"] = float(TS[2])
-        data["Temp"] = float(TS[3])
-        data["Transducer_depth"] = float(TS[4])
-        data["Speed_of_sound"] = float(TS[5])
-        data["Result_code"] = TS[6]
-        data["DVL_velocity"] = [int(BI[1]), int(BI[2]), int(BI[3]), int(BI[4])]
-        data["isDVL_velocity_valid"] = BI[5] == "A"
-        data["AUV_velocity"] = [int(BS[1]), int(BS[2]), int(BS[3])]
-        data["isAUV_velocity_valid"] = BS[4] == "A"
-        data["Distance_from_bottom"] = float(BD[4])
-        data["Time_since_valid"] = float(BD[5])
-
+        try:
+            milli = int(TS[1][12:14]) * 0.01
+            seconds = int(TS[1][10:12])
+            minutes = int(TS[1][8:10]) * 60
+            hours = int(TS[1][6:8]) * 60 * 60
+            time = hours + minutes + seconds + milli
+            
+            data["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
+            data["Time"] = time
+            data["Salinity"] = float(TS[2])
+            data["Temp"] = float(TS[3])
+            data["Transducer_depth"] = float(TS[4])
+            data["Speed_of_sound"] = float(TS[5])
+            data["Result_code"] = TS[6]
+            data["DVL_velocity"] = [int(BI[1]), int(BI[2]), int(BI[3]), int(BI[4])]
+            data["isDVL_velocity_valid"] = BI[5] == "A"
+            data["AUV_velocity"] = [int(BS[1]), int(BS[2]), int(BS[3])]
+            data["isAUV_velocity_valid"] = BS[4] == "A"
+            data["Distance_from_bottom"] = float(BD[4])
+            data["Time_since_valid"] = float(BD[5])
+        except:
+            data = None
         return data
 
     def process_packet(self, packet):
@@ -180,7 +182,7 @@ class DVL:
         """Update DVL data (runs in a thread)"""
         while self.__running:
             while self.ser.in_waiting and self.__running:
-                vel_packet = self.__get_velocity(self.ser.readline())
+                vel_packet = self.__get_velocity()
                 if vel_packet is None:
                     continue
                 ret = self.process_packet(vel_packet)
@@ -188,12 +190,12 @@ class DVL:
 
     def start(self):
         # ensure not running
-        if self.__running or self.__thread_vel.is_alive():
+        if self.__running:
             print("[WARN] DVL already running")
             return
 
         self.__running = True
-        self.__thread_vel = threading.Thread(target=self.update)
+        self.__thread_vel = threading.Thread(target=self.update, daemon=True)
         self.__thread_vel.start()
 
     def stop(self):

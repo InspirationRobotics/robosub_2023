@@ -28,6 +28,8 @@ while not rospy.is_shutdown():
             print("Invalid input")
             continue
 
+        z = 0.5
+
         print(f"[KEYBOARD] X: {x}, Y: {y}, Z: {z}, H: {h}")
         rc.navigate_dvl(x, y, z, h)
 

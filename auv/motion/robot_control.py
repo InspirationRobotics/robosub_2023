@@ -19,12 +19,14 @@ class RobotControl:
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
-        # dvl sensor setup (onyx)
-        if self.config.get("sub") == "onyx":
-            self.dvl = dvl.DVL()
-            self.dvl.start()
-        else:
-            self.dvl = None
+        # # dvl sensor setup (onyx)
+        # if self.config.get("sub") == "onyx":
+        #     self.dvl = dvl.DVL()
+        #     self.dvl.start()
+        # else:
+        #     self.dvl = None
+        self.dvl = dvl.DVL()
+        self.dvl.start()
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
@@ -36,7 +38,7 @@ class RobotControl:
         # set of PIDs to handle movement of the robot
         self.PIDs = {
             "yaw": PID(
-                self.config.get("YAW_PID_P", 7),
+                self.config.get("YAW_PID_P", 10),
                 self.config.get("YAW_PID_I", 0.01),
                 self.config.get("YAW_PID_D", 0.0),
                 setpoint=0,
@@ -138,9 +140,9 @@ class RobotControl:
 
             error = heading_error(self.compass, target)
             # normalize error to -1, 1 for the PID controller
-            output = self.PIDs["yaw"](error / 180)
+            output = self.PIDs["yaw"](-error / 180)
 
-            print(f"[DEBUG] Heading error: {error}, output: {output}")
+            print(f"[DEBUG] Heading error: {error}, output: {output} {self.compass} {target}")
 
             if abs(error) <= 1:
                 print("[INFO] Heading reached")
@@ -163,6 +165,8 @@ class RobotControl:
         update_freq is the frequency at which the PID controllers are updated
         """
 
+        print(self.dvl)
+
         # reset PID integrals
         for pid in self.PIDs.values():
             pid.reset()
@@ -175,10 +179,10 @@ class RobotControl:
 
         if relative_heading:
             # rotate [x, y] according to the current heading
-            rel_x, rel_y = rotate_vector(x, y, self.compass)
+            x, y = rotate_vector(x, y, self.compass)
 
         target_heading = get_heading_from_coords(x, y)
-        print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg")
+        print(f"[INFO] Navigating to {x}, {y}, {z}, {target_heading}deg current {self.compass}")
 
         # rotate and set depth
         self.set_heading(target_heading)
