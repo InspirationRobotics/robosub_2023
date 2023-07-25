@@ -94,7 +94,7 @@ class CV:
 
     def calculate_data(self, frame, target, detections):
         toReturn = {}
-        correctRatios = {"A1": 1.1964, "A2": 0.2632, "E1": 1.8269, "E2": 1.6792, "board": 1.0949} # based off sample footage with sub looking straight at them
+        correctRatios = {"A1": 1.1154, "A2": 0.2881, "E1": 1.186, "E2": 1.5476, "board": 1.0149} # based off sample footage with sub looking straight at them
         correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
@@ -192,9 +192,9 @@ class CV:
         if(self.step==0):
             xTol = 20
             if(center[0]>self.midX+xTol):
-                yaw = 0.5
+                yaw = 1
             elif(center[0]<self.midX-xTol):
-                yaw = -0.5
+                yaw = -1
             else:
                 self.step=1
                 print("switched to 1")

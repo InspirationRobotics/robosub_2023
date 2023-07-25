@@ -108,11 +108,8 @@ class CV:
 
             # Calculate slope
             slope = (lefty - righty) / (0 - (cols - 1))
-            print(slope)
-            if slope == 0:
-                slope = slope
-            else:
-                slope = -1 / slope
+            if(slope/-1 == 0):
+                slope = 0
             # cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
             # Movement Decisions

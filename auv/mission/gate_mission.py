@@ -56,7 +56,8 @@ class GateMission:
         while not rospy.is_shutdown():
             if not self.received:
                 continue
-
+            
+            self.robot_control.set_depth(0.5)
             for key in self.next_data.keys():
                 if key in self.data.keys():
                     self.data[key].update(self.next_data[key])
@@ -83,9 +84,9 @@ class GateMission:
             # direcly feed the cv output to the robot control
             if(end):
                 print("Ending...")
-                #self.robot_control.forwardDist(3, 2)
+                self.robot_control.forwardDist(3, 2)
             else:
-                #self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+                self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
                 print(forward, lateral, yaw)
 
         print("[INFO] Gate mission run")
