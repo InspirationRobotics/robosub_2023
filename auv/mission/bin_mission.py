@@ -7,11 +7,10 @@ Template file to create a mission class
 import json
 
 import rospy
-from std_msgs.msg import String
 
-from auv.device import cvHandler
-from auv.motion import robot_control
-from auv.motion.servo import gripper, dropper
+from ..device import cvHandler
+from ..motion import robot_control
+from ..motion.servo import dropper, gripper
 
 
 class BinMission:
@@ -69,17 +68,17 @@ class BinMission:
 
             # TODO: do something with the data
             if self.data["bin_cv"].get("end", None):
-                    # idle the robot
-                    print("ending True")
-                    self.robot_control.movement()
-                    break
+                # idle the robot
+                print("ending True")
+                self.robot_control.movement()
+                break
 
             # get the lateral and forward values from the cv (if they exist)
             lateral = self.data["bin_cv"].get("lateral", None)
             yaw = self.data["bin_cv"].get("yaw", None)
             forward = self.data["bin_cv"].get("forward", None)
             vertical = self.data["bin_cv"].get("vertical", None)
-            
+
             if None in (lateral, forward):
                 continue
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)

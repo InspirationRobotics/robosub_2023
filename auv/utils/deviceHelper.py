@@ -2,13 +2,20 @@ import os
 import sys
 import platform
 from dotenv import dotenv_values
+import json
+
+def load_json(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+    return data
+
 
 if "nx" in platform.node():
     onyx = True
-    variables = dotenv_values("/home/inspiration/auv/config/onyx.env")
+    variables = load_json("/home/inspiration/auv/config/onyx.json")
 else:
     onyx = False
-    variables = dotenv_values("/home/inspiration/auv/config/graey.env")
+    variables = load_json("/home/inspiration/auv/config/graey.json")
 
 
 def findFromId(ids):

@@ -42,3 +42,4 @@ while not rospy.is_shutdown():
 
 rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)
 disarm.disarm()
+rospy.signal_shutdown("Rospy Exited")

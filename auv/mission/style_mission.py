@@ -9,8 +9,8 @@ import json
 import rospy
 from std_msgs.msg import String
 
-from auv.device import cvHandler
-from auv.motion import robot_control
+from ..device import cvHandler
+from ..motion import robot_control
 
 
 class StyleMission:

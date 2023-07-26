@@ -3,14 +3,15 @@ Surfacing mission class
 """
 
 import json
+import math
 import os
 
 import rospy
 from std_msgs.msg import String
 
-from auv.device import cvHandler
-from auv.motion import robot_control
-from auv.utils import disarm
+from ..device import cvHandler
+from ..motion import robot_control
+from ..utils import disarm
 
 
 class SurfacingMission:
@@ -35,6 +36,8 @@ class SurfacingMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
+        self.surfacing_sensitivity = self.config.get("surfacing_sensitivity", 0.5)
+        self.proportional_gain = self.config.get("surfacing_proportional_gain", 4.0)
         print("[INFO] Surfacing mission init")
 
     def callback(self, msg):
@@ -81,7 +84,12 @@ class SurfacingMission:
                 lateral = self.data["surfacing_cv"].get("lateral", 0)
                 forward = self.data["surfacing_cv"].get("forward", 0)
 
-                # direcly feed the cv output to the robot control
+                lateral = lateral * 0.5
+                forward = forward * 0.5
+                
+                lateral = math.clamp(lateral, -2, 2)
+                forward = math.clamp(forward, -2, 2)
+
                 print(f"[DEBUG] lateral: {lateral}, forward: {forward}")
                 self.robot_control.movement(lateral=lateral, forward=forward)
 

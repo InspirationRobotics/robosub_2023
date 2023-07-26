@@ -1,6 +1,5 @@
 import os
-from dotenv import dotenv_values
+from json import load
 
-result = dotenv_values("onyx.env")
-
+result = json.load(open("/home/inspiration/auv/config/onyx.json", "r"))
 print(result.get("sub"))

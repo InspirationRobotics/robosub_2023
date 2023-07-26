@@ -24,8 +24,8 @@ class CV:
         self.current_sub = self.config.get("sub", "onyx")
         if self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
-        elif self.current_sub == "greay":
-            print(f"[INFO] No Gripper or Dropper on Greay")
+        elif self.current_sub == "graey":
+            print(f"[INFO] No Gripper or Dropper on graey")
             self.camera = None
 
         self.viz_frame = None
@@ -71,7 +71,8 @@ class CV:
             if confidence[0]>maxConfidence:
                 maxConfidence = confidence[0]
                 targetGate = confidence[1]
-        frame[targetGate[0]][targetGate[1]] = (255,255,255)
+                
+        cv2.circle(frame, targetGate, 10, (0, 0, 255), -1)
         # TODO: Align with bins
         tolerance = 10
         if(targetGate[0]<targetPixel[0]-tolerance):

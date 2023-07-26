@@ -11,7 +11,7 @@ import time
 import cv2
 import numpy as np
 
-from auv.device.sonar import Ping360, io, utils
+from ..device.sonar import Ping360, io, utils
 
 
 def equilize(img):

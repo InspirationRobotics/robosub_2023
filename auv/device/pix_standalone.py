@@ -48,15 +48,15 @@ class AUV(RosHandler):
         self.mode = ""
 
         # depth hold
-        self.channels = [1500]*18
-        self.thrustTime = time.time() # timeout for no new thruster
+        self.channels = [1500] * 18
+        self.thrustTime = time.time()  # timeout for no new thruster
         self.depth = None
         self.do_hold_depth = False
         self.depth_pwm = 0
         self.depth_calib = 0
-        self.depth_pid_params = [200, 0.5, 0.1]
-        self.depth_pid_offset = 1500
-        self.depth_pid = PID(self.depth_pid_params[0], self.depth_pid_params[1], self.depth_pid_params[2], setpoint=0.5)
+        self.depth_pid_params = config.get("depth_pid_params", [0.5, 0.1, 0.1])
+        self.depth_pid_offset = config.get("depth_pid_offset", 1500)
+        self.depth_pid = PID(*self.depth_pid_params, setpoint=0.5)
         self.depth_pid.output_limits = (-self.depth_pid_params[0], self.depth_pid_params[0])
 
         # init topics
@@ -134,7 +134,7 @@ class AUV(RosHandler):
         # wait for depth data
         while self.depth == None:
             pass
-        
+
         prevDepth = self.depth
         start_time = time.time()
 
@@ -177,7 +177,7 @@ class AUV(RosHandler):
                 baro_data.data = [self.depth, press_diff]
                 self.AUV_BARO.set_data(baro_data)
                 self.topic_publisher(topic=self.AUV_BARO)
-                
+
                 # hold depth
                 if self.do_hold_depth and self.armed:
                     self.depth_hold(self.depth)
@@ -206,7 +206,6 @@ class AUV(RosHandler):
         self.thrustTime = time.time()
         self.channels = list(msg.channels)
 
-
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE, self.update_parameters_from_topic)
         self.topic_subscriber(self.TOPIC_GET_IMU_DATA)
@@ -220,7 +219,6 @@ class AUV(RosHandler):
         self.topic_subscriber(self.AUV_GET_REL_DEPTH, self.set_rel_depth)
         self.topic_subscriber(self.TOPIC_GET_BATTERY, self.batteryIndicator)
 
-
     def start_threads(self):
         # start sensor and thruster thread
         sensor_thread = threading.Thread(target=self.get_sensors, daemon=True)
@@ -230,11 +228,11 @@ class AUV(RosHandler):
 
     def publish_sensors(self):
         try:
-            if self.imu!=None:
+            if self.imu != None:
                 imu_data = self.imu
                 self.AUV_IMU.set_data(imu_data)
                 self.topic_publisher(topic=self.AUV_IMU)
-            if self.hdg!=None:
+            if self.hdg != None:
                 comp_data = self.hdg
                 self.AUV_COMPASS.set_data(comp_data)
                 self.topic_publisher(topic=self.AUV_COMPASS)
@@ -247,13 +245,13 @@ class AUV(RosHandler):
             if self.connected:
                 try:
                     channels = self.channels
-                    if(time.time()-self.thrustTime>1):
-                        channels = [1500]*18
+                    if time.time() - self.thrustTime > 1:
+                        channels = [1500] * 18
                     if self.do_hold_depth:
                         channels[2] = self.depth_pwm
                     thruster_data = mavros_msgs.msg.OverrideRCIn()
                     thruster_data.channels = channels
-                    #print(f"[THRUSTER_SEND]: {thruster_data.channels}")
+                    # print(f"[THRUSTER_SEND]: {thruster_data.channels}")
                     self.TOPIC_SET_RC_OVR.set_data(thruster_data)
                     self.topic_publisher(topic=self.TOPIC_SET_RC_OVR)
                 except Exception as e:
@@ -295,6 +293,7 @@ class AUV(RosHandler):
                 print("state failed")
                 print(e)
 
+
 def main():
     try:
         # wait for connection
@@ -302,7 +301,7 @@ def main():
             print("Waiting to connect...")
             time.sleep(0.5)
         print("Connected!")
-        
+
         # calibrate depth
         auv.change_mode(MODE_ALTHOLD)
         auv.calibrate_depth()
@@ -319,6 +318,7 @@ def main():
     except KeyboardInterrupt:
         # stopping sub on keyboard interrupt
         auv.arm(False)
+
 
 def onExit(signum, frame):
     try:
@@ -342,4 +342,3 @@ if __name__ == "__main__":
     mainTh = threading.Thread(target=main, daemon=True)
     mainTh.start()
     auv.connect("pix_standalone", rate=20)  # change rate to 10 if issues arrive
-    
