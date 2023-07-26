@@ -53,7 +53,7 @@ class CV:
 
         tolerance = 10
         maxConfidence = 0
-        bin_offset = (0, 0) # measured offset 
+        bin_offset = (0, 0) # measured offset
         target_bin = (0, 0)
         target_pixel = (320, 240)
 
@@ -85,17 +85,17 @@ class CV:
         cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
 
         # align X
-        if target_bin[0] < target_pixel[0] - tolerance:
+        if target_bin[0] < target_pixel[0] + bin_offset[0] - tolerance:
             # strafe right
-            lateral = 2
-        elif target_bin[0] > target_pixel[0] + tolerance:
+            lateral = 1.5
+        elif target_bin[0] > target_pixel[0] + bin_offset[0] + tolerance:
             # strage left
-            lateral = -2
+            lateral = -1.5
         else:
             # align Y
-            if target_bin[1] < target_pixel[1] - tolerance:
+            if target_bin[1] < target_pixel[1] + bin_offset[1] - tolerance:
                 forward = -1
-            elif target_bin[1] > target_pixel[1] + tolerance:
+            elif target_bin[1] > target_pixel[1] + bin_offset[1] + tolerance:
                 forward = 1
             else:
                 # Drop the ball
