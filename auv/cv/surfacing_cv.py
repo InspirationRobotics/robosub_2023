@@ -110,7 +110,7 @@ class CV:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        if avg_error < 0.05 and len(self.error_buffer) == 30:
+        if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
         return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
 
@@ -129,7 +129,7 @@ class CV:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        if avg_error < 0.05 and len(self.error_buffer) == 30:
+        if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
         return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
 
@@ -143,6 +143,7 @@ if __name__ == "__main__":
 
     # Create a CV object with arguments
     cv = CV()
+    print(f"[INFO] running on {cv.current_sub}")
 
     cap = cv2.VideoCapture("testing_data\\octogon.mp4")
 
