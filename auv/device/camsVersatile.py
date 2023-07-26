@@ -117,7 +117,10 @@ class cameraStreams:
             return False
         if state and len(self.activeCams) == 2 and id not in self.activeCams:
             print(f"2 camera streams are already active with ids: {str(self.activeCams)}")
-            print("Please stop one of these streams first\n")
+            print(f"Killing camera {str(self.activeCams[0])} to start camera {str(id)}")
+            self.camCtrl(str(self.activeCams[0]), False)
+            self.camCtrl(str(id), True, model)
+            #print("Please stop one of these streams first\n")
             return False
         if state and id not in self.activeCams:
             if model == None:

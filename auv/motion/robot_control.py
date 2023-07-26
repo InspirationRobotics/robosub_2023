@@ -7,26 +7,27 @@ from std_msgs.msg import Float64, Float32MultiArray
 from simple_pid import PID
 
 from .utils import get_distance, get_heading_from_coords, heading_error, rotate_vector, inv_rotate_vector
+from ..utils import deviceHelper
 from ..device.dvl import dvl
 import math
+
+config = deviceHelper.variables
 
 class RobotControl:
     """Class to control the robot"""
 
-    def __init__(self, **config):
+    def __init__(self):
         # init some variables
         self.config = config
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
-        # # dvl sensor setup (onyx)
-        # if self.config.get("sub") == "onyx":
-        #     self.dvl = dvl.DVL()
-        #     self.dvl.start()
-        # else:
-        #     self.dvl = None
-        self.dvl = dvl.DVL()
-        self.dvl.start()
+        # dvl sensor setup (onyx)
+        if self.config.get("sub") == "onyx":
+            self.dvl = dvl.DVL()
+            self.dvl.start()
+        else:
+            self.dvl = None
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
