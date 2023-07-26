@@ -40,7 +40,7 @@ class CV:
         frame = cv2.merge((frame_b, frame_g, frame_r))
         return frame
 
-    def get_octogon_center_color(self, frame):
+    def get_octogon_center_color(self, frame, viz=False):
         """
         Returns the center of the octogon in the frame
         using a color detection approach
@@ -48,23 +48,25 @@ class CV:
 
         # filter the image to red objects, filters what is white
         gray = cv2.inRange(frame, (0, 0, 200), (30, 30, 255))
+        if viz:
+            self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
 
         # get the centroid of the red points
         M = cv2.moments(gray)
-        if M["m00"] == 0:
+        std = np.std(gray)
+        if M["m00"] == 0 or std > 50:
             return None, None
         x_center = int(M["m10"] / M["m00"])
         y_center = int(M["m01"] / M["m00"])
 
         # get standard deviation of the red points
-        std = np.std(gray)
-
         cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 0, 255), -1)
+
         return x_center, y_center
 
-    def get_octogon_center_model(self, detections, th=0.75):
+    def get_octogon_center_model(self, detections, th=0.5):
         for detection in detections:
-            if detection.label == "DHD":
+            if detection.label == "DHD" and detection.confidence > th:
                 return detection.center_x, detection.center_y
 
         symbols = {}
@@ -96,10 +98,11 @@ class CV:
         frame = self.equalize(frame)
         self.viz_frame = frame
 
-        (x_center, y_center) = self.get_octogon_center(frame)
+        (x_center, y_center) = self.get_octogon_center_color(frame, viz=True)
 
+        # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {}, self.viz_frame
+            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -116,8 +119,9 @@ class CV:
 
         (x_center, y_center) = self.get_octogon_center_model(detections)
 
+        # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {}, self.viz_frame
+            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -147,7 +151,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        # set the frame
+        # resize the frame
         img = cv2.resize(img, (480, 640))
 
         # run the CV
