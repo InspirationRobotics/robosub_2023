@@ -28,6 +28,7 @@ class CV:
         self.step = 0
         self.side = ""
         self.value = ""
+        self.ratio = 1
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
 
@@ -58,10 +59,10 @@ class CV:
 
         target_x = -1
         target_area = -1
-
         other_x = -1
         other_length = -1
         other_area = -1
+        target_length = -1
         # confidenceGate = -1
         targetConfidences = []
         end = False
@@ -71,7 +72,6 @@ class CV:
             targetConfidences.append((detection.confidence, detection.xmin, detection.label, abs(detection.xmin - detection.xmax), area))
 
         # Finding which symbol is detected with highest confidence rate
-        target_length = -1
         for det_confidence, det_x, det_label, det_length, det_area in targetConfidences:
             if det_label == "E":
                 target_x = det_x
@@ -92,61 +92,43 @@ class CV:
 
         if self.step == 0:  
             self.smartSide(target_x, other_x, other_area, target_area)
-            if target_x < self.CENTER_FRAME_X - tolerance:
-                # print("strafe left")
-                yaw = -1
-            elif target_x > self.CENTER_FRAME_X + tolerance:
-                # print("strafe right")
-                yaw = 1
-            else:
-                print("aligned, continue")
-                self.step = 1
+            midpoint = (target_x+other_x)/2
+            if(self.side == "Right"):
+                lateral = -2
+                if((self.CENTER_FRAME_X-tolerance)<midpoint<(self.CENTER_FRAME_X+tolerance)):
+                    self.step = 1
+            
+            if(self.side == "Left"):
+                if((self.CENTER_FRAME_X-tolerance)<midpoint<(self.CENTER_FRAME_X+tolerance)):
+                    self.step = 1
+                lateral = 2
 
         # start turning process
         elif self.step == 1:
             print("STARTING step 1")
+            area_ratio = target_area/other_area
+            # need to tweak tolerances later
+            if(area_ratio>1.1):
+                yaw = -1
+            elif(area_ratio<0.9):
+                yaw = 1
+            else:
+                self.step = 2
             
-            if(self.value == "Target"):
-                x = target_x
-            elif(self.value == "Other"):
-                x = other_x
-
-            print(self.side, self.value)
-            if(self.side == "Right"):
-                lateral = -2
-                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 2
-            
-            if(self.side == "Left"):
-                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 2
-                lateral = 2
 
         elif self.step == 2:
             print("STARTING step 2")
-            if(self.value == "Target"):
-                x = target_x
-            elif(self.value == "Other"):
-                x = other_x
-
-            if(self.side == "Right"):
-                yaw = -1
-                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 3
-            elif(self.side == "Left"):
-                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 3
-                yaw = 1
+            if target_x < self.CENTER_FRAME_X - tolerance:
+                lateral = 2
+            elif target_x > self.CENTER_FRAME_X + tolerance:
+                lateral=-2
+            else:
+                print("aligned, continue")
+                self.step = 3
 
         elif self.step == 3:
             print("STARTING step 3")
-            forward = 2
-            if target_x < self.CENTER_FRAME_X - tolerance:
-                # print("strafe left")
-                lateral = -2
-            elif target_x > self.CENTER_FRAME_X + tolerance:
-                # print("strafe right")
-                lateral = 2
+            end = True        
 
         
 
