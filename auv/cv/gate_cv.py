@@ -104,7 +104,7 @@ class CV:
 
         # start turning process
         elif self.step == 1:
-            print("STARTING STEP 1")
+            print("STARTING step 1")
             
             if(self.value == "Target"):
                 x = target_x
@@ -130,25 +130,25 @@ class CV:
                 x = other_x
 
             if(self.side == "Right"):
-                yaw = -2
-                if((640-tolerance)<x<640):
-                    self.step = 4
+                yaw = -1
+                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
+                    self.step = 3
             elif(self.side == "Left"):
-                if(0<x<tolerance):
-                    self.step = 4
-                yaw = 2
+                if((self.CENTER_FRAME_X-tolerance)<x<(self.CENTER_FRAME_X+tolerance)):
+                    self.step = 3
+                yaw = 1
 
-        # elif self.step == 4:
-        #     forward = 2
-        #     if target_x < self.CENTER_FRAME_X - tolerance:
-        #         # print("strafe left")
-        #         lateral = -2
-        #     elif target_x > self.CENTER_FRAME_X + tolerance:
-        #         # print("strafe right")
-        #         lateral = 2
-        #     else:
-        #         print("FINISHED, GO FORWARD NOW")
-        #         self.step = 5
+        elif self.step == 3:
+            print("STARTING step 3")
+            forward = 2
+            if target_x < self.CENTER_FRAME_X - tolerance:
+                # print("strafe left")
+                lateral = -2
+            elif target_x > self.CENTER_FRAME_X + tolerance:
+                # print("strafe right")
+                lateral = 2
+
+        
 
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
 
