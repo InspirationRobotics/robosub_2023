@@ -6,19 +6,20 @@ import rospy
 
 
 from ..utils.disarm import disarm
+from ..utils import deviceHelper
 from .robot_control import RobotControl
 from .servo import Servo
 
-#from auv.motion.servo import Servo
-
-servo = Servo()
 rospy.init_node("Keyboard", anonymous=True)
 
 rc = RobotControl()
-servo = Servo()
+rc.set_depth(0.55)
 time.sleep(1)
 
-rc.set_depth(0.55)
+sub = deviceHelper.variables.get("sub")
+if sub == "onyx":
+    servo = Servo()
+
 
 forward = 0
 lateral = 0
@@ -59,10 +60,10 @@ while flag:
             rc.set_depth(rc.depth - 0.1)
         elif var == "x":
             rc.set_depth(rc.depth + 0.1)
-        elif var == "t":
+        elif var == "t" and sub == "onyx":
             servo.torpedo()
             pass
-        elif var =="b":
+        elif var =="b" and sub == "onyx":
             servo.dropper()
             pass
         elif var == "q":
@@ -81,9 +82,11 @@ while flag:
         else:
             print("Bad Input")
     except KeyboardInterrupt:
+        flag = False
         break
 
 flag = False
 thread_mov.join()
 
 rc.movement(forward=0, lateral=0, yaw=0, pitch=0, roll=0)
+rospy.signal_shutdown("Keyboard Interrupt")
