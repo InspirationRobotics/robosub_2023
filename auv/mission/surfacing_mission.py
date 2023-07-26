@@ -9,9 +9,9 @@ import os
 import rospy
 from std_msgs.msg import String
 
-from auv.device import cvHandler
-from auv.motion import robot_control
-from auv.utils import disarm
+from ..device import cvHandler
+from ..motion import robot_control
+from ..utils import disarm
 
 
 class SurfacingMission:

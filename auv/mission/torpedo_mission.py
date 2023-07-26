@@ -9,9 +9,9 @@ import json
 import rospy
 from std_msgs.msg import String
 
-from auv.device import cvHandler
-from auv.motion import robot_control
-from auv.motion.servo import Servo
+from ..device import cvHandler
+from ..motion import robot_control
+from ..motion.servo import Servo
 
 
 servo = Servo()
