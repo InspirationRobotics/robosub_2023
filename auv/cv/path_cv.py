@@ -24,8 +24,8 @@ class CV:
         """
         self.config = config
         self.aligned = False
-        self.current_sub = self.config.get("sub", "greay")
-        if self.current_sub == "greay":
+        self.current_sub = self.config.get("sub", "graey")
+        if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
         elif self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"

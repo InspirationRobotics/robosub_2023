@@ -5,6 +5,7 @@ Author: Maxime Ellerbach
 
 import cv2
 import numpy as np
+from circle_fit import taubinSVD
 
 
 class CV:
@@ -13,31 +14,37 @@ class CV:
         Init of surfacing CV
         """
         self.config = config
-        self.current_sub = self.config.get("sub", "greay")
-        if self.current_sub == "greay":
+        self.current_sub = self.config.get("sub", "graey")
+        if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
+            self.run = self.run_graey
         elif self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
-
-        self.surfacing_sensitivity = config.get("surfacing_sensitivity", 2.0)
+            self.model = "dhd"
+            self.run = self.run_onyx
+        else:
+            self.run = lambda frame, target, detections: None
+            print(f"[ERROR] Unknown sub {self.current_sub} in [graey, onyx]")
+            raise Exception(f"Unknown sub {self.current_sub}")
 
         self.viz_frame = None
         self.error_buffer = []
 
         print("[INFO] Surfacing CV init")
 
-    def get_octogon_center(self, frame):
-        """
-        Returns the center of the octogon in the frame
-        using a contours detection approach
-        """
-
-        # equalize channels
+    def equalize(self, frame):
         frame_b, frame_g, frame_r = cv2.split(frame)
         frame_g = cv2.equalizeHist(frame_g)
         frame_b = cv2.equalizeHist(frame_b)
         frame_r = cv2.equalizeHist(frame_r)
         frame = cv2.merge((frame_b, frame_g, frame_r))
+        return frame
+
+    def get_octogon_center_color(self, frame):
+        """
+        Returns the center of the octogon in the frame
+        using a color detection approach
+        """
 
         # filter the image to red objects, filters what is white
         gray = cv2.inRange(frame, (0, 0, 200), (30, 30, 255))
@@ -53,46 +60,76 @@ class CV:
         std = np.std(gray)
 
         cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 0, 255), -1)
-
         return x_center, y_center
 
-    def get_error(self, center_x, center_y, shape):
+    def get_octogon_center_model(self, detections, th=0.75):
+        for detection in detections:
+            if detection.label == "DHD":
+                return detection.center_x, detection.center_y
+
+        symbols = {}
+        # ensure no duplicate symbols
+        for detection in detections:
+            if detection.label in symbols and detection.confidence > symbols[detection.label].confidence:
+                symbols[detection.label] = detection
+            elif detection.label not in symbols:
+                symbols[detection.label] = detection
+
+        if len(symbols) < 3:
+            return None, None
+
+        # get coordinates of each symbols
+        coords = [(d.xmin + d.xmax) / 2 + (d.ymin + d.ymax) / 2 for d in symbols.values()]
+        xc, yc, r, sigma = circle_fit.taubinSVD(coords)
+
+        cv2.circle(self.viz_frame, (int(xc), int(yc)), int(r), (0, 0, 255), 2)
+        return xc, yc
+
+    def get_error(self, center_x, center_y, shape=(480, 640)):
         """Returns the error in x and y, normalized to the frame size."""
         max_size = max(shape[0], shape[1]) / 2
-        x_error = (shape[1] / 2 - center_x) / max_size
+        x_error = -(shape[1] / 2 - center_x) / max_size
         y_error = (shape[0] / 2 - center_y) / max_size
         return (x_error, y_error)
 
-    def run(self, frame, target, oakd_data):
-        """
-        Here should be all the code required to run the CV.
-        This could be a loop, grabing frames using ROS, etc.
-        """
+    def run_graey(self, frame, target, detections):
+        frame = self.equalize(frame)
         self.viz_frame = frame
 
         (x_center, y_center) = self.get_octogon_center(frame)
 
         if x_center is None or y_center is None:
-            return {}, frame
+            return {}, self.viz_frame
 
-        (x_error, y_error) = self.get_error(x_center, y_center, frame.shape)
+        (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
         if len(self.error_buffer) > 30:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.05 and len(self.error_buffer) == 30:
-            return {"lateral": 0, "forward": 0, "end": True}, frame
+            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
+        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
 
-        # TODO: implement a simple PID controller for everyone to use
-        x_error *= -self.surfacing_sensitivity
-        y_error *= self.surfacing_sensitivity
+    def run_onyx(self, frame, target, detections):
+        self.viz_frame = frame
 
-        # if greay, x = forward, y = lateral
-        if self.current_sub == "greay":
-            return {"lateral": y_error, "forward": x_error, "end": False}, frame
-        else:
-            return {"lateral": x_error, "forward": y_error, "end": False}, frame
+        (x_center, y_center) = self.get_octogon_center_model(detections)
+
+        if x_center is None or y_center is None:
+            return {}, self.viz_frame
+
+        (x_error, y_error) = self.get_error(x_center, y_center)
+        self.error_buffer.append((x_error, y_error))
+        if len(self.error_buffer) > 30:
+            self.error_buffer.pop(0)
+
+        avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
+        if avg_error < 0.05 and len(self.error_buffer) == 30:
+            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
+        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+
+    # self.run will be set to the correct function in __init__ depending on the sub
 
 
 if __name__ == "__main__":

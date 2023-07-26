@@ -24,8 +24,8 @@ class CV:
         self.current_sub = self.config.get("sub", "onyx")
         if self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
-        elif self.current_sub == "greay":
-            print(f"[INFO] No Gripper or Dropper on Greay")
+        elif self.current_sub == "graey":
+            print(f"[INFO] No Gripper or Dropper on graey")
             self.camera = None
 
         self.viz_frame = None
