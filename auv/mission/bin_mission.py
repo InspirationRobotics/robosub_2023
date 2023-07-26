@@ -59,8 +59,7 @@ class BinMission:
         """
         
         # here is an example of how to set a target
-        # TODO: map the class names in the .json file to the class names in the cv script
-        self.cv_handler.set_target("bin_cv", "Class_0")
+        self.cv_handler.set_target("bin_cv", "Abydos")
 
         while not rospy.is_shutdown():
             if not self.received:
