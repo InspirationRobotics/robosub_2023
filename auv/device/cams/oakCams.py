@@ -40,7 +40,6 @@ class oakCamera:
         print(f"Camera ID {str(id)}: Oak-D {self.name} is available at {newDevice}")
 
     def createPipeline(self, modelPath="raw", confidence=0.5):
-        
         self.modelPath = modelPath
         if self.modelPath == "raw":
             pipeline = dai.Pipeline()
@@ -152,31 +151,27 @@ class oakCamera:
             print(e)
 
     def modelSelect(self, modelName):
-        modelsList = ["gate", "dhd", "bins", "buoy", "raw"]
-        if modelName not in modelsList:
-            if modelName[0] == "/":
-                print("Detected direct path")
-                if os.path.exists(modelName):
-                    print(f"Switching {self.name} oakD to model at: {modelName}")
-                    if not modelName.endswith("/"):
-                        modelName += "/"
-                    modelPath = modelName
-                else:
-                    print(f"Path not detected ({self.name} oakD error")
-                    return
-            else:
-                print(f"Model {modelName} not found ({self.name} oakD error)")
-                return
-        elif modelName == "raw":
-            print(f"Switching {self.name} oakD to raw view")
+        root = os.path.normpath("/home/inspiration/auv/auv/device/cams/models/")
+
+        if modelName == "raw":
             modelPath = "raw"
+        elif modelName.contains(os.path.sep):
+            # direct path to model
+            modelPath = modelName
         else:
-            print(f"Switching {self.name} oakD to {modelName} model")
-            folderPath = "/home/inspiration/auv/auv/device/cams/models/"
-            modelPath = f"{folderPath + modelName}Model/"
+            # model name
+            modelPath = f"{root}{modelName}Model/"
+        
+        if not modelPath == "row" and not os.path.isdir(modelPath):
+            print(f"Invalid model name, {modelName}")
+            print(f"Available models: {glob.glob(os.path.join(root, '*'))}")
+            return
+
         if self.modelPath == modelPath:
             print("Model already running...")
             return
+
+        print(f"Switching {self.name} oakD to {modelName} model")
         return modelPath
 
     def callbackModel(self, msg, debug=False):
@@ -186,7 +181,7 @@ class oakCamera:
             modelName = msg
         else:
             modelName = msg.data
-        if(self.modelSelect(modelName)==None):
+        if self.modelSelect(modelName) == None:
             return
         self.kill()
         self.start(modelName)
