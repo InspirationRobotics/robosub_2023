@@ -29,6 +29,8 @@ class CV:
         self.side = ""
         self.value = ""
         self.ratio = 1
+        self.state = "strafe"
+        self.flag = [False, False]
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
 
@@ -45,7 +47,43 @@ class CV:
         elif ((other_x > target_x) and (target_area>other_area)):
             self.side = "Left"
             self.value = "Target"
+    
+    def alignMidpoint(self, midpoint, tolerance):
+        if midpoint < self.CENTER_FRAME_X - tolerance:
+            lateral = -1
+        elif midpoint > self.CENTER_FRAME_X + tolerance:
+            lateral = 1
+        else:
+            lateral=0
         
+        return lateral
+
+    def alignTarget(self, target_x, tolerance):
+        if target_x < self.CENTER_FRAME_X - tolerance:
+            lateral = -1
+        elif target_x > self.CENTER_FRAME_X + tolerance:
+            lateral = 1
+        else:
+            lateral = 0
+        
+        return lateral
+    def yawPerpendicular(self, target_area, other_area):
+        area_ratio = target_area/other_area
+        # need to tweak tolerances later
+        if(area_ratio>1.2):
+            yaw = -0.5
+        elif(area_ratio<0.8):
+            yaw = 0.5
+        else:
+            yaw = 0
+        
+        return yaw
+    
+    def outFrame(self, target_x, other_x, tolerance):
+        if((640-tolerance)<target_x<640) or (0<target_x<tolerance) or (0<other_x<tolerance) or (640-tolerance)<other_x<640:
+            return True
+        else:
+            return False
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
@@ -66,7 +104,9 @@ class CV:
         # confidenceGate = -1
         targetConfidences = []
         end = False
-
+        print("BEGINNING...")
+        print(self.state)
+        print(self.flag)
         for detection in detections:
             area = abs(detection.xmin - detection.xmax)*abs(detection.ymin-detection.ymax)
             targetConfidences.append((detection.confidence, detection.xmin, detection.label, abs(detection.xmin - detection.xmax), area))
@@ -85,53 +125,43 @@ class CV:
         forward = 0
         lateral = 0
         yaw = 0
-        tolerance = 10
+        tolerance =20
         x=0
+        midpoint = (target_x+other_x)/2
+        print(self.CENTER_FRAME_X-midpoint)
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
+    
+        if(self.state == "strafe"):
+            print("ALIGNING STRAFE")
+            lateral = self.alignMidpoint(midpoint, tolerance)
+            # if(lateral==0):
+            #     self.state = "yaw"
+            #     self.flag[0] = True
+            if(self.outFrame(target_x, other_x, 20)):
+                print("OUT OF FRAME")
+                lateral=0
+                self.state = "yaw"
 
-        if self.step == 0:  
-            self.smartSide(target_x, other_x, other_area, target_area)
-            midpoint = (target_x+other_x)/2
-            if(self.side == "Right"):
-                lateral = -2
-                if((self.CENTER_FRAME_X-tolerance)<midpoint<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 1
-            
-            if(self.side == "Left"):
-                if((self.CENTER_FRAME_X-tolerance)<midpoint<(self.CENTER_FRAME_X+tolerance)):
-                    self.step = 1
-                lateral = 2
+        if(self.state=="yaw"):
+            print("ALIGNING YAW")
+            yaw = self.yawPerpendicular(target_area, other_area)
+            # if(yaw==0):
+            #     self.flag[1] = True
+            #     if(self.flag[0]):
+            #         self.state ="target"
+            if(self.outFrame(target_x, other_x, 50)):
+                print("OUT OF FRAME")
+                yaw=0
+                self.state = "strafe"
 
-        # start turning process
-        elif self.step == 1:
-            print("STARTING step 1")
-            area_ratio = target_area/other_area
-            # need to tweak tolerances later
-            if(area_ratio>1.1):
-                yaw = -1
-            elif(area_ratio<0.9):
-                yaw = 1
-            else:
-                self.step = 2
-            
-
-        elif self.step == 2:
-            print("STARTING step 2")
-            if target_x < self.CENTER_FRAME_X - tolerance:
-                lateral = 2
-            elif target_x > self.CENTER_FRAME_X + tolerance:
-                lateral=-2
-            else:
-                print("aligned, continue")
-                self.step = 3
-
-        elif self.step == 3:
-            print("STARTING step 3")
-            end = True        
-
-        
-
+        if(self.state=="target"):
+            print("ALIGNING TARGET")
+            lateral = self.alignTarget(target_x, 50)
+            if(lateral==0):
+                forward=2
+        if yaw == 0:
+            yaw = 0.1
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
 
         # TODO://detection of going through the gate + yaw 2 rotations entirely 
