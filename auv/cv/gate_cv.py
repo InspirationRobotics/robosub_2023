@@ -67,6 +67,7 @@ class CV:
             lateral = 0
         
         return lateral
+    
     def yawPerpendicular(self, target_area, other_area):
         area_ratio = target_area/other_area
         # need to tweak tolerances later
@@ -84,6 +85,7 @@ class CV:
             return True
         else:
             return False
+        
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
@@ -104,7 +106,6 @@ class CV:
         # confidenceGate = -1
         targetConfidences = []
         end = False
-        print("BEGINNING...")
         print(self.state)
         print(self.flag)
         for detection in detections:
@@ -135,10 +136,11 @@ class CV:
         if(self.state == "strafe"):
             print("ALIGNING STRAFE")
             lateral = self.alignMidpoint(midpoint, tolerance)
-            # if(lateral==0):
-            #     self.state = "yaw"
-            #     self.flag[0] = True
-            if(self.outFrame(target_x, other_x, 20)):
+            if(lateral==0):
+                print("FINISHED STRAFE")
+                self.state = "yaw"
+                self.flag[0] = True
+            if(self.outFrame(target_x, other_x, 50)):
                 print("OUT OF FRAME")
                 lateral=0
                 self.state = "yaw"
@@ -146,10 +148,11 @@ class CV:
         if(self.state=="yaw"):
             print("ALIGNING YAW")
             yaw = self.yawPerpendicular(target_area, other_area)
-            # if(yaw==0):
-            #     self.flag[1] = True
-            #     if(self.flag[0]):
-            #         self.state ="target"
+            if(yaw==0):
+                self.flag[1] = True
+                print("FINISHED YAW")
+                if(self.flag[0]):
+                    self.state ="target"
             if(self.outFrame(target_x, other_x, 50)):
                 print("OUT OF FRAME")
                 yaw=0
@@ -157,7 +160,7 @@ class CV:
 
         if(self.state=="target"):
             print("ALIGNING TARGET")
-            lateral = self.alignTarget(target_x, 50)
+            lateral = self.alignTarget(target_x, tolerance)
             if(lateral==0):
                 forward=2
         if yaw == 0:
