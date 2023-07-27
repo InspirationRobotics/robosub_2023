@@ -10,7 +10,7 @@ import rospy
 
 from ..device import cvHandler
 from ..motion import robot_control
-from ..motion.servo import dropper, gripper
+from ..motion.servo import Servo
 
 
 class BinMission:
@@ -37,6 +37,10 @@ class BinMission:
         for file_name, dummy in zip(self.cv_files, dummys):
             self.cv_handler.start_cv(file_name, self.callback, dummy=dummy)
 
+        # init variables for the mission
+        self.servo = Servo()
+        self.ball_count = 0
+
         print("[INFO] Template mission init")
 
     def callback(self, msg):
@@ -53,6 +57,9 @@ class BinMission:
         Here should be all the code required to run the mission.
         This could be a loop, a finite state machine, etc.
         """
+        
+        # here is an example of how to set a target
+        self.cv_handler.set_target("bin_cv", "Abydos")
 
         while not rospy.is_shutdown():
             if not self.received:
@@ -66,7 +73,6 @@ class BinMission:
             self.received = False
             self.next_data = {}
 
-            # TODO: do something with the data
             if self.data["bin_cv"].get("end", None):
                 # idle the robot
                 print("ending True")
@@ -78,15 +84,28 @@ class BinMission:
             yaw = self.data["bin_cv"].get("yaw", None)
             forward = self.data["bin_cv"].get("forward", None)
             vertical = self.data["bin_cv"].get("vertical", None)
+            do_drop = self.data["bin_cv"].get("drop", None)
+
+
+            if do_drop:
+                if self.ball_count == 1:
+                    print(f"[BIN MISSION] already dropped 1 ball, 2nd drop not implemented yet")
+                    print(f"[BIN MISSION] ending mission")
+                    break
+
+                self.servo.dropper()
+                self.ball_count += 1
+                print(f"[BIN MISSION] Dropping ball #{self.ball_count}")
+                continue
 
             if None in (lateral, forward):
                 continue
+
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
             print(forward, lateral, yaw, vertical)
 
-            # here is an example of how to set a target
-            # self.cv_handler.set_target("template_cv", "albedo")
-        print("[INFO] Bin mission run")
+
+        print("[INFO] Bin mission end")
 
     def cleanup(self):
         """
@@ -98,6 +117,7 @@ class BinMission:
 
         # idle the robot
         self.robot_control.movement()
+        rospy.signal_shutdown("End of mission")
         print("[INFO] Template mission terminate")
 
 
