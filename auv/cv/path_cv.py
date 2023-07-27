@@ -50,12 +50,12 @@ class CV:
         """
         end = False
         # into_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        frame = self.equalizeHist(frame)
+        # frame = self.equalizeHist(frame)
         
         # filter the image to orange objects, filters what is white
-        L_limit = np.array([0, 0, 150])
-        U_limit = np.array([60, 255, 255])
-        orange = cv2.inRange(frame, L_limit, U_limit)
+        into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
+        L_limit=np.array([8, 100, 100]) 
+        U_limit=np.array([50, 255, 255])
         # L_limit=np.array([5, 25, 50])
         # U_limit=np.array([30, 255, 255])
         # racquet club testing:
@@ -65,7 +65,7 @@ class CV:
         # L_limit = np.array([3, 25, 20])
         # U_limit = np.array([50, 255, 255])
 
-        # orange=cv2.inRange(into_hsv,L_limit,U_limit)
+        orange=cv2.inRange(into_hsv,L_limit,U_limit)
         # Removing Noise
         kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
@@ -108,8 +108,7 @@ class CV:
 
             # Calculate slope
             slope = (lefty - righty) / (0 - (cols - 1))
-            if(slope/-1 == 0):
-                slope = 0
+            print(slope)
             # cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
             # Movement Decisions
@@ -119,15 +118,9 @@ class CV:
             elif 0 < slope < 20:
                 print("yaw counter-clockwise")
                 yaw = -1
-            elif slope == 0:
-                # strafe left or right to align
-                if cx > 260:
-                    lateral = 1
-                elif cx < 220:
-                    lateral = -1
-                else:
-                    self.aligned = True
-                    forward = 1
+            else:
+                forward=1
+                
         elif self.aligned == True:
             end = True
         else:
