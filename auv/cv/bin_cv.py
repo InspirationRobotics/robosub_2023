@@ -44,56 +44,67 @@ class CV:
         print("[INFO] Bin CV run")
         forward = 0
         lateral = 0
-        yaw=0
-        vertical=0
-        targetConfidences = []
-        maxConfidence = 0
-        targetGate = (0,0)
-        targetPixel = (320,240)
-        end=False
+        yaw = 0
+        vertical = 0
+        drop = False
+
+        # TODO: need to figure out how/when to end the cv
+        end = False 
+
+        tolerance = 10
+        maxConfidence = 0 
+        target_bin = (0, 0)
+
+        # measured offset from the footage
+        target_pixel = (190, 300)
+
         if oakd_data == None:
             return {}, frame
+
         for detection in oakd_data:
             x1 = int(detection.xmin * width)
             x2 = int(detection.xmax * width)
             y1 = int(detection.ymin * height)
             y2 = int(detection.ymax * height)
+
             label = detection.label
             cv2.putText(frame, str(detection.label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(frame, f"{detection.confidence * 100:.2f}", (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+
             # Check Abydos
-            if(detection.label == target):
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0,0,255), cv2.FONT_HERSHEY_SIMPLEX)
-                centerOfDetection = (int((x1+x2)/2),int((y1+y2)/2))
-                targetConfidences.append((detection.confidence,centerOfDetection))
-        for confidence in targetConfidences:
-            if confidence[0]>maxConfidence:
-                maxConfidence = confidence[0]
-                targetGate = confidence[1]
+            if detection.label == target:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), cv2.FONT_HERSHEY_SIMPLEX)
+                centerOfDetection = (int((x1 + x2) / 2), int((y1 + y2) / 2))
                 
-        cv2.circle(frame, targetGate, 10, (0, 0, 255), -1)
-        # TODO: Align with bins
-        tolerance = 10
-        if(targetGate[0]<targetPixel[0]-tolerance):
-            #strafe idk left
-            lateral = 2
-        elif(targetGate[0]>targetPixel[0]+tolerance):
-            #strafe right
-            lateral = -2
+                # Get the highest confidence
+                if detection.confidence > maxConfidence:
+                    maxConfidence = detection.confidence
+                    target_bin = centerOfDetection
+
+        cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
+        cv2.circle(frame, target_pixel, 10, (0, 255, 0), -1)
+
+        # align X
+        if target_bin[0] < target_pixel[0] - tolerance:
+            # strafe right
+            lateral = 1.5
+        elif target_bin[0] > target_pixel[0] + tolerance:
+            # strage left
+            lateral = -1.5
         else:
-            if(targetGate[1]<targetPixel[1]-tolerance):
+            # align Y
+            if target_bin[1] < target_pixel[1] - tolerance:
                 forward = -1
-            elif(targetGate[1]>targetPixel[1]+tolerance):
+            elif target_bin[1] > target_pixel[1] + tolerance:
                 forward = 1
             else:
-                #drop ball
-                print("drop the ball")
+                # Drop the ball
+                drop = True
+
         # TODO: Remove Lids for each bin
 
-        # TODO: Position to drop markers
-        #kind of already done
-        return {"lateral": lateral, "forward": forward, "vertical": vertical,"end": end}, frame
+        return {"lateral": lateral, "forward": forward, "vertical": vertical, "end":end, "drop": drop}, frame
 
 
 if __name__ == "__main__":

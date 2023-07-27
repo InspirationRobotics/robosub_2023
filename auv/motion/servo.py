@@ -18,6 +18,11 @@ from ..utils.deviceHelper import dataFromConfig
 # open: 1550 1.5 seconds then 1500 to stop
 # close: 1450 1.5 seconds then 1500 to stop
 
+# TODO: split this into two tree classes
+# one for dropper 
+# one for torpedo
+# one for gripper
+
 
 class Servo:
     def __init__(self):
