@@ -35,6 +35,7 @@ class RobotControl:
         self.pub_thrusters = rospy.Publisher("auv/devices/thrusters", mavros_msgs.msg.OverrideRCIn, queue_size=10)
         self.pub_depth = rospy.Publisher("auv/devices/setDepth", Float64, queue_size=10)
         self.pub_rel_depth = rospy.Publisher("auv/devices/setRelativeDepth", Float64, queue_size=10)
+        # TODO: reset pix standalone depth Integration param 
 
         # set of PIDs to handle movement of the robot
         self.PIDs = {
@@ -46,14 +47,14 @@ class RobotControl:
                 output_limits=(-2, 2),
             ),
             "forward": PID(
-                self.config.get("FORWARD_PID_P", 1.0),
+                self.config.get("FORWARD_PID_P", 2.0),
                 self.config.get("FORWARD_PID_I", 0.01),
                 self.config.get("FORWARD_PID_D", 0.1),
                 setpoint=0,
                 output_limits=(-2, 2),
             ),
             "lateral": PID(
-                self.config.get("LATERAL_PID_P", 1.0),
+                self.config.get("LATERAL_PID_P", 2.0),
                 self.config.get("LATERAL_PID_I", 0.01),
                 self.config.get("LATERAL_PID_D", 0.0),
                 setpoint=0,
