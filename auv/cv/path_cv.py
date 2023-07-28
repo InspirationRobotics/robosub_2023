@@ -54,8 +54,8 @@ class CV:
         
         # filter the image to orange objects, filters what is white
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
-        L_limit=np.array([8, 100, 100]) 
-        U_limit=np.array([50, 255, 255])
+        L_limit=np.array([3, 20, 20]) 
+        U_limit=np.array([80, 255, 255])
         # L_limit=np.array([5, 25, 50])
         # U_limit=np.array([30, 255, 255])
         # racquet club testing:
@@ -78,11 +78,11 @@ class CV:
         ret2, thresh2 = cv2.threshold(blur, 1, 255, cv2.THRESH_OTSU)
 
         # Find Contours
-        contours, heirarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, heirarchy = cv2.findContours(orange, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(frame, contours, -1, 255, 3)
 
         yaw = lateral = forward = 0
-        # hline = cv2.line(frame, (640, 0), (0, 0), (0, 255, 255), 8)
+        hline = cv2.line(frame, (640, 0), (0, 0), (0, 255, 255), 8)
 
         # Path Found
         if contours:
@@ -112,14 +112,14 @@ class CV:
             # cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
             # Movement Decisions
-            if -20 < slope < 0:
+            if -10 < slope < 0:
                 print("yaw clockwise")
-                yaw = 1
-            elif 0 < slope < 20:
+                yaw = 0.7
+            elif 0 < slope < 10:
                 print("yaw counter-clockwise")
-                yaw = -1
+                yaw = -0.7
             else:
-                forward=1
+                forward=2
                 
         elif self.aligned == True:
             end = True
