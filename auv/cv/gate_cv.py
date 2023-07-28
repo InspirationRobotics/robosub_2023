@@ -80,11 +80,31 @@ class CV:
         
         return yaw
     
-    def outFrame(self, target_x, other_x, tolerance):
-        if((640-tolerance)<target_x<640) or (0<target_x<tolerance) or (0<other_x<tolerance) or (640-tolerance)<other_x<640:
-            return True
+    def outFrameLateral(self, target_x, other_x, tolerance):
+        if(target_x < other_x and 0<target_x<tolerance):
+            lateral=2
+        elif(other_x < target_x and 0<other_x<tolerance):
+            lateral=2
+        elif(target_x < other_x and ((640-tolerance)<other_x<640)):
+            lateral = -2
+        elif(other_x < target_x and ((640-tolerance)<target_x<640)):
+            lateral = -2
         else:
-            return False
+            lateral = 0
+        return lateral
+
+    def outFrameYaw(self, target_x, other_x, tolerance):
+        if(target_x < other_x and 0<target_x<tolerance):
+            yaw=1
+        elif(other_x < target_x and 0<other_x<tolerance):
+            yaw=1
+        elif(target_x < other_x and ((640-tolerance)<other_x<640)):
+            yaw = -1
+        elif(other_x < target_x and ((640-tolerance)<target_x<640)):
+            yaw = -1
+        else:
+            yaw = 0
+        return yaw
         
     def run(self, frame, target, detections):
         """
@@ -140,10 +160,10 @@ class CV:
                 print("FINISHED STRAFE")
                 self.state = "yaw"
                 self.flag[0] = True
-            if(self.outFrame(target_x, other_x, 50)):
-                print("OUT OF FRAME")
-                lateral=0
-                self.state = "yaw"
+            latval = self.outFrameLateral(target_x, other_x, 50)
+            if(latval!=0):
+                print("OUT OF FRAME STRAFE")
+                lateral = latval
 
         if(self.state=="yaw"):
             print("ALIGNING YAW")
@@ -153,16 +173,21 @@ class CV:
                 print("FINISHED YAW")
                 if(self.flag[0]):
                     self.state ="target"
-            if(self.outFrame(target_x, other_x, 50)):
-                print("OUT OF FRAME")
-                yaw=0
-                self.state = "strafe"
+            yawval = self.outFrameYaw(target_x, other_x, 50)
+            if(yawval!=0):
+                print("OUT OF FRAME YAW")
+                yaw = yawval
 
         if(self.state=="target"):
             print("ALIGNING TARGET")
             lateral = self.alignTarget(target_x, tolerance)
             if(lateral==0):
                 forward=2
+
+        if(len(detections)==0 and self.state == "target"):
+            forward =2
+            lateral=0
+            yaw=0
         if yaw == 0:
             yaw = 0.1
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
