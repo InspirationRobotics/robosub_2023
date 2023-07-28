@@ -12,6 +12,7 @@ from std_msgs.msg import String
 
 from ..device import cvHandler
 from ..motion import robot_control
+from ..utils import disarm
 
 
 class GateMission:
@@ -100,6 +101,7 @@ class GateMission:
             self.cv_handler.stop_cv(file_name)
 
         self.robot_control.movement(lateral=0, forward=0, yaw=0)
+        disarm.disarm()
         print("[INFO] Gate mission terminate")
 
 

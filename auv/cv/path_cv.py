@@ -53,6 +53,7 @@ class CV:
         # frame = self.equalizeHist(frame)
         
         # filter the image to orange objects, filters what is white
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         into_hsv =(cv2.cvtColor(frame,cv2.COLOR_BGR2HSV))
         L_limit=np.array([3, 20, 20]) 
         U_limit=np.array([80, 255, 255])
@@ -66,6 +67,8 @@ class CV:
         # U_limit = np.array([50, 255, 255])
 
         orange=cv2.inRange(into_hsv,L_limit,U_limit)
+        edges = cv2.Canny(gray, threshold1=200, threshold2=100)
+        cv2.imshow("edges", edges)
         # Removing Noise
         kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)

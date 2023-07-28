@@ -149,7 +149,6 @@ class CV:
         tolerance =20
         x=0
         midpoint = (target_x+other_x)/2
-        print(self.CENTER_FRAME_X-midpoint)
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
     
