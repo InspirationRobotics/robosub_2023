@@ -14,9 +14,6 @@ from ..motion import robot_control
 from ..motion.servo import Servo
 
 
-servo = Servo()
-
-
 class TorpedoMission:
     cv_files = ["torpedo_cv"]
 
@@ -41,6 +38,8 @@ class TorpedoMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
+        self.servo = Servo()
+
         print("[INFO] Torpedo mission init")
 
     def callback(self, msg):
@@ -51,7 +50,7 @@ class TorpedoMission:
         self.next_data[file_name] = data
         self.received = True
 
-        #print(f"[DEBUG] Received data from {file_name}")
+        # print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -88,15 +87,14 @@ class TorpedoMission:
 
                 if torpedo1 and not self.torpedo_1_fired:
                     # Fire torpedo 1
-                    servo.torpedo()
+                    self.servo.torpedo()
                     self.torpedo_1_fired = True
 
                 if torpedo2 and not self.torpedo_2_fired:
                     # Fire torpedo 2
-                    servo.torpedo()
+                    self.servo.torpedo()
                     self.torpedo_2_fired = True
 
-                
                 if any(i == None for i in (lateral, forward)):
                     continue
                 # direcly feed the cv output to the robot control
@@ -106,7 +104,6 @@ class TorpedoMission:
                 # here is an example of how to set a target
                 # self.cv_handler.set_target("torpedo_cv", "albedo")
 
-
             except Exception as e:
                 print(f"[ERROR] {e}")
                 print(e)
@@ -114,7 +111,6 @@ class TorpedoMission:
                 self.robot_control.movement()
                 break
         print("[INFO] Torpedo mission run")
-
 
     def cleanup(self):
         """
