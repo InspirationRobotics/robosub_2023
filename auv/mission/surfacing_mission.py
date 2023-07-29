@@ -85,13 +85,7 @@ class SurfacingMission:
                 # get the lateral and forward values from the cv (if they exist)
                 lateral = self.data["surfacing_cv"].get("lateral", 0)
                 forward = self.data["surfacing_cv"].get("forward", 0)
-
-                lateral = lateral * 4
-                forward = forward * 4
                 
-                lateral = np.clip(lateral, -2, 2)
-                forward = np.clip(forward, -2, 2)
-
                 print(f"[DEBUG] lateral: {lateral}, forward: {forward}")
                 self.robot_control.movement(lateral=lateral, forward=forward)
 

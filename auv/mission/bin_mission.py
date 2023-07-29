@@ -71,12 +71,6 @@ class BinMission:
             self.received = False
             self.next_data = {}
 
-            if self.data["bin_cv"].get("end", None):
-                # idle the robot
-                print("ending True")
-                self.robot_control.movement()
-                break
-
             # get the lateral and forward values from the cv (if they exist)
             lateral = self.data["bin_cv"].get("lateral", None)
             yaw = self.data["bin_cv"].get("yaw", None)
@@ -100,8 +94,9 @@ class BinMission:
                 continue
 
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
-            print(forward, lateral, yaw, vertical)
+            print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}, vertical: {vertical}")
 
+        self.robot_control.movement()
         print("[INFO] Bin mission end")
 
     def cleanup(self):

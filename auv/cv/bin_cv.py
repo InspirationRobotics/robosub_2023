@@ -50,12 +50,9 @@ class CV:
 
         height, width, _ = frame.shape
 
-        # TODO: need to figure out how/when to end the cv
-        end = False 
-
         tolerance = 10
         maxConfidence = 0 
-        target_bin = (0, 0)
+        target_bin = None
 
         # measured offset from the footage
         target_pixel = (190, 300)
@@ -69,15 +66,7 @@ class CV:
             y1 = int(detection.ymin)
             y2 = int(detection.ymax)
 
-            # label = detection.label
-            # cv2.putText(frame, str(detection.label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            # cv2.putText(frame, f"{detection.confidence * 100:.2f}", (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), cv2.FONT_HERSHEY_SIMPLEX)
-
-            # Check Abydos
-            # print(f"label: {detection.label}")
             if target in detection.label:
-                # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), cv2.FONT_HERSHEY_SIMPLEX)
                 centerOfDetection = (int((x1 + x2) / 2), int((y1 + y2) / 2))
                 
                 # Get the highest confidence
@@ -85,21 +74,23 @@ class CV:
                     maxConfidence = detection.confidence
                     target_bin = centerOfDetection
 
-        cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
         cv2.circle(frame, target_pixel, 10, (0, 255, 0), -1)
+        # go slowly foward until we see the target
+        if target_bin is None:
+            return {"forward": 0.8}, frame
+        cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
 
         x_error = (target_pixel[0] - target_bin[0]) / width
         y_error = (target_bin[1] - target_pixel[1]) / height
 
-        lateral = np.clip(x_error * 4, -1.5, 1.5)
-        forward = np.clip(y_error * 4, -1.5, 1.5)
+        lateral = np.clip(x_error * 4, -1, 1)
+        forward = np.clip(y_error * 4, -1, 1)
         
         if abs(x_error) < tolerance / width and abs(y_error) < tolerance / height:
             drop = True
 
-        # TODO: Remove Lids for each bin
-
-        return {"lateral": lateral, "forward": forward, "vertical": vertical, "end":end, "drop": drop}, frame
+        # TODO (low priority): Remove Lids for each bin
+        return {"lateral": lateral, "forward": forward, "drop": drop}, frame
 
 
 if __name__ == "__main__":

@@ -6,15 +6,13 @@ Author: Maxime Ellerbach
 import cv2
 import numpy as np
 from circle_fit import taubinSVD
-from ..utils import deviceHelper
 
 class CV:
     def __init__(self, **config):
         """
         Init of surfacing CV
         """
-        self.config = config
-        self.current_sub = deviceHelper.variables.get("sub", "graey")
+        self.current_sub = self.config.variables.get("sub", "graey")
         if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
             self.run = self.run_graey
@@ -72,10 +70,11 @@ class CV:
         symbols = {}
         # ensure no duplicate symbols
         for detection in detections:
-            if detection.label in symbols and detection.confidence > symbols[detection.label].confidence:
-                symbols[detection.label] = detection
+            label = detection.label
+            if label in symbols and detection.confidence > symbols[label].confidence:
+                symbols[label] = detection
             elif detection.label not in symbols:
-                symbols[detection.label] = detection
+                symbols[label] = detection
 
         if len(symbols) < 3:
             return None, None
@@ -102,7 +101,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -112,7 +111,11 @@ class CV:
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
-        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+
+        lateral = np.clip(x_error * 4, -1, 1)
+        forward = np.clip(y_error * 4, -1, 1)
+
+        return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
     def run_onyx(self, frame, target, detections):
         self.viz_frame = frame
@@ -121,7 +124,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -131,7 +134,11 @@ class CV:
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
-        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+            
+        lateral = np.clip(x_error * 4, -1, 1)
+        forward = np.clip(y_error * 4, -1, 1)
+
+        return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
     # self.run will be set to the correct function in __init__ depending on the sub
 
@@ -140,9 +147,10 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
+    from auv.utils import deviceHelper
 
     # Create a CV object with arguments
-    cv = CV()
+    cv = CV(**deviceHelper.variables)
     print(f"[INFO] running on {cv.current_sub}")
 
     cap = cv2.VideoCapture("testing_data\\octogon.mp4")
