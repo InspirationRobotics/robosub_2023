@@ -29,7 +29,7 @@ class LIS3MDL(I2C):
         LIS3MDL_OUT_Z_H,  # high byte of Z value
     ]
 
-    def __init__(self, bus_id=1):
+    def __init__(self, bus_id=8):
         """Set up I2C connection and initialize some flags and values."""
 
         super(LIS3MDL, self).__init__(bus_id)
