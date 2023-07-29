@@ -162,7 +162,7 @@ class oakCamera:
             # model name
             modelPath = f"{root}{modelName}Model/"
         
-        if not modelPath == "row" and not os.path.isdir(modelPath):
+        if not modelPath == "raw" and not os.path.isdir(modelPath):
             print(f"Invalid model name, {modelName}")
             print(f"Available models: {glob.glob(os.path.join(root, '*'))}")
             return
