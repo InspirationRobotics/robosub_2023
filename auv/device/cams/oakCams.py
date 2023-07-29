@@ -155,7 +155,7 @@ class oakCamera:
 
         if modelName == "raw":
             modelPath = "raw"
-        elif modelName.contains(os.path.sep):
+        elif os.path.sep in modelName:
             # direct path to model
             modelPath = modelName
         else:
