@@ -6,6 +6,8 @@ import json
 import math
 import os
 
+import numpy as np
+
 import rospy
 from std_msgs.msg import String
 
@@ -84,11 +86,11 @@ class SurfacingMission:
                 lateral = self.data["surfacing_cv"].get("lateral", 0)
                 forward = self.data["surfacing_cv"].get("forward", 0)
 
-                lateral = lateral * 0.5
-                forward = forward * 0.5
+                lateral = lateral * 4
+                forward = forward * 4
                 
-                lateral = math.clamp(lateral, -2, 2)
-                forward = math.clamp(forward, -2, 2)
+                lateral = np.clip(lateral, -2, 2)
+                forward = np.clip(forward, -2, 2)
 
                 print(f"[DEBUG] lateral: {lateral}, forward: {forward}")
                 self.robot_control.movement(lateral=lateral, forward=forward)

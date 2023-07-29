@@ -6,7 +6,7 @@ Author: Maxime Ellerbach
 import cv2
 import numpy as np
 from circle_fit import taubinSVD
-
+from ..utils import deviceHelper
 
 class CV:
     def __init__(self, **config):
@@ -14,7 +14,7 @@ class CV:
         Init of surfacing CV
         """
         self.config = config
-        self.current_sub = self.config.get("sub", "graey")
+        self.current_sub = deviceHelper.variables.get("sub", "graey")
         if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
             self.run = self.run_graey
@@ -67,7 +67,7 @@ class CV:
     def get_octogon_center_model(self, detections, th=0.5):
         for detection in detections:
             if detection.label == "DHD" and detection.confidence > th:
-                return detection.center_x, detection.center_y
+                return (detection.xmin + detection.xmax) / 2, (detection.ymin + detection.ymax) / 2
 
         symbols = {}
         # ensure no duplicate symbols

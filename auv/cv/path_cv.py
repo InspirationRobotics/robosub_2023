@@ -10,6 +10,7 @@ import time
 import cv2
 import numpy as np
 
+from ..utils import deviceHelper
 
 class CV:
     """Template CV class, don't change the name of the class"""
@@ -22,7 +23,8 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-        self.config = config
+        # self.config = config
+        self.config = deviceHelper.variables
         self.aligned = False
         self.current_sub = self.config.get("sub", "graey")
         if self.current_sub == "graey":
