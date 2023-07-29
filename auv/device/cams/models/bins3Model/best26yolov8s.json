@@ -1,0 +1,32 @@
+{
+    "model": {
+        "xml": "best26yolov8s.xml",
+        "bin": "best26yolov8s.bin"
+    },
+    "nn_config": {
+        "output_format": "detection",
+        "NN_family": "YOLO",
+        "input_size": "640x480",
+        "NN_specific_metadata": {
+            "classes": 8,
+            "coordinates": 4,
+            "anchors": [],
+            "anchor_masks": {},
+            "iou_threshold": 0.5,
+            "confidence_threshold": 0.5
+        }
+    },
+    "mappings": {
+        "labels": [
+            "Abydos",
+            "Abydos1",
+            "Abydos2",
+            "Bin",
+            "Earth",
+            "Earth1",
+            "Earth2",
+            "Lid"
+        ]
+    },
+    "version": 1
+}
