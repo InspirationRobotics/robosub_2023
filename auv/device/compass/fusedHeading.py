@@ -11,15 +11,11 @@ lis3mdl = LIS3MDL()
 
 #lsm6ds33.enable()
 
-# If no calib values are provided assumes true north is where sub is pointing when script starts.
 lis3mdl.enable()
-# To find calib values, run this script while the sub is pointed towards true north and note down the calib values
-# that show up at the start ie. min: [x,x,x] and max: [x,x,x] then replace the above line with
-#lis3mdl.enable([139, -2497, -2350], [580, -1821, -2069])  # which is min and max respectively
+lis3mdl.calibrate(200, True)
 
 headingArr = [0] * 5
 count = 0
-
 
 while True:
     #accel = lsm6ds33.get_accelerometer_g_forces()
