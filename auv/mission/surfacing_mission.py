@@ -122,8 +122,10 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.surfacing_mission"
     # You can also import it in a mission file outside of the package
 
+    from auv.utils import deviceHelper
+
     # Create a mission object with arguments
-    mission = SurfacingMission()
+    mission = SurfacingMission(**deviceHelper.variables)
 
     # Run the mission
     mission.run()

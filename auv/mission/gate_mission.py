@@ -111,9 +111,10 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
 
     # Create a mission object with arguments
-    mission = GateMission()
+    mission = GateMission(**deviceHelper.variables)
 
     # Run the mission
     mission.run()

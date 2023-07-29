@@ -133,9 +133,10 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.torpedo_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
 
     # Create a mission object with arguments
-    mission = TorpedoMission()
+    mission = TorpedoMission(**deviceHelper.variables)
 
     # Run the mission
     mission.run()

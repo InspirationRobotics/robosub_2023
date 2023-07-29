@@ -29,7 +29,7 @@ class PathMission:
 
         rospy.init_node("path_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
+        self.cv_handler = cvHandler.CVHandler(**self.config)
 
         # init the cv handlers
         for file_name in self.cv_files:
@@ -112,9 +112,11 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.surfacing_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
+
 
     # Create a mission object with arguments
-    mission = PathMission()
+    mission = PathMission(**deviceHelper.variables)
 
     # Run the mission
     mission.run()
