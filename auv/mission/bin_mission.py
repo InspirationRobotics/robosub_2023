@@ -55,7 +55,7 @@ class BinMission:
         Here should be all the code required to run the mission.
         This could be a loop, a finite state machine, etc.
         """
-        
+
         # here is an example of how to set a target
         self.cv_handler.set_target("bin_cv", "Bin")
 
@@ -84,7 +84,6 @@ class BinMission:
             vertical = self.data["bin_cv"].get("vertical", None)
             do_drop = self.data["bin_cv"].get("drop", None)
 
-
             if do_drop:
                 if self.ball_count == 1:
                     print(f"[BIN MISSION] already dropped 1 ball, 2nd drop not implemented yet")
@@ -102,7 +101,6 @@ class BinMission:
 
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
             print(forward, lateral, yaw, vertical)
-
 
         print("[INFO] Bin mission end")
 
@@ -126,11 +124,15 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
 
-    config = {
-        # # this dummy video file will be used instead of the camera if uncommented
-        # "cv_dummy": ["/somepath/thisisavideo.mp4"],
-    }
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
     mission = BinMission(**config)
