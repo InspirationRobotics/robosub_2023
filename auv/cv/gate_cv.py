@@ -30,6 +30,8 @@ class CV:
         self.value = ""
         self.ratio = 1
         self.outPrev = False
+        self.prevRatio = 0
+        self.prevDir = 1
         self.state = "strafe"
         self.flag = [False, False]
         self.CENTER_FRAME_X = 320
@@ -120,7 +122,33 @@ class CV:
         else:
             forward = 0
         return forward
-    
+
+    def adjustRatio(self, ratio):
+        if(ratio < self.prevRatio):
+            # go in reverse direction
+            dir = (self.prevDir)*(-1)
+        elif(self.prevRatio > ratio):
+            dir = (self.prevDir)*(1)
+            # continue in same direction
+        
+        if(0.8 < self.prevRatio < 1.2):
+            self.state = "target" 
+            dir = 0
+            
+        if(dir ==1):
+            lateral = 2
+            yaw = -1
+        elif(dir == -1):
+            lateral = -2
+            yaw = 1
+        else:
+            lateral = 0
+            yaw = 0
+
+        self.prevDir = dir
+        self.prevRatio = ratio
+
+        return lateral, yaw
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
@@ -138,6 +166,8 @@ class CV:
         other_length = -1
         other_area = -1
         target_length = -1
+        target_ratio = 0
+        other_ratio = 0
         # confidenceGate = -1
         targetConfidences = []
         end = False
@@ -145,18 +175,22 @@ class CV:
         print(self.flag)
         for detection in detections:
             area = abs(detection.xmin - detection.xmax)*abs(detection.ymin-detection.ymax)
-            targetConfidences.append((detection.confidence, detection.xmin, detection.label, abs(detection.xmin - detection.xmax), area))
+            ratio = abs(detection.xmin - detection.xmax)/abs(detection.ymin-detection.ymax)
+            targetConfidences.append((detection.confidence, detection.xmin, detection.label, abs(detection.xmin - detection.xmax), area, ratio))
 
         # Finding which symbol is detected with highest confidence rate
-        for det_confidence, det_x, det_label, det_length, det_area in targetConfidences:
+        for det_confidence, det_x, det_label, det_length, det_area, det_ratio in targetConfidences:
             if det_label == "E":
                 target_x = det_x
                 target_length = det_length
                 target_area = det_area
+                target_ratio = det_ratio
+
             if det_label == "A":
                 other_x = det_x
                 other_length = det_length
                 other_area = det_area
+                other_ratio = det_ratio
 
         forward = 0
         lateral = 0
@@ -164,59 +198,57 @@ class CV:
         tolerance =20
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
-        # if(len(detections)==0):
-        #     yaw = 1
-        # elif(len(detections)==1):
-        #     yaw = 1
-        if(len(detections) == 2):
-            midpoint = (target_x + other_x)/2
-            # if(self.state == "frame"):
-            #     forval = self.edgeFrame(target_x, other_x, 50)
-            #     if(forval==-1):
-            #         print("MOVING BACKWARD")
-            #         forward = forval
-            #     else:
-            #         forward = 0
-            #         self.state = "strafe"
+        if(len(detections)!=0):
+            lateral, yaw = self.adjustRatio(target_ratio)
+        # if(len(detections) == 2):
+        #     midpoint = (target_x + other_x)/2
+        #     # if(self.state == "frame"):
+        #     #     forval = self.edgeFrame(target_x, other_x, 50)
+        #     #     if(forval==-1):
+        #     #         print("MOVING BACKWARD")
+        #     #         forward = forval
+        #     #     else:
+        #     #         forward = 0
+        #     #         self.state = "strafe"
 
-            if(self.state == "strafe"):
-                print("ALIGNING STRAFE")
-                lateral = self.alignMidpoint(midpoint, tolerance)
-                if(lateral == 0):
-                    print("FINISHED STRAFE")
-                    self.state = "yaw"
-                    self.flag[0] = True
-                latval = self.outFrameLateral(target_x, other_x, 50)
-                if(latval!=0 and self.outPrev==False):
-                    print("OUT OF FRAME")
-                    self.state = "yaw"
-                    self.outPrev = True
-                if(latval==0 and self.outPrev):
-                    print("BACK IN FRAME")
-                    self.outPrev = False
+        #     if(self.state == "strafe"):
+        #         print("ALIGNING STRAFE")
+        #         lateral = self.alignMidpoint(midpoint, tolerance)
+        #         if(lateral == 0):
+        #             print("FINISHED STRAFE")
+        #             self.state = "yaw"
+        #             self.flag[0] = True
+        #         latval = self.outFrameLateral(target_x, other_x, 50)
+        #         if(latval!=0 and self.outPrev==False):
+        #             print("OUT OF FRAME")
+        #             self.state = "yaw"
+        #             self.outPrev = True
+        #         if(latval==0 and self.outPrev):
+        #             print("BACK IN FRAME")
+        #             self.outPrev = False
 
-            elif(self.state=="yaw"):
-                print("ALIGNING YAW")
-                yaw = self.yawPerpendicular(target_area, other_area)
-                if(yaw==0):
-                    self.flag[1] = True
-                    print("FINISHED YAW")
-                yawval = self.outFrameYaw(target_x, other_x, 50)
-                if(yawval!=0 and self.outPrev==False):
-                    print("OUT OF FRAME")
-                    self.outPrev = True
-                    self.state = "strafe"
-                if(yawval==0 and self.outPrev):
-                    print("BACK IN FRAME")
-                    self.outPrev = False
-                if(self.flag[0]):
-                    self.state ="target"
+        #     elif(self.state=="yaw"):
+        #         print("ALIGNING YAW")
+        #         yaw = self.yawPerpendicular(target_area, other_area)
+        #         if(yaw==0):
+        #             self.flag[1] = True
+        #             print("FINISHED YAW")
+        #         yawval = self.outFrameYaw(target_x, other_x, 50)
+        #         if(yawval!=0 and self.outPrev==False):
+        #             print("OUT OF FRAME")
+        #             self.outPrev = True
+        #             self.state = "strafe"
+        #         if(yawval==0 and self.outPrev):
+        #             print("BACK IN FRAME")
+        #             self.outPrev = False
+        #         if(self.flag[0]):
+        #             self.state ="target"
 
-            elif(self.state=="target"):
-                print("ALIGNING TARGET")
-                lateral = self.alignTarget(target_x, tolerance)
-                if(lateral==0):
-                    forward=2
+        if(self.state=="target"):
+            print("ALIGNING TARGET")
+            lateral = self.alignTarget(target_x, tolerance)
+            if(lateral==0):
+                forward=2
                 
         if(len(detections) == 0 and self.state == "target"):
             end = True
