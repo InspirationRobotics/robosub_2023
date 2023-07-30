@@ -38,8 +38,6 @@ class SurfacingMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        self.surfacing_sensitivity = self.config.get("surfacing_sensitivity", 0.5)
-        self.proportional_gain = self.config.get("surfacing_proportional_gain", 4.0)
         print("[INFO] Surfacing mission init")
 
     def callback(self, msg):

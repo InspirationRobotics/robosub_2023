@@ -80,11 +80,12 @@ class CV:
             return {"forward": 0.8}, frame
         cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
 
-        x_error = (target_pixel[0] - target_bin[0]) / width
-        y_error = (target_bin[1] - target_pixel[1]) / height
+        x_error = (target_bin[0] - target_pixel[0]) / width
+        y_error = (target_pixel[1] - target_bin[1]) / height
 
-        lateral = np.clip(x_error * 4, -1, 1)
-        forward = np.clip(y_error * 4, -1, 1)
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
         
         if abs(x_error) < tolerance / width and abs(y_error) < tolerance / height:
             drop = True
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.cv.template_cv"
 
     # Create a CV object with arguments
-    cv = CV(arg1="value1", arg2="value2")
+    cv = CV()
 
     # here you can for example initialize your camera, etc
     cap = cv2.VideoCapture("../../testing_data/")

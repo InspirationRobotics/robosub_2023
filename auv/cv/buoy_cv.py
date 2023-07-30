@@ -314,10 +314,9 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.template_cv"
-    from auv.utils import deviceHelper
 
     # Create a CV object with arguments
-    cv = CV(**deviceHelper.variables)
+    cv = CV()
 
     # here you can for example initialize your camera, etc
     cap = cv2.VideoCapture("/Users/eeshvij/Desktop/Code/robosub_2023/testing_data/buoyUSB.mp4")

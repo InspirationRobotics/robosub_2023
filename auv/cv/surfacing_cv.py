@@ -12,7 +12,8 @@ class CV:
         """
         Init of surfacing CV
         """
-        self.current_sub = self.config.variables.get("sub", "graey")
+        self.config = config
+        self.current_sub = self.config.get("sub", "graey")
         if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
             self.run = self.run_graey
@@ -58,7 +59,7 @@ class CV:
         y_center = int(M["m01"] / M["m00"])
 
         # get standard deviation of the red points
-        cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 0, 255), -1)
+        cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 255, 0), -1)
 
         return x_center, y_center
 
@@ -89,7 +90,7 @@ class CV:
     def get_error(self, center_x, center_y, shape=(480, 640)):
         """Returns the error in x and y, normalized to the frame size."""
         max_size = max(shape[0], shape[1]) / 2
-        x_error = -(shape[1] / 2 - center_x) / max_size
+        x_error = (center_x - shape[1] / 2) / max_size
         y_error = (shape[0] / 2 - center_y) / max_size
         return (x_error, y_error)
 
@@ -112,8 +113,9 @@ class CV:
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
-        lateral = np.clip(x_error * 4, -1, 1)
-        forward = np.clip(y_error * 4, -1, 1)
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
 
         return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
@@ -135,8 +137,9 @@ class CV:
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
             
-        lateral = np.clip(x_error * 4, -1, 1)
-        forward = np.clip(y_error * 4, -1, 1)
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
 
         return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
@@ -147,11 +150,9 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
-    from auv.utils import deviceHelper
 
     # Create a CV object with arguments
-    cv = CV(**deviceHelper.variables)
-    print(f"[INFO] running on {cv.current_sub}")
+    cv = CV()
 
     cap = cv2.VideoCapture("testing_data\\octogon.mp4")
 

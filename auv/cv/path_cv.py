@@ -137,10 +137,9 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
-    from auv.utils import deviceHelper
 
     # Create a CV object with arguments
-    cv = CV(**deviceHelper.variables)
+    cv = CV()
 
     cap = cv2.VideoCapture("../../testing_data/pvid.MOV")
 
