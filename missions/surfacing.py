@@ -1,4 +1,3 @@
-import os
 import time
 
 from auv.mission import surfacing_mission
@@ -8,7 +7,7 @@ from auv.utils import arm, disarm, deviceHelper
 config = deviceHelper.variables
 
 arm.arm()
-time.sleep(5)
+time.sleep(2)
 
 # create the mission object
 surfacingMission = surfacing_mission.SurfacingMission(**config)

@@ -18,10 +18,150 @@ from ..utils.deviceHelper import dataFromConfig
 # open: 1550 1.5 seconds then 1500 to stop
 # close: 1450 1.5 seconds then 1500 to stop
 
-# TODO: split this into two tree classes
-# one for dropper 
-# one for torpedo
-# one for gripper
+
+class Polulu:
+    def __init__(self):
+        self.USB = serial.Serial(port=dataFromConfig("polulu"))
+
+        self.torpedo_state = {0: (2, 2400), 1: (2, 1700), 2: (2, 1300)}
+        self.dropper_state = {0: (1, 1600), 1: (1, 1200), 2: (1, 700)}
+        self.gripper_state = {0: (0, 1500), 1: (0, 1550), 2: (0, 1450)}
+
+        if not self.USB.isOpen():
+            self.USB.open()
+
+            # set to default state
+            self.set_pwm(*self.torpedo_state[0])
+            self.set_pwm(*self.dropper_state[0])
+            self.set_pwm(*self.gripper_state[0])
+        else:
+            print("[INFO] Polulu serial is already open")
+
+    def set_pwm(self, channel, target):
+        target = target * 4
+        lsb = target & 0x7F
+        msb = (target >> 7) & 0x7F
+        cmd = chr(0x84) + chr(channel) + chr(lsb) + chr(msb)
+        self.USB.write(bytes(cmd.encode()))
+
+
+class Torpedo(Polulu):
+    def __init__(self):
+        super().__init__()
+
+        # state 3 = all torpedos fired, need to reload
+        self.state = 0
+
+    def fire(self, torpedo_num=-1):
+        if torpedo_num == -1:
+            self.state += 1
+            torpedo_num = self.state
+
+        if torpedo_num == 3:
+            print("[INFO] All torpedos fired, need to reload")
+            return
+
+        elif torpedo_num not in self.torpedo_state.keys():
+            print(f"[ERROR] Invalid torpedo number: {torpedo_num}")
+            return
+
+        # fire torpedo
+        self.set_pwm(*self.torpedo_state[torpedo_num])
+        print(f"[INFO] Fired torpedo #{torpedo_num}")
+
+    def reload(self):
+        # manual action to reload the torpedos
+        reloaded = False
+        while not reloaded:
+            inp = input("Reloaded? (y/n): ")
+            if inp == "y":
+                reloaded = True
+
+        self.state = 0
+
+
+class Dropper(Polulu):
+    def __init__(self):
+        super().__init__()
+
+        # state 3 = all balls dropped, need to reload
+        self.state = 0
+
+    def drop(self, ball_num=-1):
+        if ball_num == -1:
+            self.state += 1
+            ball_num = self.state
+
+        if ball_num == 3:
+            print("[INFO] All balls dropped, need to reload")
+            return
+
+        elif ball_num not in self.dropper_state.keys():
+            print(f"[ERROR] Invalid ball number: {ball_num}")
+            return
+
+        # drop ball
+        self.set_pwm(*self.dropper_state[ball_num])
+        print(f"[INFO] Dropped ball #{ball_num}")
+
+    def reload(self):
+        # manual action to reload the dropper
+        reloaded = False
+        while not reloaded:
+            inp = input("Reloaded? (y/n): ")
+            if inp == "y":
+                reloaded = True
+
+        self.state = 0
+
+
+class Gripper(Polulu):
+    """
+    Gripper class for the gripper servo
+
+    /!\ Please test this code for gripper, the 0.5 seconds will likely need to be adjusted
+    If gripper keeps pushing after reaching its limit, it WILL KILL our power distribution board
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        # state 0 = stop (default)
+        # state 1 = open
+        # state 2 = close
+        self.state = 0
+
+    def open(self):
+        # ensure gripper is not already open
+        if self.state == 1:
+            return
+
+        # open gripper
+        start_time = time.time()
+        while time.time() - start_time < 0.5:
+            self.set_pwm(*self.gripper_state[1])
+            time.sleep(0.05)
+
+        # stop gripper
+        self.set_pwm(*self.gripper_state[0])
+        self.set_pwm(*self.gripper_state[0])
+        self.state = 1
+
+    def close(self):
+        # ensure gripper is not already closed
+        if self.state == 2:
+            return
+
+        # close gripper
+        start_time = time.time()
+        while time.time() - start_time < 0.5:
+            self.set_pwm(*self.gripper_state[2])
+            time.sleep(0.05)
+
+        # stop gripper
+        self.set_pwm(*self.gripper_state[0])
+        self.set_pwm(*self.gripper_state[0])
+        self.state = 2
 
 
 class Servo:

@@ -29,7 +29,8 @@ class CV:
         self.side = ""
         self.value = ""
         self.ratio = 1
-        self.state = "strafe"
+        self.outPrev = False
+        self.state = "frame"
         self.flag = [False, False]
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
@@ -106,6 +107,20 @@ class CV:
             yaw = 0
         return yaw
         
+    def edgeFrame(self, target_x, other_x, tolerance):
+        left = 0
+        right = 0
+        if target_x > other_x:
+            left, right = other_x, target_x
+        else:
+            right, left = other_x, target_x
+
+        if(0 < left < tolerance and (640 - tolerance) < right < 640):
+            forward = -1
+        else:
+            forward = 0
+        return forward
+    
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
@@ -147,46 +162,67 @@ class CV:
         lateral = 0
         yaw = 0
         tolerance =20
-        x=0
-        midpoint = (target_x+other_x)/2
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
-    
-        if(self.state == "strafe"):
-            print("ALIGNING STRAFE")
-            lateral = self.alignMidpoint(midpoint, tolerance)
-            if(lateral==0):
-                print("FINISHED STRAFE")
-                self.state = "yaw"
-                self.flag[0] = True
-            latval = self.outFrameLateral(target_x, other_x, 50)
-            if(latval!=0):
-                print("OUT OF FRAME STRAFE")
-                lateral = latval
+        if(len(detections)==0):
+            yaw = 2
+        elif(len(detections)==1):
+            yaw = 1
+        else:
+            midpoint = (target_x + other_x)/2
+            if(self.state == "frame"):
+                forval = self.edgeFrame(target_x, other_x, 50)
+                if(forval==-1):
+                    print("MOVING BACKWARD")
+                    forward = forval
+                else:
+                    forward = 0
+                    self.state = "strafe"
 
-        if(self.state=="yaw"):
-            print("ALIGNING YAW")
-            yaw = self.yawPerpendicular(target_area, other_area)
-            if(yaw==0):
-                self.flag[1] = True
-                print("FINISHED YAW")
-                if(self.flag[0]):
-                    self.state ="target"
-            yawval = self.outFrameYaw(target_x, other_x, 50)
-            if(yawval!=0):
-                print("OUT OF FRAME YAW")
-                yaw = yawval
+            elif(self.state == "strafe"):
+                print("ALIGNING STRAFE")
+                lateral = self.alignMidpoint(midpoint, tolerance)
+                if(lateral == 0):
+                    print("FINISHED STRAFE")
+                    self.state = "yaw"
+                    self.flag[0] = True
+                latval = self.outFrameLateral(target_x, other_x, 50)
+                if(latval!=0 and self.outPrev==False):
+                    lateral=0
+                    self.state = "yaw"
+                    self.outPrev = True
+                if(latval==0 and self.outPrev):
+                    lateral = 0
+                    self.state = "yaw"
 
-        if(self.state=="target"):
-            print("ALIGNING TARGET")
-            lateral = self.alignTarget(target_x, tolerance)
-            if(lateral==0):
-                forward=2
+            elif(self.state=="yaw"):
+                print("ALIGNING YAW")
+                yaw = self.yawPerpendicular(target_area, other_area)
+                if(yaw==0):
+                    self.flag[1] = True
+                    print("FINISHED YAW")
+                    if(self.flag[0]):
+                        self.state ="target"
+                yawval = self.outFrameYaw(target_x, other_x, 50)
+                if(yawval!=0 and self.outPrev==False):
+                    yaw=0
+                    self.outPrev = True
+                    self.state = "strafe"
+                if(yawval==0 and self.outPrev):
+                    yaw = 0
+                    self.state = "strafe"
 
-        if(len(detections)==0 and self.state == "target"):
-            forward =2
-            lateral=0
-            yaw=0
+            elif(self.state=="target"):
+                print("ALIGNING TARGET")
+                lateral = self.alignTarget(target_x, tolerance)
+                if(lateral==0):
+                    forward=2
+
+            if(len(detections) == 0 and self.state == "target"):
+                forward = 2
+                lateral = 0
+                yaw = 0
+                
         if yaw == 0:
             yaw = 0.1
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame

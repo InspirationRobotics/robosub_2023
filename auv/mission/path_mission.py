@@ -114,9 +114,18 @@ if __name__ == "__main__":
     import time
     from auv.utils import deviceHelper
 
+    from auv.utils import deviceHelper
+
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
-    mission = PathMission(**deviceHelper.variables)
+    mission = PathMission(**config)
 
     # Run the mission
     mission.run()

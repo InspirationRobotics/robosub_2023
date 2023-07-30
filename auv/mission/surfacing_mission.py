@@ -38,8 +38,6 @@ class SurfacingMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        self.surfacing_sensitivity = self.config.get("surfacing_sensitivity", 0.5)
-        self.proportional_gain = self.config.get("surfacing_proportional_gain", 4.0)
         print("[INFO] Surfacing mission init")
 
     def callback(self, msg):
@@ -85,13 +83,7 @@ class SurfacingMission:
                 # get the lateral and forward values from the cv (if they exist)
                 lateral = self.data["surfacing_cv"].get("lateral", 0)
                 forward = self.data["surfacing_cv"].get("forward", 0)
-
-                lateral = lateral * 4
-                forward = forward * 4
                 
-                lateral = np.clip(lateral, -2, 2)
-                forward = np.clip(forward, -2, 2)
-
                 print(f"[DEBUG] lateral: {lateral}, forward: {forward}")
                 self.robot_control.movement(lateral=lateral, forward=forward)
 
@@ -124,8 +116,18 @@ if __name__ == "__main__":
 
     from auv.utils import deviceHelper
 
+    from auv.utils import deviceHelper
+
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
+
     # Create a mission object with arguments
-    mission = SurfacingMission(**deviceHelper.variables)
+    mission = SurfacingMission(**config)
 
     # Run the mission
     mission.run()
