@@ -1,16 +1,26 @@
 """
-Description: CV torpedo class
-Author: Kyle Jacob
+Description: CV torpedo using sift class
+Author: Maxime Ellerbach
 """
 
-import time
-import cv2
-import numpy as np
 import argparse
+import math
 import os
 import time
 
-from auv.device.sonar import Ping360, utils, io
+import cv2
+import numpy as np
+import imutils
+from ..device.sonar import Ping360, io, utils
+
+
+def equilize(img):
+    """Equilize the histogram of the image"""
+    b, g, r = cv2.split(img)
+    b = cv2.equalizeHist(b)
+    g = cv2.equalizeHist(g)
+    r = cv2.equalizeHist(r)
+    return cv2.merge((b, g, r))
 
 
 class CV:
@@ -19,319 +29,368 @@ class CV:
     def __init__(self, **config):
         """
         Init of torpedo CV,
-
         """
 
-        # TODO Change when testing
-        self.deploy = True
+        self.reference_image_c = cv2.imread("auv/cv/samples/torpedo_closed.png")
+        self.reference_image_o = cv2.imread("auv/cv/samples/torpedo_opened.png")
+        self.reference_image_top_opened = cv2.imread(
+            "auv/cv/samples/torpedo_top_opened.png"
+        )
+        self.reference_image_top_closed = cv2.imread(
+            "auv/cv/samples/torpedo_top_closed.png"
+        )
+        assert self.reference_image_c is not None
+        assert self.reference_image_o is not None
+        assert self.reference_image_top_opened is not None
+        assert self.reference_image_top_closed is not None
+        self.ref_c_shape = self.reference_image_c.shape
+        self.ref_o_shape = self.reference_image_o.shape
 
-        self.frame = None
-        self.lostSight = 0
-        print("[INFO] Torpedo CV init")
+        self.sift = cv2.SIFT_create()
+        self.bf = cv2.BFMatcher()
+        self.kp1_c, self.des1_c = self.sift.detectAndCompute(
+            self.reference_image_c, None
+        )
+        self.kp1_o, self.des1_o = self.sift.detectAndCompute(
+            self.reference_image_o, None
+        )
 
+        self.kp1, self.des1 = None, None  # will be calculated later on
+        self.reference_image = None  # will be determined later on
+
+        self.shape = (480, 640, 3)
+        self.step = 0
+
+        # keep track of the position of the open / closed torpedo
+        self.center_c = []
+        self.center_o = []
+        self.on_top = None
+
+        # absolute, normalized
+        self.offset_center = 0.25
+        self.target_coords = (0.0, 0.0)
+        self.threshold = 5
+        self.x_threshold = 50
+        self.y_threshold = 50
         self.depth = 0.35
+        self.aligned = True
+        self.firing_range = 16  # #TODO find range in inches
+        self.fired1 = False
+        self.fired2 = False
 
-        self.target_center_x = 240  # Where we want the center of the circle
-        self.target_center_y = 320  # to be when close to mission
+        # initialize the known distance from the camera to the object, which
+        # in this case is 24 inches
+        self.KNOWN_DISTANCE = 60.0  # TODO find proper distance
+        # initialize the known object width, which in this case, the piece of
+        # paper is 12 inches wide
+        self.KNOWN_WIDTH = 48.0  # TODO add proper width
+        # load the furst image that contains an object that is KNOWN TO BE 2 feet
+        # from our camera, then find the paper marker in the image, and initialize
+        # the focal lengthera(KNOWN_WIDTH, focalLength, marker[1][0])
 
-        self.center_x = 330  # True center of screen which will be
-        self.center_y = 250  # used to align the sub when far away
+    def find_marker(self, image):
+        # convert the image to grayscale, blur it, and detect edges
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        edged = cv2.Canny(gray, 35, 125)
+        # find the contours in the edged image and keep the largest one;
+        # we'll assume that this is our piece of paper in the image
+        cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        c = max(cnts, key=cv2.contourArea)
+        # compute the bounding box of the of the paper region and return it
+        return cv2.minAreaRect(c)
+        # ^ Only want the detected width of the object
 
-        self.threshold_far = 30  # Margin of error when far
-        self.threshold_near = 50  # "      "      " when near
-        self.distance_to_target = 9999
-        self.near = False
+    def process_sift(
+        self,
+        ref_img,
+        img,
+        kp1,
+        des1,
+        kp2=None,
+        des2=None,
+        threshold=0.65,
+        window_viz=None,
+    ):
+        """
+        Sift matching with reference points
+        if kp2 and des2 are not given, it will compute them
+        """
+        if kp2 is None or des2 is None:
+            kp2, des2 = self.sift.detectAndCompute(img, None)
 
-        self.fired_torpedo_1 = False
-        self.fired_torpedo_2 = False
+        matches = self.bf.knnMatch(des1, des2, k=2)
+        good = []
+        for m, n in matches:
+            if m.distance < threshold * n.distance:
+                good.append(m)
 
-        self.open_is_top = None
+        if len(good) < 4:
+            return None
 
-        # TODO Fill with distance boundary that we will get from ping 360 to
-        # switch from center the center of the sub the the largest circle, to
-        # then centering the torpedo zone
-        self.far_near_boundary = 2  # if distance < 2 meteres, we are near
-        self.fire_distance = 1  # if distacne < 1 meter, we are in range
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+        H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-        step_angle = 1
-        max_range = 20
-
-        self.p = (
-            Ping360(
-                "/dev/ttyUSB1",
-                115200,
-                scan_mode=1,
-                angle_range=(150, 250),
-                angle_step=step_angle,
-                max_range=max_range,
-                gain=2,
-                transmit_freq=800,
+        if window_viz is not None:
+            # draw the matches
+            img = cv2.drawMatches(
+                ref_img,
+                kp1,
+                img,
+                kp2,
+                good,
+                None,
+                flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
             )
-            if self.deploy
-            else None
+            cv2.imshow(window_viz, img)
+        return H
+
+    def get_center(self, H, src_shape, norm=False):
+        """Get center of a given homography H"""
+        h, w, _ = src_shape
+        center = np.array([[w / 2, h / 2]]).reshape(-1, 1, 2)
+        center = cv2.perspectiveTransform(center, H).astype(np.int32)[0][0]
+        if norm:
+            center = [(center[0] - 320) / 320, (center[1] - 240) / 240]
+        return h, w, center
+
+    def get_orientation(self, H, src_shape):
+        h, w, _ = src_shape
+        pts = (
+            np.array(
+                [
+                    [0, 0],
+                    [w, 0],
+                    [w, h],
+                    [0, h],
+                ]
+            )
+            .reshape(-1, 1, 2)
+            .astype(np.float32)
+        )
+        pts = cv2.perspectiveTransform(pts, H).astype(np.int32).reshape(4, 2)
+
+        # get an estimation of the Y axis rotation
+        left_h_dist = np.linalg.norm(pts[0] - pts[3])
+        right_h_dist = np.linalg.norm(pts[1] - pts[2])
+
+        # TODO find the right formula for this
+        yaw = math.atan((left_h_dist - right_h_dist) / (left_h_dist + right_h_dist))
+        yaw = math.degrees(yaw)
+        print(f"[INFO] Yaw: {yaw}")
+        return yaw
+
+    def init_find_both_centers(self, img, threshold=0.65, window_viz=None):
+        """Get sift for both opened and closed torpedo"""
+        kp2, des2 = self.sift.detectAndCompute(img, None)
+        H_c = self.process_sift(
+            self.reference_image_c,
+            img,
+            self.kp1_c,
+            self.des1_c,
+            kp2,
+            des2,
+            threshold,
+            "H_c",
+        )
+        H_o = self.process_sift(
+            self.reference_image_o,
+            img,
+            self.kp1_o,
+            self.des1_o,
+            kp2,
+            des2,
+            threshold,
+            "H_o",
         )
 
-    def get_circles(self, frame, p1, p2):
-        """
-        Returns the center and radius of the detected circle in the frame
-        using a Hough circle detection on Canny edge detection
-        """
+        if H_c is None or H_o is None:
+            return None, None
 
-        # Convert frame to grey scale and extract edges
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 100, 200)
+        _, _, center_c = self.get_center(H_c, self.ref_c_shape)
+        _, _, center_o = self.get_center(H_o, self.ref_o_shape)
 
-        # Blurring the image to eliminate false positives
-        edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
-        edges = cv2.GaussianBlur(edges, (5, 5), 2, 2)
+        if window_viz is not None:
+            # draw the center
+            cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
+            cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
+            cv2.imshow(window_viz, img)
 
-        # Detecting Hough Circles on the image and saving them in circles
-        circles = cv2.HoughCircles(
-            edges,
-            cv2.HOUGH_GRADIENT,
-            1,
-            edges.shape[0] / 8,
-            param1=p1,
-            param2=p2,
-            minRadius=1,
-            maxRadius=600,
-        )
+        return center_c, center_o
 
-        if not self.deploy:
-            cv2.imshow("Edges", edges)
-
-        # Draw all circles on the original image
-        if circles is not None:
-            i = 0
-
-            circles = np.round(circles[0, :]).astype("int")
-
-            for circle in circles:
-                x, y = circles[i, 0], circles[i, 1]
-                dist = circles[i, 2]
-                cv2.circle(
-                    self.frame,
-                    center=(x, y),
-                    radius=dist,
-                    color=(0, 255, 0),
-                    thickness=20,
-                )
-                cv2.circle(
-                    self.frame,
-                    center=(circles[i, 0], circles[i, 1]),
-                    radius=2,
-                    color=(0, 0, 255),
-                    thickness=2,
-                )
-                i += 1
-        cv2.circle(
-            self.frame,
-            center=(self.center_x, self.center_y),
-            radius=2,
-            color=(255, 0, 0),
-            thickness=3,
-        )
-
-        # Return list containing all circles in the frame
-        return circles
+    def distance_to_camera(knownWidth, focalLength, perWidth):
+        # compute and return the distance from the maker to the camera
+        return (knownWidth * focalLength) / perWidth
 
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        # print("[INFO] Torpedo CV run")
+
+        frame = equilize(frame)
 
         forward = 0
         lateral = 0
         yaw = 0
         end = False
 
-        if self.fired_torpedo_1 and self.fired_torpedo_2:
-            print("[INFO] Mission complete!!")
-            return {
-                "lateral": 0,
-                "forward": 0,
-                "vertical": self.depth,
-                "fire1": True,
-                "fire2": True,
-                "end": True,
-            }, frame
+        # find setup (closed or opened on top)
+        if self.step == 0:
+            center_c, center_o = self.init_find_both_centers(
+                frame, window_viz="centers"
+            )
+            if center_c is None or center_o is None:
+                # skip (maybe go forward a bit)
+                return {}, None
 
-        # video is 480 by 640, at end we want the point approx. (210, 350)
-        self.frame = frame
-        if self.near:
-            circles = self.get_circles(frame, 50, 80)
-        if not self.near:
-            circles = self.get_circles(frame, 50, 65)
+            # calculate mean of the centers
+            if len(self.center_c) > 10 and len(self.center_o) > 10:
+                mean_c = np.mean(self.center_c, axis=0)
+                mean_o = np.mean(self.center_o, axis=0)
 
-        # Image processing
-        if circles is not None:  # Circles detected
-            print("[INFO] Circle detected")
+                # determine which one is on top
+                if mean_c[1] < mean_o[1]:
+                    # closed is on top
+                    self.on_top = "closed"
+                    self.reference_image = self.reference_image_top_closed
+                else:
+                    # opened is on top
+                    self.on_top = "opened"
+                    self.reference_image = self.reference_image_top_opened
 
-            self.lostSight = 0
+                # compute kp1 des1 for the desired ref image
+                self.kp1, self.des1 = self.sift.detectAndCompute(
+                    self.reference_image, None
+                )
+                print(f"[INFO] {self.on_top} is on top")
 
-            # Get distance with ping 360
-            obstacles = self.p.get_obstacles() if self.deploy else None
+                # cleanup and go to next step
+                self.center_c = []
+                self.center_o = []
+                self.reference_image_c = None
+                self.reference_image_o = None
+                self.kp1_c, self.des1_c = None, None
+                self.kp1_o, self.des1_o = None, None
+                cv2.destroyAllWindows()
 
-            if obstacles is not None:
-                # Sort obstacles by size
-                #sorted_obstacles = sorted(obstacles, key=lambda x: x.area, reverse=True)
-
-                # Grab the distance of the first object in the list
-                try:
-                    largest_object = sorted_obstacles[0]
-                    self.distance_to_target = largest_object.distance
-                    # print("[INFO] Distance: " + self.distance_to_target)
-                    print(f"Distance: {self.distance_to_target}")
-
-                    if self.distance_to_target < self.far_near_boundary:
-                        self.near = True
-                        print("[INFO] Near")
-                except:
-                    print(["[ERROR] Ping360 Error"])
-
-            # Center of largest circle - aim for this
-            x, y = circles[0, 0], circles[0, 1]
-            print(f"[INFO] X: {str(np.round(x).astype('int'))}")
-            print(f"[INFO] Y: {str(np.round(y).astype('int'))}")
-            last_y = y
-
-            # Sleep delay for letting motors move
-            #time.sleep(1)
-
-            if self.distance_to_target < self.fire_distance:
-                # Fire both and dont worry about moving to different one
-                print("[INFO] Fire torpedos!!!")
-                self.fired_torpedo_1 = True
-                return {
-                    "lateral": 0,
-                    "forward": 0,
-                    "vertical": self.depth,
-                    "fire1": True,
-                    "fire2": True,
-                    "end": False,
-                }, frame
-
-                # if not self.fired_torpedo_1:
-                #     if self.open_is_top:
-                #         self.depth += 0.1
-                #     if not self.open_is_top:
-                #         self.depth += 0.1
-                #     print("[INFO] Fire torpedo 1!!!")
-                #     self.fired_torpedo_1 = True
-                #     return {
-                #         "lateral": 0,
-                #         "forward": 0,
-                #         "vertical": self.depth,
-                #         "fire1": True,
-                #         "fire2": False,
-                #         "end": False,
-                #     }, frame
-                # else:
-                #     print("[INFO] Fire torpedo 2!!!")
-                #     self.fired_torpedo_2 = True
-                #     return {
-                #         "lateral": 0,
-                #         "forward": 0,
-                #         "vertical": self.depth,
-                #         "fire1": True,
-                #         "fire2": True,
-                #         "end": False,
-                #     }, frame
-
-            if not self.near:
-                # Aligning from afar
-
-                # X alignment
-                if self.center_x > x + self.threshold_far:  # Strafe Left
-                    print("[INFO] Left")
-                    lateral = -1
-
-                if self.center_x < x - self.threshold_far:  # Strafe Right
-                    print("[INFO] Right")
-                    lateral = 1
-
-                if lateral == 0:
-                    print("[INFO] Centered on X axis")
-
-
-                # Y alignment
-                if self.center_y < y - self.threshold_far:  # Dive
-                    self.depth += 0.02
-                    print("[INFO] Dive")
-                if self.center_y > y + self.threshold_far:  # Ascend
-                    self.depth -= 0.02
-                    print("[INFO] Ascend")
-
-                return {
-                    "lateral": lateral,
-                    "forward": 1,
-                    "vertical": self.depth,
-                    "end": False,
-                }, frame
+                self.step = 1
 
             else:
-                # Aligning near the target, aim for lowest y value target
-                sorted_obstacles = sorted(circles, key=lambda x: x.y, reverse=True)
-                x, y = circles[0, 0], circles[0, 1]
+                self.center_c.append(center_c)
+                self.center_o.append(center_o)
 
-                self.open_is_top = True if y > last_y else None
+        # yaw and lateral to align with the torpedo
+        elif self.step == 1:
+            self.aligned = True
+            forward = 0
+            lateral = 0
 
-                # X alignment
-                if self.target_center_x < x + self.threshold_near:  # Strafe Left
-                    print("[INFO] Left")
-                    lateral = -1
+            H = self.process_sift(
+                self.reference_image,
+                frame,
+                self.kp1,
+                self.des1,
+                threshold=0.65,
+                window_viz="H",
+            )
+            if H is None:
+                # skip (maybe go forward a bit)
+                return {}, None
 
-                if self.target_center_x > x - self.threshold_near:  # Strafe Right
-                    print("[INFO] Right")
-                    lateral = 1
+            h, w, center = self.get_center(H, self.reference_image.shape)
+            yaw = self.get_orientation(H, self.reference_image.shape)
 
-                # Y alignment
-                if self.target_center_y < y - self.threshold_near:  # Dive
-                    self.depth += 0.02
-                    print("[INFO] Dive")
-                if self.target_center_y > y + self.threshold_near:  # Ascend
-                    self.depth -= 0.02
-                    print("[INFO] Ascend")
+            if (yaw >= 0 and yaw < self.threshold) or (
+                yaw <= 0 and yaw > (-1 * self.threshold)
+            ):
+                # Aligned enough that we don't need to yaw
+                # We can go forward now
+                yaw = 0
 
-                if lateral == 0:
-                    print("[INFO] X Centered")
+            center_c, center_o = self.init_find_both_centers(
+                frame, window_viz="centers"
+            )
+            center = center_c
+            if not self.fired1:
+                center = center_o
+
+            if center[0] > 320 + self.x_threshold:
+                # Strafe Right
+                print("[INFO] Right")
+                lateral = 1
+                self.aligned = False
+
+            elif center[0] < 320 - self.x_threshold:
+                # Strafe Left
+                print("[INFO] Left")
+                lateral = -1
+                self.aligned = False
+
+            if center[1] > 240 + self.y_threshold:
+                # Dive
+                print("[INFO] Dive")
+                self.depth += 0.02
+                self.aligned = False
+
+            elif center[1] < 240 - self.y_threshold:
+                # Ascent
+                print("[INFO] Ascend")
+                self.depth -= 0.02
+                self.aligned = False
 
 
-                # Print motors and return commands
-                return {
-                    "lateral": lateral,
-                    "forward": 1,
-                    "vertical": self.depth,
-                    "end": False,
-                }, frame
+            if self.aligned:
+                focalLength = (w * self.KNOWN_DISTANCE) / self.KNOWN_WIDTH
+                distance_to_target = self.distance_to_camera(
+                    self.KNOWN_WIDTH, focalLength, w
+                )
+                print("[INFO] Distance to target: " + distance_to_target)
+                
+                # Check distance from object
+                # Now can fire or move forward
+                if distance_to_target > self.firing_range:
+                    # Too far from target
+                    print("[Info] Aligned, moving forward")
+                    forward = 1
 
-        else:  # No circles detected
-            # Potentially can resort to scanning sonar with 180 degree sweep
-            # and find if the object is on the left or right of the sub
-            self.lostSight += 1                    
-            print("[INFO] Lost Sight for " + str(self.lostSight) + " frames")
+                elif distance_to_target <= self.firing_range:
+                    # Fire
+                    if not self.fired1:
+                        print("[Info] Fire torpedo 1")
+                        self.fired1 = True
 
+                    elif self.fired1:
+                        print("[Info] Fire torpedo 2")
+                        self.fired2 = True
+                        end = True
+                        print("[Info] Mission complete")
 
-            if self.lostSight > 3000:
-                # Target has been lost for too long and mission needs to terminate
-                end = True
+                if self.fired1 and counter <= 50:
+                    print("[Info] Backing up to align with closed target")
+                    forward = -1
+                    counter += 1
 
-            if self.lostSight > 400:
-                # No circles detected and need to back up looking any
-                forward = -1
-                print("[INFO] Backing up")
+            # print(f"[INFO] Yaw: {yaw}")
 
+            frame = cv2.circle(
+                frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1
+            )
 
-            return {
-                "lateral": 0,
-                "forward": forward,
-                "vertical": 0,
-                "end": end,
-            }, self.frame
+            if self.on_top == "closed":
+                self.target_coords = (0.0, -self.offset_center)
 
-        # return {"lateral": 0, "forward": 0, "vertical": 0, "end": False}, self.frame
+        return {
+            "lateral": lateral,
+            "forward": forward,
+            "yaw": yaw,
+            "vertical": self.depth,
+            "fire1": self.fired1,
+            "fire2": self.fired2,
+            "end": end,
+        }, frame
 
 
 if __name__ == "__main__":
@@ -343,7 +402,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo1.mp4")
+    cap = cv2.VideoCapture("testing_data/lab.mp4")
 
     while True:
         # grab a frame
@@ -351,12 +410,13 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        time.sleep(0.1)
+        time.sleep(0.02)
         # run the cv
         result, img_viz = cv.run(frame, None, None)
-        print(f"[INFO] {result}")
+        # print(f"[INFO] {result}")
 
         # show the frame
-        cv2.imshow("frame", frame)
+        if img_viz is not None:
+            cv2.imshow("viz", img_viz)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
