@@ -80,7 +80,7 @@ class LSM6DS33(I2C):
             self.is_gyro_calibrated = True
             self.is_accel_calibrated = True
 
-    def calibrate(self, iterations=2000):
+    def calibrate(self, iterations=500):
         """Calibrate the gyro's raw values."""
         print("Calibrating Gryo and Accelerometer...")
 
