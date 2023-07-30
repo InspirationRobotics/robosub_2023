@@ -79,13 +79,13 @@ class GateMission:
             lateral = self.data["gate_cv"].get("lateral", None)
             forward = self.data["gate_cv"].get("forward", None)
             yaw = self.data["gate_cv"].get("yaw", None)
-            end = self.data["gate_cv"].get("end", None)
+            end = self.data["gate_cv"].get("end", False)
             #if any(i == None for i in (lateral, forward, yaw)):
             #    continue
             # direcly feed the cv output to the robot control
             if(end):
                 print("Ending...")
-                self.robot_control.forwardDist(5, 2)
+                self.robot_control.forwardDist(3, 2)
             else:
                 self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
                 print(forward, lateral, yaw)
