@@ -29,13 +29,13 @@ class BinMission:
 
         rospy.init_node("bin_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
+        self.cv_handler = cvHandler.CVHandler(**self.config)
 
         # init the cv handlers
         # dummys are used to input a video file instead of the camera
         dummys = self.config.get("cv_dummy", [None] * len(self.cv_files))
         for file_name, dummy in zip(self.cv_files, dummys):
-            self.cv_handler.start_cv(file_name, self.callback, dummy=dummy)
+            self.cv_handler.start_cv(file_name, self.callback, dummy_camera=dummy)
 
         # init variables for the mission
         self.servo = Servo()
@@ -50,16 +50,14 @@ class BinMission:
         self.next_data[file_name] = data
         self.received = True
 
-        print(f"[DEBUG] Received data from {file_name}")
-
     def run(self):
         """
         Here should be all the code required to run the mission.
         This could be a loop, a finite state machine, etc.
         """
-        
+
         # here is an example of how to set a target
-        self.cv_handler.set_target("bin_cv", "Abydos")
+        self.cv_handler.set_target("bin_cv", "Bin")
 
         while not rospy.is_shutdown():
             if not self.received:
@@ -73,12 +71,6 @@ class BinMission:
             self.received = False
             self.next_data = {}
 
-            if self.data["bin_cv"].get("end", None):
-                # idle the robot
-                print("ending True")
-                self.robot_control.movement()
-                break
-
             # get the lateral and forward values from the cv (if they exist)
             lateral = self.data["bin_cv"].get("lateral", None)
             yaw = self.data["bin_cv"].get("yaw", None)
@@ -86,12 +78,12 @@ class BinMission:
             vertical = self.data["bin_cv"].get("vertical", None)
             do_drop = self.data["bin_cv"].get("drop", None)
 
-
             if do_drop:
                 if self.ball_count == 1:
                     print(f"[BIN MISSION] already dropped 1 ball, 2nd drop not implemented yet")
-                    print(f"[BIN MISSION] ending mission")
-                    break
+                    # print(f"[BIN MISSION] ending mission")
+                    # break
+                    pass
 
                 self.servo.dropper()
                 self.ball_count += 1
@@ -102,9 +94,9 @@ class BinMission:
                 continue
 
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
-            print(forward, lateral, yaw, vertical)
+            print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}, vertical: {vertical}")
 
-
+        self.robot_control.movement()
         print("[INFO] Bin mission end")
 
     def cleanup(self):
@@ -127,11 +119,15 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
 
-    config = {
-        # # this dummy video file will be used instead of the camera if uncommented
-        # "cv_dummy": ["/somepath/thisisavideo.mp4"],
-    }
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
     mission = BinMission(**config)

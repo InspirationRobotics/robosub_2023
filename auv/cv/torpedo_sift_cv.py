@@ -10,7 +10,7 @@ import time
 
 import cv2
 import numpy as np
-
+import imutils
 from ..device.sonar import Ping360, io, utils
 
 
@@ -33,8 +33,12 @@ class CV:
 
         self.reference_image_c = cv2.imread("auv/cv/samples/torpedo_closed.png")
         self.reference_image_o = cv2.imread("auv/cv/samples/torpedo_opened.png")
-        self.reference_image_top_opened = cv2.imread("auv/cv/samples/torpedo_top_opened.png")
-        self.reference_image_top_closed = cv2.imread("auv/cv/samples/torpedo_top_closed.png")
+        self.reference_image_top_opened = cv2.imread(
+            "auv/cv/samples/torpedo_top_opened.png"
+        )
+        self.reference_image_top_closed = cv2.imread(
+            "auv/cv/samples/torpedo_top_closed.png"
+        )
         assert self.reference_image_c is not None
         assert self.reference_image_o is not None
         assert self.reference_image_top_opened is not None
@@ -44,8 +48,12 @@ class CV:
 
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
-        self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
-        self.kp1_o, self.des1_o = self.sift.detectAndCompute(self.reference_image_o, None)
+        self.kp1_c, self.des1_c = self.sift.detectAndCompute(
+            self.reference_image_c, None
+        )
+        self.kp1_o, self.des1_o = self.sift.detectAndCompute(
+            self.reference_image_o, None
+        )
 
         self.kp1, self.des1 = None, None  # will be calculated later on
         self.reference_image = None  # will be determined later on
@@ -61,8 +69,49 @@ class CV:
         # absolute, normalized
         self.offset_center = 0.25
         self.target_coords = (0.0, 0.0)
+        self.threshold = 5
+        self.x_threshold = 50
+        self.y_threshold = 50
+        self.depth = 0.35
+        self.aligned = True
+        self.firing_range = None  # TODO find range
+        self.fired1 = False
+        self.fired2 = False
 
-    def process_sift(self, ref_img, img, kp1, des1, kp2=None, des2=None, threshold=0.65, window_viz=None):
+        # initialize the known distance from the camera to the object, which
+        # in this case is 24 inches
+        self.KNOWN_DISTANCE = 24.0  # TODO find proper distance
+        # initialize the known object width, which in this case, the piece of
+        # paper is 12 inches wide
+        self.KNOWN_WIDTH = 11.0  # TODO add proper width
+        # load the furst image that contains an object that is KNOWN TO BE 2 feet
+        # from our camera, then find the paper marker in the image, and initialize
+        # the focal lengthera(KNOWN_WIDTH, focalLength, marker[1][0])
+
+    def find_marker(self, image):
+        # convert the image to grayscale, blur it, and detect edges
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        edged = cv2.Canny(gray, 35, 125)
+        # find the contours in the edged image and keep the largest one;
+        # we'll assume that this is our piece of paper in the image
+        cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        c = max(cnts, key=cv2.contourArea)
+        # compute the bounding box of the of the paper region and return it
+        return cv2.minAreaRect(c)
+
+    def process_sift(
+        self,
+        ref_img,
+        img,
+        kp1,
+        des1,
+        kp2=None,
+        des2=None,
+        threshold=0.65,
+        window_viz=None,
+    ):
         """
         Sift matching with reference points
         if kp2 and des2 are not given, it will compute them
@@ -135,8 +184,26 @@ class CV:
     def init_find_both_centers(self, img, threshold=0.65, window_viz=None):
         """Get sift for both opened and closed torpedo"""
         kp2, des2 = self.sift.detectAndCompute(img, None)
-        H_c = self.process_sift(self.reference_image_c, img, self.kp1_c, self.des1_c, kp2, des2, threshold, "H_c")
-        H_o = self.process_sift(self.reference_image_o, img, self.kp1_o, self.des1_o, kp2, des2, threshold, "H_o")
+        H_c = self.process_sift(
+            self.reference_image_c,
+            img,
+            self.kp1_c,
+            self.des1_c,
+            kp2,
+            des2,
+            threshold,
+            "H_c",
+        )
+        H_o = self.process_sift(
+            self.reference_image_o,
+            img,
+            self.kp1_o,
+            self.des1_o,
+            kp2,
+            des2,
+            threshold,
+            "H_o",
+        )
 
         if H_c is None or H_o is None:
             return None, None
@@ -151,6 +218,10 @@ class CV:
             cv2.imshow(window_viz, img)
 
         return center_c, center_o
+
+    def distance_to_camera(knownWidth, focalLength, perWidth):
+        # compute and return the distance from the maker to the camera
+        return (knownWidth * focalLength) / perWidth
 
     def run(self, frame, target, detections):
         """
@@ -167,7 +238,9 @@ class CV:
 
         # find setup (closed or opened on top)
         if self.step == 0:
-            center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
+            center_c, center_o = self.init_find_both_centers(
+                frame, window_viz="centers"
+            )
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
                 return {}, None
@@ -188,7 +261,9 @@ class CV:
                     self.reference_image = self.reference_image_top_opened
 
                 # compute kp1 des1 for the desired ref image
-                self.kp1, self.des1 = self.sift.detectAndCompute(self.reference_image, None)
+                self.kp1, self.des1 = self.sift.detectAndCompute(
+                    self.reference_image, None
+                )
                 print(f"[INFO] {self.on_top} is on top")
 
                 # cleanup and go to next step
@@ -208,21 +283,111 @@ class CV:
 
         # yaw and lateral to align with the torpedo
         elif self.step == 1:
-            H = self.process_sift(self.reference_image, frame, self.kp1, self.des1, threshold=0.65, window_viz="H")
+            self.aligned = True
+            forward = 0
+            lateral = 0
+
+            H = self.process_sift(
+                self.reference_image,
+                frame,
+                self.kp1,
+                self.des1,
+                threshold=0.65,
+                window_viz="H",
+            )
             if H is None:
                 # skip (maybe go forward a bit)
                 return {}, None
 
             center = self.get_center(H, self.reference_image.shape)
             yaw = self.get_orientation(H, self.reference_image.shape)
+            if (yaw >= 0 and yaw < self.threshold) or (
+                yaw <= 0 and yaw > (-1 * self.threshold)
+            ):
+                # Aligned enough that we don't need to yaw
+                # We can go forward now
+                yaw = 0
+
+            center_c, center_o = self.init_find_both_centers(
+                frame, window_viz="centers"
+            )
+            center = center_c
+            if not self.fired1:
+                center = center_o
+
+            if center[0] > 320 + self.x_threshold:
+                # Strafe Right
+                print("[INFO] Right")
+                lateral = 1
+                self.aligned = False
+
+            elif center[0] < 320 - self.x_threshold:
+                # Strafe Left
+                print("[INFO] Left")
+                lateral = -1
+                self.aligned = False
+
+            if center[1] > 240 + self.y_threshold:
+                # Dive
+                print("[INFO] Dive")
+                self.depth += 0.02
+                self.aligned = False
+
+            elif center[1] < 240 - self.y_threshold:
+                # Ascent
+                print("[INFO] Ascend")
+                self.depth -= 0.02
+                self.aligned = False
+
+            self.marker = self.find_marker(frame)
+            focalLength = (self.marker[1][0] * self.KNOWN_DISTANCE) / self.KNOWN_WIDTH
+            distance_to_target = self.distance_to_camera(
+                self.KNOWN_WIDTH, focalLength, self.marker[1][0]
+            )
+
+            if self.aligned:
+                # Check distance from object
+                # Now can fire or move forward
+                if distance_to_target >= self.firing_range:
+                    # Too far from target
+                    print("[Info] Aligned, moving forward")
+                    forward = 1
+
+                elif distance_to_target < self.firing_range:
+                    # Fire
+                    if not self.fired1:
+                        print("[Info] Fire torpedo 1")
+                        self.fired1 = True
+
+                    elif self.fired1:
+                        print("[Info] Fire torpedo 2")
+                        self.fired2 = True
+                        end = True
+                        print("[Info] Mission complete")
+
+                if self.fired1 and counter <= 50:
+                    print("[Info] Backing up to align with closed target")
+                    forward = -1
+                    counter += 1
+
             # print(f"[INFO] Yaw: {yaw}")
 
-            frame = cv2.circle(frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1)
+            frame = cv2.circle(
+                frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1
+            )
 
             if self.on_top == "closed":
                 self.target_coords = (0.0, -self.offset_center)
 
-        return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
+        return {
+            "lateral": lateral,
+            "forward": forward,
+            "yaw": yaw,
+            "vertical": self.depth,
+            "fire1": self.fired1,
+            "fire2": self.fired2,
+            "end": end,
+        }, frame
 
 
 if __name__ == "__main__":
@@ -234,7 +399,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo2.mp4")
+    cap = cv2.VideoCapture("testing_data/lab.mp4")
 
     while True:
         # grab a frame

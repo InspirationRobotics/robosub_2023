@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.cv.template_cv"
 
     # Create a CV object with arguments
-    cv = CV(arg1="value1", arg2="value2")
+    cv = CV()
 
     # here you can for example initialize your camera, etc
     cap = cv2.VideoCapture(0)

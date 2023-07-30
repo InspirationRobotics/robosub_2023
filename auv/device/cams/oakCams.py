@@ -155,15 +155,15 @@ class oakCamera:
 
         if modelName == "raw":
             modelPath = "raw"
-        elif modelName.contains(os.path.sep):
+        elif os.path.sep in modelName:
             # direct path to model
             modelPath = modelName
         else:
             # model name
-            modelPath = f"{root}{modelName}Model/"
+            modelPath = f"{root}/{modelName}Model/"
         
-        if not modelPath == "row" and not os.path.isdir(modelPath):
-            print(f"Invalid model name, {modelName}")
+        if not modelPath == "raw" and not os.path.isdir(modelPath):
+            print(f"Invalid model name, {modelPath}")
             print(f"Available models: {glob.glob(os.path.join(root, '*'))}")
             return
 

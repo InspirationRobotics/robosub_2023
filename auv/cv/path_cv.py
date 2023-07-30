@@ -10,6 +10,7 @@ import time
 import cv2
 import numpy as np
 
+from ..utils import deviceHelper
 
 class CV:
     """Template CV class, don't change the name of the class"""
@@ -22,7 +23,8 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-        self.config = config
+        # self.config = config
+        self.config = deviceHelper.variables
         self.aligned = False
         self.current_sub = self.config.get("sub", "graey")
         if self.current_sub == "graey":
@@ -67,8 +69,7 @@ class CV:
         # U_limit = np.array([50, 255, 255])
 
         orange=cv2.inRange(into_hsv,L_limit,U_limit)
-        edges = cv2.Canny(gray, threshold1=200, threshold2=100)
-        cv2.imshow("edges", edges)
+        # edges = cv2.Canny(gray, threshold1=200, threshold2=100)
         # Removing Noise
         kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
@@ -136,6 +137,7 @@ if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.cv.surfacing_cv"
+
     # Create a CV object with arguments
     cv = CV()
 

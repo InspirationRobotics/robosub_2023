@@ -24,6 +24,7 @@ class CV:
         self.current_sub = self.config.get("sub", "onyx")
         if self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
+            self.model = "bins3"
         elif self.current_sub == "graey":
             print(f"[INFO] No Gripper or Dropper on graey")
             self.camera = None
@@ -41,19 +42,17 @@ class CV:
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        print("[INFO] Bin CV run")
         forward = 0
         lateral = 0
         yaw = 0
         vertical = 0
         drop = False
 
-        # TODO: need to figure out how/when to end the cv
-        end = False 
+        height, width, _ = frame.shape
 
         tolerance = 10
         maxConfidence = 0 
-        target_bin = (0, 0)
+        target_bin = None
 
         # measured offset from the footage
         target_pixel = (190, 300)
@@ -62,19 +61,12 @@ class CV:
             return {}, frame
 
         for detection in oakd_data:
-            x1 = int(detection.xmin * width)
-            x2 = int(detection.xmax * width)
-            y1 = int(detection.ymin * height)
-            y2 = int(detection.ymax * height)
+            x1 = int(detection.xmin)
+            x2 = int(detection.xmax)
+            y1 = int(detection.ymin)
+            y2 = int(detection.ymax)
 
-            label = detection.label
-            cv2.putText(frame, str(detection.label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"{detection.confidence * 100:.2f}", (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-
-            # Check Abydos
-            if detection.label == target:
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), cv2.FONT_HERSHEY_SIMPLEX)
+            if target in detection.label:
                 centerOfDetection = (int((x1 + x2) / 2), int((y1 + y2) / 2))
                 
                 # Get the highest confidence
@@ -82,29 +74,24 @@ class CV:
                     maxConfidence = detection.confidence
                     target_bin = centerOfDetection
 
-        cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
         cv2.circle(frame, target_pixel, 10, (0, 255, 0), -1)
+        # go slowly foward until we see the target
+        if target_bin is None:
+            return {"forward": 0.8}, frame
+        cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
 
-        # align X
-        if target_bin[0] < target_pixel[0] - tolerance:
-            # strafe right
-            lateral = 1.5
-        elif target_bin[0] > target_pixel[0] + tolerance:
-            # strage left
-            lateral = -1.5
-        else:
-            # align Y
-            if target_bin[1] < target_pixel[1] - tolerance:
-                forward = -1
-            elif target_bin[1] > target_pixel[1] + tolerance:
-                forward = 1
-            else:
-                # Drop the ball
-                drop = True
+        x_error = (target_bin[0] - target_pixel[0]) / width
+        y_error = (target_pixel[1] - target_bin[1]) / height
 
-        # TODO: Remove Lids for each bin
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
+        
+        if abs(x_error) < tolerance / width and abs(y_error) < tolerance / height:
+            drop = True
 
-        return {"lateral": lateral, "forward": forward, "vertical": vertical, "end":end, "drop": drop}, frame
+        # TODO (low priority): Remove Lids for each bin
+        return {"lateral": lateral, "forward": forward, "drop": drop}, frame
 
 
 if __name__ == "__main__":
@@ -113,7 +100,7 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.cv.template_cv"
 
     # Create a CV object with arguments
-    cv = CV(arg1="value1", arg2="value2")
+    cv = CV()
 
     # here you can for example initialize your camera, etc
     cap = cv2.VideoCapture("../../testing_data/")

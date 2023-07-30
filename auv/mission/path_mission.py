@@ -29,7 +29,7 @@ class PathMission:
 
         rospy.init_node("path_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler()
+        self.cv_handler = cvHandler.CVHandler(**self.config)
 
         # init the cv handlers
         for file_name in self.cv_files:
@@ -54,7 +54,6 @@ class PathMission:
 
         # move the sub up
         self.robot_control.set_depth(0.6)
-        print(self.robot_control)
         while not rospy.is_shutdown():
             try:
                 if not self.received:
@@ -113,9 +112,20 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.surfacing_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
+
+    from auv.utils import deviceHelper
+
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
-    mission = PathMission()
+    mission = PathMission(**config)
 
     # Run the mission
     mission.run()

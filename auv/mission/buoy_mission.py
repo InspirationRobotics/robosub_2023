@@ -45,7 +45,7 @@ class BuoyMission:
         self.next_data[file_name] = data
         self.received = True
 
-        #print(f"[DEBUG] Received data from {file_name}")
+        # print(f"[DEBUG] Received data from {file_name}")
 
     def run(self):
         """
@@ -81,7 +81,7 @@ class BuoyMission:
             vertical = self.data["buoy_cv"].get("vertical", None)
 
             if any(i == None for i in (lateral, forward)):
-               continue
+                continue
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=0)
             print(forward, lateral, yaw, vertical)
 
@@ -106,14 +106,18 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
 
-    config = {
-        # # this dummy video file will be used instead of the camera if uncommented
-        # "cv_dummy": ["/somepath/thisisavideo.mp4"],
-    }
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
-    mission = BuoyMission()
+    mission = BuoyMission(**config)
 
     # Run the mission
     mission.run()

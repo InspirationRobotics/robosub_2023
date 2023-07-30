@@ -111,9 +111,18 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     import time
+    from auv.utils import deviceHelper
+
+    config = deviceHelper.variables
+    config.update(
+        {
+            # # this dummy video file will be used instead of the camera if uncommented
+            # "cv_dummy": ["/somepath/thisisavideo.mp4"],
+        }
+    )
 
     # Create a mission object with arguments
-    mission = GateMission()
+    mission = GateMission(**config)
 
     # Run the mission
     mission.run()

@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 from circle_fit import taubinSVD
 
-
 class CV:
     def __init__(self, **config):
         """
@@ -60,22 +59,23 @@ class CV:
         y_center = int(M["m01"] / M["m00"])
 
         # get standard deviation of the red points
-        cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 0, 255), -1)
+        cv2.circle(self.viz_frame, (x_center, y_center), 10, (0, 255, 0), -1)
 
         return x_center, y_center
 
     def get_octogon_center_model(self, detections, th=0.5):
         for detection in detections:
             if detection.label == "DHD" and detection.confidence > th:
-                return detection.center_x, detection.center_y
+                return (detection.xmin + detection.xmax) / 2, (detection.ymin + detection.ymax) / 2
 
         symbols = {}
         # ensure no duplicate symbols
         for detection in detections:
-            if detection.label in symbols and detection.confidence > symbols[detection.label].confidence:
-                symbols[detection.label] = detection
+            label = detection.label
+            if label in symbols and detection.confidence > symbols[label].confidence:
+                symbols[label] = detection
             elif detection.label not in symbols:
-                symbols[detection.label] = detection
+                symbols[label] = detection
 
         if len(symbols) < 3:
             return None, None
@@ -90,7 +90,7 @@ class CV:
     def get_error(self, center_x, center_y, shape=(480, 640)):
         """Returns the error in x and y, normalized to the frame size."""
         max_size = max(shape[0], shape[1]) / 2
-        x_error = -(shape[1] / 2 - center_x) / max_size
+        x_error = (center_x - shape[1] / 2) / max_size
         y_error = (shape[0] / 2 - center_y) / max_size
         return (x_error, y_error)
 
@@ -102,7 +102,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -112,7 +112,12 @@ class CV:
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
-        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
+
+        return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
     def run_onyx(self, frame, target, detections):
         self.viz_frame = frame
@@ -121,7 +126,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.2, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -131,7 +136,12 @@ class CV:
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.1 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
-        return {"lateral": x_error, "forward": y_error, "end": False}, self.viz_frame
+            
+        # apply a gain and clip the values
+        lateral = np.clip(x_error * 3, -1, 1)
+        forward = np.clip(y_error * 3, -1, 1)
+
+        return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
     # self.run will be set to the correct function in __init__ depending on the sub
 
@@ -143,7 +153,6 @@ if __name__ == "__main__":
 
     # Create a CV object with arguments
     cv = CV()
-    print(f"[INFO] running on {cv.current_sub}")
 
     cap = cv2.VideoCapture("testing_data\\octogon.mp4")
 

@@ -6,7 +6,7 @@
     "nn_config": {
         "output_format": "detection",
         "NN_family": "YOLO",
-        "input_size": "640x640",
+        "input_size": "640x480",
         "NN_specific_metadata": {
             "classes": 9,
             "coordinates": 4,
@@ -22,11 +22,11 @@
             "A2",
             "A3",
             "A4",
+            "E4",
             "DHD",
             "E1",
             "E2",
-            "E3",
-            "E4"
+            "E3"
         ]
     },
     "version": 1

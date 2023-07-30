@@ -1,40 +1,45 @@
 import time
 import serial
 import threading
+import math
 from ...utils.deviceHelper import dataFromConfig
-
-modemsPort = dataFromConfig("modem")
-
-# configure the serial connections
-ser = serial.Serial(
-    port=modemsPort,
-    baudrate=9600,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-    bytesize=serial.EIGHTBITS,
-)
-
-ser.isOpen()
 
 
 class Modem:
-    def __init__(self, targetModemAddr=None):
+    def __init__(self):
+        port = dataFromConfig("modem")
+        self.ser = serial.Serial(
+            port=port,
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+        )
+
+        assert self.ser.isOpen(), "Failed to open serial port"
+
+        # ACK is used to ensure message is received
+        self.ACK = 0
+        self.blocked = False
+        self.in_transit = []  # [message, time_sent, ack-expected, modemaddr, priority]
+
         self.modemAddr = None
         self.voltage = None
-        self.receiveActive = False
-        self.targetModemAddr = targetModemAddr
-        self.queryStatus()
-        self.thread_param_updater = threading.Timer(0, self.receiveLoop)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
+        self.query_status()
 
-    def sendToModem(self, data):
-        data = f'${data}\r\n'
-        ser.write(data.encode())
+        self.receive_active = True
+        self.sending_active = True
+
+        self.thread_recv = threading.Thread(target=self._receive_loop, daemon=True)
+        self.thread_send = threading.Thread(target=self._send_loop, daemon=True)
+
+    def _send_to_modem(self, data):
+        data = f"${data}\r\n"
+        self.ser.write(data.encode())
         out = b""
         time.sleep(0.1)
-        while ser.inWaiting() > 0:
-            out += ser.read(1)
+        while self.ser.inWaiting() > 0:
+            out += self.ser.read(1)
         if out != b"":
             try:
                 rawOut = out.decode("utf-8").replace("\n", "").replace("\r", "")
@@ -43,15 +48,15 @@ class Modem:
             except:
                 print("Failed to parse")
 
-    def queryStatus(self):
+    def query_status(self):
         QUERY_COMMAND = "?"
-        data = self.sendToModem(QUERY_COMMAND)
+        data = self._send_to_modem(QUERY_COMMAND)
         self.modemAddr = data[2:5]
         self.voltage = round(float(int(data[6:11]) * 15 / 65536), 2)
         print(f"Modem Addr: {self.modemAddr}")
         print(f"Voltage: {str(self.voltage)}")
 
-    def transmitDataLowLevel(self, msg, broadcast=True):
+    def _transmit_data_low_level(self, msg, dest_addr, broadcast):
         length = len(msg.encode("utf-8"))
         if length > 64:
             print(f"Packet size of {length} is too large, limited to 64 bytes")
@@ -62,66 +67,178 @@ class Modem:
             length = str(length)
         if broadcast:
             data = f"B{length}{msg}"
-            self.sendToModem(data)
+            self._send_to_modem(data)
         else:
-            data = f"U{self.targetModemAddr}{length}{msg}"
-            self.sendToModem(data)
+            data = f"U{dest_addr}{length}{msg}"
+            self._send_to_modem(data)
 
-    def transmit(self, msg, modemAddr=None, broadcast=True):
-        if modemAddr != None:
-            self.targetModemAddr = modemAddr
+    def _transmit(self, msg, ack=None, dest_addr=None, broadcast=True):
+        """Transmit the msg to the modem, blocking until the message is sent"""
+        while self.blocked:
+            time.sleep(0.01)
+        self.blocked = True
+
+        if dest_addr is not None:
             broadcast = False
-        msg = f"*{msg}*"
+
+        if msg is None:
+            # ack message
+            msg = f"${ack}$"
+        else:
+            # normal message with ack
+            # if ack is None, generate a new ack
+            if ack is None:
+                self.ACK += 1
+                ack = self.ACK
+            msg = f"*{msg}*${ack}$"
+
+        # max length is 64 bytes
+        # min length is 3 bytes
         length = len(msg.encode("utf-8"))
         if length > 64:
             if length % 64 < 3:
                 msg = f"  {msg}"
                 length += 2
+
         dataToSend = []
         while length > 64:
             dataToSend.insert(0, msg[-64:])
             length -= 64
             msg = msg[:length]
-        if not length <= 0:
+        if length > 0:
             dataToSend.insert(0, msg)
-        print(dataToSend)
+
         for data in dataToSend:
-            self.transmitDataLowLevel(data, broadcast)
+            self._transmit_data_low_level(data, dest_addr, broadcast)
             sleepAmt = round(0.205 + (len(msg.encode("utf-8")) + 16) * 0.0125, 3)
             time.sleep(sleepAmt)
 
-    def receiveLoop(self):
+        self.blocked = False
+        return time.time()
+
+    def send_msg(self, msg, ack=None, dest_addr=None, priority=0):
+        """
+        Append a msg to the sending list, non-blocking
+        The message would be processed after all the previous messages were sent out
+
+        messages with priority 0 will be timed out after 30 seconds
+        messages with priority 1 won't be timed out
+        """
+        if ack is None:
+            self.ACK += 1
+            ack = self.ACK
+
+        time = time.time()
+        self.in_transit.append([msg, time, 0, ack, dest_addr, priority])
+
+    def send_ack(self, ack, dest_addr=None):
+        """
+        Send an ack to the modem, non blocking
+        this will only send an ACK, not a message
+        """
+        packet = [None, time.time(), 0, ack, dest_addr, 0]
+        self.in_transit.insert(0, packet)
+
+    def _send_loop(self):
+        while self.sending_active:
+            to_remove = []
+
+            for it, packet in enumerate(self.in_transit):
+                msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
+
+                if time.time() - time_sent > 10 and priority == 0:
+                    print(f"[WARNING] Message {msg} timed out")
+                    to_remove.append(it)
+                    continue
+
+                # retry if no ack received after 5 seconds
+                if time.time() - time_last_sent > 5.0:
+                    ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
+                    packet[2] = ret
+
+                    # give some time for other threads to be able to send ack
+                    time.sleep(0.05)
+
+            # remove timed out messages
+            self.in_transit = [packet for it, packet in enumerate(self.in_transit) if it not in to_remove]
+
+    def _receive_loop(self):
         data = ""
-        state = False
-        while True:
-            while self.receiveActive:
-                if ser.inWaiting() > 0:
-                    out = b""
-                    out = ser.read(1)
-                    if out != b"":
-                        try:
-                            rawOut = out.decode("utf-8")
-                            if rawOut == "*":
-                                state = not state
-                                data += rawOut
-                            if state:
-                                data += rawOut
-                        except:
-                            pass
-                if not state and len(data) > 0:
-                    print(data)
-                    data = ""
+        expecting_ack = False
+        msg_state = False  # True = message in receiving
+        ack_state = False  # True = ack in receiving
 
-    def startReceive(self):
-        self.receiveActive = True
+        while self.receive_active:
+            if self.ser.inWaiting() > 0:
+                out = b""
+                out = self.ser.read(1)
+                if out != b"":
+                    try:
+                        rawOut = out.decode("utf-8")
+                        data += rawOut
+                        if rawOut == "*":
+                            msg_state = not msg_state
 
-    def stopReceive(self):
-        self.receiveActive = False
+                        if rawOut == "$":
+                            ack_state = not ack_state
 
+                        # finished receiving message
+                        if not msg_state and len(data) > 0:
+                            self.on_receive_msg(data)
+                            expecting_ack = True
+                            data = ""
 
-# modem = Modem()
+                        # finished receiving ack
+                        if not ack_state and len(data) > 0:
+                            self.on_receive_ack(data, expecting_ack)
+                            expecting_ack = False
+                            data = ""
 
-# modem.transmit("Hello World!")
-# modem.startReceive()
-# while True:
-#    pass
+                    except:
+                        pass
+
+    def on_receive_msg(self, msg):
+        # TODO: log into a file or something
+        print("Received message:", msg)
+
+    def on_receive_ack(self, ack, expecting_ack):
+        # just after a message (ack of the message)
+        if expecting_ack:
+            self.send_ack(ack)
+            return
+
+        # ack of a message previously sent
+        # remove the corresponding msg from in_transit
+        for i, packet in enumerate(self.in_transit):
+            if packet[3] == ack:
+                self.in_transit.pop(i)
+                return
+
+        print(f"[WARNING] Received ack: {ack} but no corresponding message found, maybe timed out?")
+
+    def start(self):
+        if self.receive_active or self.thread_recv.is_alive():
+            print("[WARNING] Already receiving")
+        else:
+            self.receive_active = True
+            self.thread_recv.start()
+
+        if self.sending_active or self.thread_send.is_alive():
+            print("[WARNING] Already sending")
+        else:
+            self.sending_active = True
+            self.thread_send.start()
+
+    def stop(self):
+        self.receive_active = False
+        self.sending_active = False
+        self.thread_recv.join()
+        self.thread_send.join()
+
+if __name__ == "__main__":
+    # TODO: how to get the other sub modem address?
+    modem = Modem()
+    modem.start()
+    while True:
+        msg = input("Enter message: ")
+        modem.send_msg(msg)
