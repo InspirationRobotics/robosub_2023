@@ -1,12 +1,11 @@
-import signal
-import time
 import math
+import signal
+import threading
+import time
 
 import serial
-import threading
 
-
-from ...utils.deviceHelper import dataFromConfig
+from ...utils import deviceHelper
 
 
 class DVL:
@@ -15,23 +14,33 @@ class DVL:
     def __init__(self, autostart=True, test=False):
         self.test = test
         if not self.test:
-            self.dvlPort = dataFromConfig("dvl")
+            self.dvlPort = deviceHelper.dataFromConfig("dvl")
+            sub = deviceHelper.variables.get("sub")
+            if sub == "onyx":
+                self.ser = serial.Serial(
+                    port=self.dvlPort,
+                    baudrate=115200,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    bytesize=serial.EIGHTBITS,
+                )
 
-            self.ser = serial.Serial(
-                port=self.dvlPort,
-                baudrate=115200,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS,
-            )
+                self.ser.isOpen()
+                self.ser.reset_input_buffer()
+                self.ser.send_break()
+                time.sleep(1)
+                startPing = "CS"
+                self.ser.write(startPing.encode())
+                time.sleep(2)
+                self.read = self.read_onyx
 
-            self.ser.isOpen()
-            self.ser.reset_input_buffer()
-            self.ser.send_break()
-            time.sleep(1)
-            startPing = "CS"
-            self.ser.write(startPing.encode())
-            time.sleep(2)
+            elif sub == "graey":
+                from wldvl import wlDVL
+
+                self.dvla50 = wlDVL(self.dvlPort)
+                self.read = self.read_graey
+            else:
+                raise ValueError(f"Invalid sub {sub}")
 
         self.__running = False
         self.__thread_vel = None
@@ -61,22 +70,38 @@ class DVL:
         """Parse line"""
         return line.decode("utf-8").replace(" ", "").replace("\r\n", "").split(",")
 
-    def __get_velocity(self):
-        """Get velocity"""
+    def read_graey(self):
+        """Get velocity from graey"""
+        try:
+            data = self.dvla50.read()
+        except:
+            data = None
+        return data
+
+    def read_onyx(self):
+        """Get velocity from onyx"""
+
+        while not self.ser.in_waiting:
+            # take a nap :)
+            time.sleep(0.01)
+
         data = {
-            "Time": 0,  # year, month, day, hour:minute:second
-            "Attitude": [],  # roll, pitch, and heading in degrees
-            "Salinity": 0,  # in ppt (parts per thousand)
-            "Temp": 0,  # celcius
-            "Transducer_depth": 0,  # meters
-            "Speed_of_sound": [],  # meters per second
-            "Result_code": 0,
-            "DVL_velocity": [],  # mm/s # xyz
-            "isDVL_velocity_valid": False,  # boolean
-            "AUV_velocity": [],  # mm/s # xyz
-            "isAUV_velocity_valid": False,  # boolean
-            "Distance_from_bottom": 0,  # meters
-            "Time_since_valid": 0,  # seconds
+            # "Attitude": [],  # roll, pitch, and heading in degrees
+            # "Salinity": 0,  # in ppt (parts per thousand)
+            # "Temp": 0,  # celcius
+            # "Transducer_depth": 0,  # meters
+            # "Speed_of_sound": [],  # meters per second
+            # "Result_code": 0,
+            # "DVL_velocity": [],  # mm/s # xyz
+            # "isDVL_velocity_valid": False,  # boolean
+            # "AUV_velocity": [],  # mm/s # xyz
+            # "Distance_from_bottom": 0,  # meters
+            # "Time_since_valid": 0,  # seconds
+            "time": 0,  # seconds
+            "vx": 0,  # m/s
+            "vy": 0,  # m/s
+            "vz": 0,  # m/s
+            "valid": False,  # boolean
         }
         SA = self.__parseLine(self.ser.readline())
         if SA[0] != ":SA":
@@ -89,25 +114,31 @@ class DVL:
         BD = self.__parseLine(self.ser.readline())
 
         try:
+            # data["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
+            # data["Salinity"] = float(TS[2])
+            # data["Temp"] = float(TS[3])
+            # data["Transducer_depth"] = float(TS[4])
+            # data["Speed_of_sound"] = float(TS[5])
+            # data["Result_code"] = TS[6]
+            # data["DVL_velocity"] = [int(BI[1]), int(BI[2]), int(BI[3]), int(BI[4])]
+            # data["isDVL_velocity_valid"] = BI[5] == "A"
+            # data["AUV_velocity"] = [int(BS[1]), int(BS[2]), int(BS[3])]
+            # data["isAUV_velocity_valid"] = BS[4] == "A"
+            # data["Distance_from_bottom"] = float(BD[4])
+            # data["Time_since_valid"] = float(BD[5])
+
             milli = int(TS[1][12:14]) * 0.01
             seconds = int(TS[1][10:12])
             minutes = int(TS[1][8:10]) * 60
             hours = int(TS[1][6:8]) * 60 * 60
             time = hours + minutes + seconds + milli
-            
-            data["Attitude"] = [float(SA[1]), float(SA[2]), float(SA[3])]
-            data["Time"] = time
-            data["Salinity"] = float(TS[2])
-            data["Temp"] = float(TS[3])
-            data["Transducer_depth"] = float(TS[4])
-            data["Speed_of_sound"] = float(TS[5])
-            data["Result_code"] = TS[6]
-            data["DVL_velocity"] = [int(BI[1]), int(BI[2]), int(BI[3]), int(BI[4])]
-            data["isDVL_velocity_valid"] = BI[5] == "A"
-            data["AUV_velocity"] = [int(BS[1]), int(BS[2]), int(BS[3])]
-            data["isAUV_velocity_valid"] = BS[4] == "A"
-            data["Distance_from_bottom"] = float(BD[4])
-            data["Time_since_valid"] = float(BD[5])
+
+            # this is the only data we need
+            data["time"] = time
+            data["vx"] = int(BS[1]) / 1000
+            data["vy"] = int(BS[2]) / 1000
+            data["vz"] = int(BS[3]) / 1000
+            data["valid"] = BS[4] == "A"
         except:
             data = None
         return data
@@ -115,8 +146,8 @@ class DVL:
     def process_packet(self, packet):
         """integrate velocity into position"""
 
-        vel = packet.get("AUV_velocity", [0, 0, 0])  # mm/s # xyz
-        current_time = packet.get("Time", 0)  # seconds
+        vel = [packet.get("vx", 0), packet.get("vy", 0), packet.get("vz", 0)]
+        current_time = packet.get("time", 0)  # seconds
 
         if self.prev_time is None or self.compass_rad is None:
             self.prev_time = current_time
@@ -128,18 +159,12 @@ class DVL:
             print("[WARN] DVL time error, skipping")
             return False
 
-        self.is_valid = packet["isAUV_velocity_valid"]
+        self.is_valid = packet["valid"]
         if not self.is_valid:
-            #print("[WARN] DVL velocity not valid, skipping")
+            # print("[WARN] DVL velocity not valid, skipping")
             return False
 
         self.prev_time = current_time
-        # convert vel to m/s
-        vel = [
-            vel[0] / 1000,
-            vel[1] / 1000,
-            vel[2] / 1000,
-        ]
 
         # rotate velocity vector using compass heading
         # X = lateral, Y = forward, Z = vertical
@@ -181,12 +206,11 @@ class DVL:
     def update(self):
         """Update DVL data (runs in a thread)"""
         while self.__running:
-            while self.ser.in_waiting and self.__running:
-                vel_packet = self.__get_velocity()
-                if vel_packet is None:
-                    continue
-                ret = self.process_packet(vel_packet)
-                self.data_available = ret
+            vel_packet = self.read()
+            if vel_packet is None:
+                continue
+            ret = self.process_packet(vel_packet)
+            self.data_available = ret
 
     def start(self):
         # ensure not running

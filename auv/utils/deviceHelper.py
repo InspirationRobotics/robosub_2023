@@ -9,14 +9,14 @@ def load_json(path):
         data = json.load(f)
     return data
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
 
 if "nx" in platform.node():
     onyx = True
-    variables = load_json("/home/inspiration/auv/config/onyx.json")
+    variables = load_json(f"{file_dir}/../../config/onyx.json")
 else:
     onyx = False
-    variables = load_json("/home/inspiration/auv/config/graey.json")
-
+    variables = load_json(f"{file_dir}/../../config/graey.json")
 
 def findFromId(ids):
     bash = os.popen("bash /home/inspiration/auv/auv/utils/usbLink.sh").read()

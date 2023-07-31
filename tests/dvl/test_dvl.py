@@ -11,8 +11,10 @@ def test_dvl_invalid_packet():
     # set velocity to foward and 0 heading
     dvl.compass_rad = 0
     packet = {
-        "AUV_velocity": [0, 1, 0],
-        "isAUV_velocity_valid": False,
+        "vx": 0,
+        "vy": 1,
+        "vz": 0,
+        "valid": False,
     }
 
     # process packet
@@ -25,8 +27,10 @@ def test_dvl_invalid_compass():
     # set compass to None
     dvl.compass_rad = None
     packet = {
-        "AUV_velocity": [0, 1, 0],
-        "isAUV_velocity_valid": True,
+        "vx": 0,
+        "vy": 1,
+        "vz": 0,
+        "valid": True,
     }
 
     # process packet
@@ -38,9 +42,11 @@ def test_dvl_valid_packet():
 
     dvl.compass_rad = 0
     packet = {
-        "AUV_velocity": [0, 0, 0],
-        "isAUV_velocity_valid": True,
-        "Time": 0,
+        "vx": 0,
+        "vy": 0,
+        "vz": 0,
+        "valid": True,
+        "time": 0,
     }
 
     # process packet
@@ -49,9 +55,11 @@ def test_dvl_valid_packet():
     assert ret is False and dvl.is_valid is False
 
     packet = {
-        "AUV_velocity": [10, 500, 0], # mm/s
-        "isAUV_velocity_valid": True,
-        "Time": 1,
+        "vx": 0.01,
+        "vy": 0.5,
+        "vz": 0,
+        "valid": True,
+        "time": 1,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True
@@ -63,9 +71,11 @@ def test_dvl_heading():
 
     dvl.compass_rad = 0
     packet = {
-        "AUV_velocity": [0, 0, 0],
-        "isAUV_velocity_valid": True,
-        "Time": 0,
+        "vx": 0,
+        "vy": 0,
+        "vz": 0,
+        "valid": True,
+        "time": 0,
     }
 
     # process packet
@@ -76,9 +86,11 @@ def test_dvl_heading():
     # heading NORTH
     dvl.compass_rad = math.radians(0)
     packet = {
-        "AUV_velocity": [10, 500, 0], # mm/s
-        "isAUV_velocity_valid": True,
-        "Time": 1,
+        "vx": 0.01,
+        "vy": 0.5,
+        "vz": 0,
+        "valid": True,
+        "time": 1,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True
@@ -88,9 +100,11 @@ def test_dvl_heading():
     # heading EAST
     dvl.compass_rad = math.radians(90)
     packet = {
-        "AUV_velocity": [10, 500, 0], # mm/s
-        "isAUV_velocity_valid": True,
-        "Time": 2,
+        "vx": 0.01,
+        "vy": 0.5,
+        "vz": 0,
+        "valid": True,
+        "time": 2,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True
@@ -100,9 +114,11 @@ def test_dvl_heading():
     # heading SOUTH
     dvl.compass_rad = math.radians(180)
     packet = {
-        "AUV_velocity": [10, 500, 0], # mm/s
-        "isAUV_velocity_valid": True,
-        "Time": 3,
+        "vx": 0.01,
+        "vy": 0.5,
+        "vz": 0,
+        "valid": True,
+        "time": 3,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True
@@ -112,9 +128,11 @@ def test_dvl_heading():
     # heading WEST
     dvl.compass_rad = math.radians(270)
     packet = {
-        "AUV_velocity": [10, 500, 0], # mm/s
-        "isAUV_velocity_valid": True,
-        "Time": 4,
+        "vx": 0.01,
+        "vy": 0.5,
+        "vz": 0,
+        "valid": True,
+        "time": 4,
     }
     ret = dvl.process_packet(packet)
     assert ret is True and dvl.is_valid is True

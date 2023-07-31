@@ -22,12 +22,9 @@ class RobotControl:
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
-        # dvl sensor setup (onyx)
-        if self.config.get("sub") == "onyx":
-            self.dvl = dvl.DVL()
-            self.dvl.start()
-        else:
-            self.dvl = None
+        # dvl sensor setup (both subs)
+        self.dvl = dvl.DVL()
+        self.dvl.start()
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
