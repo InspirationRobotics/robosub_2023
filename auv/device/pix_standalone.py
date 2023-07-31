@@ -205,6 +205,7 @@ class AUV(RosHandler):
     def thrusterCallback(self, msg):
         self.thrustTime = time.time()
         self.channels = list(msg.channels)
+        print(self.channels)
 
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE, self.update_parameters_from_topic)
@@ -287,6 +288,8 @@ class AUV(RosHandler):
         if self.connected:
             try:
                 self.armed = data.armed
+                if not self.armed:
+                    self.depth_pid.reset()
                 self.mode = data.mode
                 self.guided = data.guided
             except Exception as e:

@@ -44,8 +44,6 @@ class CV:
         """
         forward = 0
         lateral = 0
-        yaw = 0
-        vertical = 0
         drop = False
 
         height, width, _ = frame.shape
@@ -57,8 +55,8 @@ class CV:
         # measured offset from the footage
         target_pixel = (190, 300)
 
-        if oakd_data == None:
-            return {}, frame
+        if len(oakd_data) == 0:
+            return {"forward": 0.8}, frame
 
         for detection in oakd_data:
             x1 = int(detection.xmin)
@@ -78,6 +76,7 @@ class CV:
         # go slowly foward until we see the target
         if target_bin is None:
             return {"forward": 0.8}, frame
+
         cv2.circle(frame, target_bin, 10, (0, 0, 255), -1)
 
         x_error = (target_bin[0] - target_pixel[0]) / width

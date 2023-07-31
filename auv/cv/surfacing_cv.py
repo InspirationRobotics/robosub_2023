@@ -102,7 +102,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 1.5, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))
@@ -126,7 +126,7 @@ class CV:
 
         # move slowly forward if the octogon is not found
         if x_center is None or y_center is None:
-            return {"lateral": 0, "forward": 0.8, "end": False}, self.viz_frame
+            return {"lateral": 0, "forward": 1.5, "end": False}, self.viz_frame
 
         (x_error, y_error) = self.get_error(x_center, y_center)
         self.error_buffer.append((x_error, y_error))

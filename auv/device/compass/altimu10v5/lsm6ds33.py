@@ -63,7 +63,7 @@ class LSM6DS33(I2C):
         except:
             pass
 
-    def enable(self, accelerometer=True, gyroscope=True, calibration=True):
+    def enable(self, gyroCal=None, accelCal=None, accelerometer=True, gyroscope=True):
         """Enable and set up the given sensors in the IMU."""
         if accelerometer:
             # 1.66 kHz (high performance) / +/- 4g
@@ -75,12 +75,17 @@ class LSM6DS33(I2C):
             # binary value -> 0b01011000, hex value -> 0x58
             self.write_register(LSM6DS33_ADDR, LSM6DS33_CTRL2_G, 0x58)
             self.is_gyro_enabled = True
-        if calibration:
+        if gyroCal == None or accelCal == None:
             self.calibrate()
             self.is_gyro_calibrated = True
             self.is_accel_calibrated = True
+        else:
+            self.gyro_cal = gyroCal
+            self.accel_angle_cal = accelCal
+            self.is_gyro_calibrated = True
+            self.is_accel_calibrated = True
 
-    def calibrate(self, iterations=500):
+    def calibrate(self, iterations=1000):
         """Calibrate the gyro's raw values."""
         print("Calibrating Gryo and Accelerometer...")
 
@@ -103,6 +108,9 @@ class LSM6DS33(I2C):
 
         self.accel_angle_cal[0] /= iterations
         self.accel_angle_cal[1] /= iterations
+
+        print(self.gyro_cal)
+        print(self.accel_angle_cal)
 
         print("Calibration Done")
 

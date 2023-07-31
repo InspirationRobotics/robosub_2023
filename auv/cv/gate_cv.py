@@ -30,9 +30,8 @@ class CV:
         self.value = ""
         self.ratio = 1
         self.outPrev = False
-        self.prevRatio = 0
-        self.prevDir = 1
-        self.state = "strafe"
+        self.prevLateral = 0
+        self.state = "frame"
         self.flag = [False, False]
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
@@ -71,13 +70,14 @@ class CV:
         
         return lateral
     
-    def yawPerpendicular(self, target_area, other_area):
-        area_ratio = target_area/other_area
+    def yawPerpendicular(self, right, left):
+
+        area_ratio = right/left
         # need to tweak tolerances later
-        if(area_ratio>1.2):
-            yaw = -0.5
-        elif(area_ratio<0.8):
-            yaw = 0.5
+        if(area_ratio>1.1):
+            yaw = 1
+        elif(area_ratio<0.9):
+            yaw = -1
         else:
             yaw = 0
         
@@ -85,13 +85,13 @@ class CV:
     
     def outFrameLateral(self, target_x, other_x, tolerance):
         if(target_x < other_x and 0<target_x<tolerance):
-            lateral=2
+            lateral = 1
         elif(other_x < target_x and 0<other_x<tolerance):
-            lateral=2
+            lateral = 1
         elif(target_x < other_x and ((640-tolerance)<other_x<640)):
-            lateral = -2
+            lateral = -1
         elif(other_x < target_x and ((640-tolerance)<target_x<640)):
-            lateral = -2
+            lateral = -1
         else:
             lateral = 0
         return lateral
@@ -123,32 +123,15 @@ class CV:
             forward = 0
         return forward
 
-    def adjustRatio(self, ratio):
-        if(ratio < self.prevRatio):
-            # go in reverse direction
-            dir = (self.prevDir)*(-1)
-        elif(self.prevRatio > ratio):
-            dir = (self.prevDir)*(1)
-            # continue in same direction
-        
-        if(0.8 < self.prevRatio < 1.2):
-            self.state = "target" 
-            dir = 0
-            
-        if(dir ==1):
-            lateral = 2
-            yaw = -1
-        elif(dir == -1):
-            lateral = -2
-            yaw = 1
-        else:
-            lateral = 0
-            yaw = 0
-
-        self.prevDir = dir
-        self.prevRatio = ratio
-
-        return lateral, yaw
+    def alignTwo(self, detections):
+        if(len(detections) == 1):
+            self.prevLateral = 2
+        elif(len(detections) == 0):
+            self.prevLateral = -1*(self.prevLateral)
+        elif(len(detections) == 2):
+            self.prevLateral = 0
+        return self.prevLateral
+    
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
@@ -171,12 +154,11 @@ class CV:
         # confidenceGate = -1
         targetConfidences = []
         end = False
-        print(self.state)
-        print(self.flag)
         for detection in detections:
             area = abs(detection.xmin - detection.xmax)*abs(detection.ymin-detection.ymax)
+            x = (detection.xmin + detection.xmax)/2
             ratio = abs(detection.xmin - detection.xmax)/abs(detection.ymin-detection.ymax)
-            targetConfidences.append((detection.confidence, detection.xmin, detection.label, abs(detection.xmin - detection.xmax), area, ratio))
+            targetConfidences.append((detection.confidence, x, detection.label, abs(detection.xmin - detection.xmax), area, ratio))
 
         # Finding which symbol is detected with highest confidence rate
         for det_confidence, det_x, det_label, det_length, det_area, det_ratio in targetConfidences:
@@ -196,65 +178,94 @@ class CV:
         lateral = 0
         yaw = 0
         tolerance =20
+        message = ""
         # step 0: strafe until we hit the center of the highest confidence glyph
         # if target is detected
-        if(len(detections)!=0):
-            lateral, yaw = self.adjustRatio(target_ratio)
-        # if(len(detections) == 2):
-        #     midpoint = (target_x + other_x)/2
-        #     # if(self.state == "frame"):
-        #     #     forval = self.edgeFrame(target_x, other_x, 50)
-        #     #     if(forval==-1):
-        #     #         print("MOVING BACKWARD")
-        #     #         forward = forval
-        #     #     else:
-        #     #         forward = 0
-        #     #         self.state = "strafe"
+        if(self.state == "frame"):
+            print("AREA:", target_area)
+            if(target_area > 650):
+                message = "TOO CLOSE! GOING BACKWARD"
+                forward = -1
+            elif(target_area<330):
+                message = "TOO FAR! GOING FORWARD"
+                forward = 1
+            else:
+                self.state = "strafe"
+                message = "JUST RIGHT! BEGINNING STRAFE/YAW"
 
-        #     if(self.state == "strafe"):
-        #         print("ALIGNING STRAFE")
-        #         lateral = self.alignMidpoint(midpoint, tolerance)
-        #         if(lateral == 0):
-        #             print("FINISHED STRAFE")
-        #             self.state = "yaw"
-        #             self.flag[0] = True
-        #         latval = self.outFrameLateral(target_x, other_x, 50)
-        #         if(latval!=0 and self.outPrev==False):
-        #             print("OUT OF FRAME")
-        #             self.state = "yaw"
-        #             self.outPrev = True
-        #         if(latval==0 and self.outPrev):
-        #             print("BACK IN FRAME")
-        #             self.outPrev = False
+            cv2.putText(frame, message, (120, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+        # if(self.state == "one"):
+        #     latval = self.alignTwo(detections)
+        #     if(latval!=0):
+        #         lateral = latval
+        #     else:
+        #         self.state = "strafe"      
+        if(self.state == "strafe" and len(detections) == 2):
+            midpoint = (target_x + other_x)/2
 
-        #     elif(self.state=="yaw"):
-        #         print("ALIGNING YAW")
-        #         yaw = self.yawPerpendicular(target_area, other_area)
-        #         if(yaw==0):
-        #             self.flag[1] = True
-        #             print("FINISHED YAW")
-        #         yawval = self.outFrameYaw(target_x, other_x, 50)
-        #         if(yawval!=0 and self.outPrev==False):
-        #             print("OUT OF FRAME")
-        #             self.outPrev = True
-        #             self.state = "strafe"
-        #         if(yawval==0 and self.outPrev):
-        #             print("BACK IN FRAME")
-        #             self.outPrev = False
-        #         if(self.flag[0]):
-        #             self.state ="target"
+            dist = abs(midpoint - 320) / 320
 
+            cv2.putText(frame, "ALIGNING STRAFE", (220, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+            lateral = self.alignMidpoint(midpoint, 20)
+            if(lateral == 0):
+                message = "FINISHED STRAFE"
+                self.state = "yaw"
+                self.flag[0] = True
+            latval = self.outFrameLateral(target_x, other_x, 50)
+            if(latval!=0 and self.outPrev==False):
+                message = "OUT OF FRAME"
+                self.state = "yaw"
+                self.outPrev = True
+            if(latval==0 and self.outPrev):
+                message = "BACK IN FRAME"
+                self.outPrev = False
+
+            lateral = np.clip(lateral * dist * 4, -1, 1)
+            cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+        elif(self.state=="yaw" and len(detections) == 2):
+            message = "ALIGNING YAW"
+            if(target_area > other_area):
+                r = abs(1-(target_area/other_area))
+            else:
+                r = abs(1-(other_area/target_area))
+
+            if(target_x > other_x):
+                yaw = self.yawPerpendicular(target_area, other_area)
+            else:
+                yaw = self.yawPerpendicular(other_area, target_area)
+
+            if(yaw==0):
+                self.flag[1] = True
+                message = "FINISHED YAW"
+                self.state ="target"
+            yawval = self.outFrameYaw(target_x, other_x, 20)
+            if(yawval!=0 and self.outPrev==False):
+                message = "OUT OF FRAME"
+                self.outPrev = True
+                self.state = "strafe"
+            if(yawval==0 and self.outPrev):
+                message = "BACK IN FRAME"
+                self.outPrev = False
+            
+            yaw = np.clip(yaw * r * 4, -0.65, 0.65)
+            cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
         if(self.state=="target"):
-            print("ALIGNING TARGET")
-            lateral = self.alignTarget(target_x, tolerance)
+            message = "ALIGNING WITH TARGET IMAGE"
+            lateral = self.alignTarget(target_x, 5)
             if(lateral==0):
-                forward=2
-                
-        if(len(detections) == 0 and self.state == "target"):
+                message = "TARGET IS ALIGNED, GOING FORWARD"
+                self.state = "end"
+
+            cv2.putText(frame, message, (220, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+        if(self.state == "end"):
             end = True
+            print("ENDING MISSION")
 
         if yaw == 0:
             yaw = 0.1
+
+        cv2.putText(frame, "LATERAL:   "+str(lateral)+"\n" +"FORWARD:   "+str(forward) +"\n" + "YAW:   "+str(yaw) , (0, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         return {"lateral": lateral, "forward": forward, "yaw": yaw, "end": end}, frame
 
         # TODO://detection of going through the gate + yaw 2 rotations entirely 

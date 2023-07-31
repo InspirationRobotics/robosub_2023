@@ -130,7 +130,7 @@ class DVL:
 
         self.is_valid = packet["isAUV_velocity_valid"]
         if not self.is_valid:
-            print("[WARN] DVL velocity not valid, skipping")
+            #print("[WARN] DVL velocity not valid, skipping")
             return False
 
         self.prev_time = current_time

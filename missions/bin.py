@@ -6,7 +6,6 @@ config = deviceHelper.variables
 
 # make sure the sub is armed
 arm.arm() 
-time.sleep(2)
 
 # create the mission object
 binMission = bin_mission.BinMission(**config)
