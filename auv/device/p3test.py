@@ -16,13 +16,13 @@
 #     available_devices = []
 #     for device in dai.Device.getAllAvailableDevices():
 #         available_devices.append(device.getMxId())
-    
+
 #     return available_devices
 
 # devices = list_devices()
 # print(devices)
 
-#def difference(string1, string2):
+# def difference(string1, string2):
 #    # Split both strings into list items
 #    string1 = string1.split()
 #    string2 = string2.split()
@@ -33,7 +33,7 @@
 #    str_diff = A.symmetric_difference(B)
 #    print(list(str_diff))
 
-#difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
+# difference("/dev/video2 /dev/video3", "/dev/video0 /dev/video2 /dev/video3")
 
 # from altimu10v5.lsm6ds33 import LSM6DS33
 # from altimu10v5.lis3mdl import LIS3MDL
@@ -122,6 +122,7 @@
 #         TS = ":TS,23070714400162,35.0, +26.1,   0.0,1536.9,  0"
 #         TS = TS.replace(" ", "").split(",")
 #         dataPacket["Timestamp"] = ['20'+TS[1][:2]+"-"+TS[1][4:6]+"-"+TS[1][2:4], TS[1][6:8]+":"+TS[1][8:10]+":"+TS[1][10:12]]
+#         dataPacket["TimestampSeconds"] = [int(TS[1][6:8])*int(TS[1][8:10])*int(TS[1][10:12])+int(TS[1][12:14])]
 #         dataPacket["Salinity"] = float(TS[2])
 #         dataPacket["Temp"] = float(TS[3])
 #         dataPacket["Transducer_depth"] = float(TS[4])
@@ -144,3 +145,102 @@
 #     return dataPacket
 
 # print(createPacket(SA))
+
+# import json
+# import glob
+# folderPath = "/home/inspiration/auv/auv/device/cams/models/gateModel/"
+# jsonFile = glob.glob(folderPath+"*.json")[0]
+# blobFile = glob.glob(folderPath+"*.blob")[0]
+# jsonFile = open(jsonFile)
+
+# data = json.load(jsonFile)
+
+# NN_params = data["nn_config"]["NN_specific_metadata"]
+
+# nnBlobPath = blobFile
+# classAmt = NN_params["classes"]
+# anchors = NN_params["anchors"]
+# anchorMasks = NN_params["anchor_masks"]
+# labelMap = data["mappings"]["labels"]
+
+# print(labelMap)
+
+# import lsb_release
+# if(lsb_release.get_lsb_information()['RELEASE']=="18.04"):
+#     print(True)
+
+# from auv.utils import deviceHelper
+
+# usbIDS = [deviceHelper.dataFromConfig("bottomOak"), None]
+# ogDev = deviceHelper.findCam(usbIDS)
+# print(ogDev)
+
+# import re
+
+# data = ['/dev/video4', '/dev/video6', '/dev/video5', '/dev/video7']
+
+# def num_sort(test_string):
+#     return list(map(int, re.findall(r'\d+', test_string)))[0]
+
+# data.sort(key=num_sort)
+
+# print(data)
+
+# params for each detection are: label, confidence, xmin, xmax, ymin, ymax
+
+# import json
+
+# class detection:
+#     def __init__(self, label, confidence, xmin, xmax, ymin, ymax):
+#         self.label = label
+#         self.confidence = confidence
+#         self.xmin = xmin
+#         self.xmax = xmax
+#         self.ymin = ymin
+#         self.ymax = ymax
+
+# detections = []
+
+# for i in range(5):
+#     detections.append(detection("test"+str(i), i*0.29, i-1, i+1, i-2, i+2))
+
+
+# test = {}
+# for i, val in enumerate(detections):
+#     test[str(i)] = [val.label, val.confidence, val.xmin, val.xmax, val.ymin, val.ymax]
+
+# var = str(json.dumps(test))
+# var2 = json.loads(var)
+# print(var2)
+
+# import Jetson.GPIO as GPIO
+# import sys
+# import time
+
+# pin1 = 35
+# global state
+# state = True
+# GPIO.setmode(GPIO.BOARD)
+
+# GPIO.setup(pin1, GPIO.IN)
+
+
+# def printState(tp):
+#     global state
+#     print("Detected")
+#     GPIO.cleanup()
+#     state = False
+
+# GPIO.add_event_detect(pin1, GPIO.FALLING, callback=printState, bouncetime=10)
+
+# while state:
+#     print(GPIO.input(pin1))
+#     time.sleep(0.1)
+
+# listTemp = [None, "Hello"]
+# boardDetect = [100,10]
+
+
+# listTemp = [boardDetect[i] if v is None else v for i,v in enumerate(listTemp)]
+
+# print(listTemp)

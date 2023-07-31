@@ -3,9 +3,9 @@ import os
 import time
 
 import rospy
+from robot_control import RobotControl
 from std_msgs.msg import int32
 
-from auv.motion.robot_control import RobotControl
 from auv.motion.servo import Servo
 
 gate = 331  # this is the heading the robot will align to at the beginning of the program, need to update when go to the pool

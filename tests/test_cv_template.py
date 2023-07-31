@@ -5,9 +5,9 @@ Test template for unit testing with pytest
 # import what you need from within the package
 import pytest
 
-from auv.cv import template
+from auv.cv import template_cv
 
-import logging
+
 
 
 def test_cv_function():
@@ -16,5 +16,6 @@ def test_cv_function():
     """
 
     # creates a cv template object to test the function
-    cv_temp = template.TemplateCV()
-    assert template.some_cv_function(cv_temp) == True
+    cv = template_cv.CV()
+    result, img_viz = cv.run("this_is_some_data", None, None)
+    assert isinstance(result, dict) and img_viz == "this_is_some_data" 

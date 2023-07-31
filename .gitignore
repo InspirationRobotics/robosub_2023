@@ -4,6 +4,7 @@
 *.png
 *.jpg
 *.jpeg
+testing_data/
 
 # logs
 *.log

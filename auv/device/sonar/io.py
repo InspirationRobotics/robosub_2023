@@ -13,7 +13,7 @@ class Record:
     def write(self, timestamp, angle, data):
         """Append data to the file"""
         self._file.write(
-            json.dumps({"timestamp": timestamp, "angle": angle, "data": data}) + "\n"
+            f"{json.dumps({'timestamp': timestamp, 'angle': angle, 'data': data})}\n"
         )
 
     def __del__(self):

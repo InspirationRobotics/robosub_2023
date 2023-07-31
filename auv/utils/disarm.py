@@ -1,9 +1,13 @@
-from .pix_standalone import AUV
+from ..device.pix_standalone import AUV
+from . import statusLed
 import os
 
+
+def disarm():
+    auv = AUV()
+    auv.arm(False)
+    statusLed.red(False)
+
+
 if __name__ == "__main__":
-        auv = AUV()
-        auv.arm(False)
-
-os.system("/usr/bin/python3 /home/inspiration/auv/devices/statusLed.py redOff")
-
+    disarm()

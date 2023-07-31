@@ -1,34 +1,28 @@
-#from __future__ import relative_import
+import lsb_release
 
+if lsb_release.get_distro_information()["RELEASE"] == "18.04":
+    import ctypes
+
+    libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 import os
 import platform
 import signal
 import sys
-import threading
 import time
-
-import cv2
-import numpy as np
 import rospy
-from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
+import json
+import re
+import depthai as dai
+from std_msgs.msg import String
+from auv.device.cams import pyfakewebcam, usbCams, oakCams
+from auv.utils import deviceHelper
 
-# print(os.getcwd())
-# sys.path.insert(0, '/cams')
-from .cams import camsHelper, pyfakewebcam
-
-if sys.version_info[0] == 3:
-    # python3 meaning oak-d
-    import depthai as dai
 
 # order is forward, down
-onyx = ["platform-3610000.xhci-usb-0:2.2.4:1.0"]
-grey = ["platform-70090000.xusb-usb-0:2.3:1.0", "platform-70090000.xusb-usb-0:2.4:1.0"]
-
+usbIDS = [deviceHelper.dataFromConfig("forwardUSB"), deviceHelper.dataFromConfig("bottomUSB")]
 ogDev = []
 oaks = []
 newDev = []
-sub = False  # default to grey
 
 
 def list_devices():
@@ -47,19 +41,18 @@ def difference(string1, string2):
     return list(str_diff)
 
 
+def num_sort(test_string):
+    return list(map(int, re.findall(r"\d+", test_string)))[0]
+
+
 preDevices = os.popen("ls /dev/video*").read()
-if "nx" in platform.node():
-    sub = True
-    ogDev = camsHelper.findCam(onyx)
-    oaks = list_devices()
-    oakAmt = len(oaks)
-    print(oaks)
-else:
-    ogDev = camsHelper.findCam(grey)
-    oakAmt = 0
+ogDev = deviceHelper.findCam(usbIDS)
+oaks = list_devices()
+oakAmt = len(oaks)
+print(oaks)
 camAmt = len(ogDev)
 print(ogDev)
-os.system("sudo modprobe v4l2loopback devices=" + str(camAmt + oakAmt))
+os.system(f"sudo modprobe v4l2loopback devices={str(camAmt + oakAmt)}")
 postDevices = os.popen("ls /dev/video*").read()
 diff = difference(preDevices, postDevices)
 if len(diff) == 0:
@@ -68,160 +61,140 @@ if len(diff) == 0:
 for i in range(camAmt + oakAmt - 1, -1, -1):
     newDev.append(diff[i])
 
+newDev.sort(key=num_sort)
+
 # v4l2-ctl --list-devices
-
-# for i in range(camAmt):
-#     cam.append(cv2.VideoCapture(ogDev[i]))
-#     cam[i].set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
-#     cam[i].set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
-#     fake.append(pyfakewebcam.FakeWebcam(newDevice[i], IMG_W, IMG_H))
-#     print(ogDev[i] + " output at " + newDevice[i])
-
-
-class camera:
-    def __init__(self, id, ogDevice, newDevice, oak=False):
-        IMG_W = 640
-        IMG_H = 480
-        self.frame = None
-        self.br = CvBridge()
-        self.loop_rate = rospy.Rate(30)
-        self.id = id
-        self.oak = oak
-        if not self.oak:
-            self.cam = cv2.VideoCapture(ogDevice)
-            self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
-            self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
-            self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
-            self.pub = rospy.Publisher(
-                "/auv/camera/videoUSBRaw" + str(id), Image, queue_size=10
-            )
-            rospy.Subscriber(
-                "/auv/camera/videoUSBOutput" + str(id), Image, self.callbackMain
-            )
-            print(ogDevice + " is available at " + newDevice)
-        else:
-            self.name = self.mxidToName(ogDevice)
-            pipeline = dai.Pipeline()
-            xoutRgb = pipeline.createXLinkOut()
-            xoutRgb.setStreamName("rgb")
-            controlIn = pipeline.create(dai.node.XLinkIn)
-            controlIn.setStreamName("control")
-            camRgb = pipeline.createColorCamera()
-            camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-            camRgb.setIspScale(2, 3)
-            camRgb.setPreviewSize(640, 480)
-            camRgb.setInterleaved(False)
-            camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
-            camRgb.preview.link(xoutRgb.input)
-            controlIn.out.link(camRgb.inputControl)
-            device_info = dai.DeviceInfo(ogDevice)
-            self.device = dai.Device(pipeline, device_info)
-            controlQueue = self.device.getInputQueue("control")
-            # Autofocus trigger (and disable continuous)
-            ctrl = dai.CameraControl()
-            ctrl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.AUTO)
-            ctrl.setAutoFocusTrigger()
-            controlQueue.send(ctrl)
-
-            # pipeline = dai.Pipeline()
-            # camRgb = pipeline.createColorCamera()
-            # xoutRgb = pipeline.createXLinkOut()
-            # xoutRgb.setStreamName("rgb")
-            # camRgb.preview.link(xoutRgb.input)
-            # device_info = dai.DeviceInfo(ogDevice)
-            # self.device = dai.Device(pipeline, device_info)
-
-            self.fake = pyfakewebcam.FakeWebcam(newDevice, IMG_W, IMG_H)
-            self.pub = rospy.Publisher(
-                "/auv/camera/videoOAKdRaw" + self.name, Image, queue_size=10
-            )
-            rospy.Subscriber(
-                "/auv/camera/videoOAKd" + self.name + "Model", Image, self.callbackModel
-            )
-            rospy.Subscriber(
-                "/auv/camera/videoOAKdRaw" + self.name, Image, self.callbackMain
-            )
-            print("Oak-D " + self.name + " is available at " + newDevice)
-
-    def mxidToName(self, mxid):
-        if mxid == "18443010B1A0B01200":
-            return "Forward"
-        elif mxid == "184430104161721200":
-            return "Bottom"
-        elif mxid == "18443010D11AF50F00":
-            return "Poe"
-        else:
-            return "Unknown"
-
-    def callbackMain(self, msg):
-        try:
-            self.frame = cv2.cvtColor(self.br.imgmsg_to_cv2(msg), cv2.COLOR_BGR2RGB)
-            self.fake.schedule_frame(self.frame)
-        except Exception as e:
-            print(
-                "Camera "
-                + str(self.id)
-                + " Output Error, make sure running in correct python"
-            )
-            print(e)
-
-    def callbackModel(self, msg):
-        pass  # need to implment blob file switching
-
-    def runner(self):
-        while not rospy.is_shutdown():
-            if not self.oak:
-                try:
-                    ret, frame1 = self.cam.read()
-                    msg = self.br.cv2_to_imgmsg(frame1)
-                    self.pub.publish(msg)
-                    pass
-                except Exception as e:
-                    print("Camera " + str(self.id) + " Input Error")
-                    print(e)
-            else:
-                cam = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-                try:
-                    frame1 = cam.get().getCvFrame()
-                    msg = self.br.cv2_to_imgmsg(frame1)
-                    self.pub.publish(msg)
-                    pass
-                except Exception as e:
-                    print("Camera " + str(self.id) + " Input Error")
-                    print(e)
-            self.loop_rate.sleep()
-
-    def kill(self):
-        if not self.oak:
-            self.cam.release()
-
-    def start(self):
-        rospy.loginfo("Starting Camera " + str(self.id) + " Stream...")
-        self.thread_param_updater = threading.Timer(0, self.runner)
-        self.thread_param_updater.daemon = True
-        self.thread_param_updater.start()
 
 
 class cameraStreams:
-    def __init__(self):
+    def __init__(self, debug=False):
         rospy.loginfo("Initializing Camera Streams...")
         self.cams = []
-        self.oakCams = []
+        self.camID = []
+        self.activeCams = []
+        self.debug = debug
+        self.limit = 2  # max amount of cams that can be used at a time
         for i in range(camAmt):
-            self.cams.append(camera(i, ogDev[i], newDev[i]))
-        for i in range(oakAmt - 1):
-            self.oakCams.append(camera(i + camAmt, oaks[i], newDev[i + camAmt], True))
+            self.cams.append(usbCams.USBCamera(rospy, i, ogDev[i], newDev[i]))
+            self.camID.append(i)
+        for i in range(oakAmt):
+            self.cams.append(oakCams.oakCamera(rospy, i + camAmt, oaks[i], newDev[i + camAmt]))
+            self.camID.append(i + camAmt)
+        rospy.Subscriber("/auv/camsVersatile/cameraSelect", String, self.callbackCamSelect)
+        if debug:
+            print("*****************\ndebug mode is ON\n*****************")
 
     def start(self):
-        for i in self.cams:
-            i.start()
-        for i in self.oakCams:
-            i.start()
+        while self.debug and not rospy.is_shutdown():
+            stream = input("Select Camera ID to control\n")
+            print(
+                "Camera "
+                + stream
+                + " is selected. Enter 'start' or 'stop' or 'model' to pick a model to run or 'back' to pick different camera \n"
+            )
+            cmd = input()
+            if cmd == "start":
+                self.camCtrl(stream, True)
+            elif cmd == "stop":
+                self.camCtrl(stream, False)
+            elif cmd == "back":
+                continue
+            elif cmd == "model":
+                model = input("Name of model to run: (or 'back' to return to camera selection)\n")
+                if cmd == "back":
+                    continue
+                else:
+                    self.camCtrl(stream, True, model)
         rospy.spin()
+
+    def camCtrl(self, id, state, model=None):  # cam id and then true is start and false is stop
+        if not id.isnumeric():
+            print(f"Invalid ID {id}, please pick from {str(self.camID)}")
+            return
+        id = int(id)
+        if id not in self.camID:
+            print(f"Invalid ID of {id}, please pick from {str(self.camID)}")
+            return False
+        if state and len(self.activeCams) == 2 and id not in self.activeCams:
+            print(f"2 camera streams are already active with ids: {str(self.activeCams)}")
+            print(f"Killing camera {str(self.activeCams[0])} to start camera {str(id)}")
+            self.camCtrl(str(self.activeCams[0]), False)
+            self.camCtrl(str(id), True, model)
+            #print("Please stop one of these streams first\n")
+            return False
+        if state and id not in self.activeCams:
+            if model == None:
+                self.cams[id].start()
+            else:
+                if id - camAmt < 0:
+                    print("Cannot load a model on a nonOak camera")
+                    return False
+                self.cams[id].start(model)
+            self.activeCams.append(id)
+            return True
+        if not state and id in self.activeCams:
+            self.cams[id].kill()
+            self.activeCams.remove(id)
+            return True
+        if state and id in self.activeCams and model != None:
+            if id - camAmt < 0:
+                print("Cannot load a model on a nonOak camera")
+                return False
+            self.cams[id].callbackModel(model, True)
+            return True
+
+    """
+    Essentially it will be a ROS string message formatted as a json.
+    The json will include the following information:
+
+    Camera ID: an ID for each camera - Format:
+    - If USB low-light: 0 = forward ; 1 = bottom
+    - If Oak-D: 10 = forward ; 20 = bottom ; 30 = POE - ^these ids make it significantly easier on my end
+
+    Mode: Start or Stop
+    - Format: boolean, True for start and False for stop
+
+    Model (will only be parsed if mode is Start):
+    - Format: name of model to run by mission (i.e. “gate”, “buoy”, etc)
+
+    Kill: Only call to kill all streams
+    - Format: if a Kill is in the message it will disregard all other params
+
+    Sample Messages:
+    Start forward oak with gate model
+    {[“camera_ID”]: 10, [“mode”]: True, [“Model”]: “gate”}
+
+    Stop forward oak
+    {[“camera_ID”]: 10, [“mode”]: False}
+    Start lowlight forward {[“Camera_ID”]: 0, [“mode”]: True}
+
+    Start POE oak without a model
+    {[“camera_ID”]: 30, [“mode”]: True, [“Model”]: “raw”} or
+    {[“camera_ID”]: 30, [“mode”]: True}
+
+    Kill all active cameras: {[“Kill”]: True}"""
+
+    def callbackCamSelect(self, msg):
+        data = json.loads(msg.data)
+        print("Received data:", data)
+        kill = data.get("kill")
+        if kill != None:
+            for i in self.activeCams:
+                self.camCtrl(i, False)
+        camID = data.get("camera_ID")
+        mode = data.get("mode")
+        model = data.get("model")
+        if camID >= 10:
+            camID = (camAmt - 1) + camID / 10
+        if mode == "start":
+            self.camCtrl(str(int(camID)), True, model)
+        if mode == "stop":
+            self.camCtrl(str(int(camID)), False)
 
     def stop(self):
         for i in self.cams:
             i.kill()
+            del i
 
 
 def onExit(signum, frame):
@@ -243,7 +216,7 @@ signal.signal(signal.SIGINT, onExit)
 
 if __name__ == "__main__":
     rospy.init_node("CameraStream", anonymous=True)
-    my_node = cameraStreams()
+    my_node = cameraStreams(True)
     my_node.start()
 
 # https://youtu.be/2l913YwWYe4

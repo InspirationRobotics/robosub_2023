@@ -8,52 +8,48 @@ Team Inspiration's repository for the RoboSub 2023 competition. We are using ROS
 
 ### Prerequisites
 
-We have two different subs, Onyx and Graey, they both run on different software setups because of compat issues with Jetson Nano and Jetson NX.
+We have two different subs, Onyx and Graey, they both run on similar software setups. (compat issues with Jetson Nano and Jetson NX have been mostly mitigated)
 
 #### Onyx
 
 * Ubuntu 20.04
 * ROS Noetic
-* Python 3.8
-* OpenCV 4.7.0
+* Python 3.8.10
+* OpenCV 4.7.0 (CUDA)
+* CVbridge (Noetic)
 
 #### Graey
 
 * Ubuntu 18.04
 * Ros Melodic
-* CV on python 2.7, everything else could run on python 3.6
-* OpenCV 4.7.0
+* Python 3.8.0 (non-native)
+* OpenCV 4.7.0 (CUDA)
+* CVbridge (Noetic modified)
 
-Because of this, when we design our code, we need to make sure that it is compatible with both versions of python and ROS.
-Please don't use any python 3.8 features (f-strings, walrus operator, etc.) and make sure that everything is compatible for both subs.
+Because of this, when we design our code, we need to make sure that it is compatible between both subs.
 
 ### Installing
 
-#### For Onyx
+#### For Onyx or Graey
+
+Note: If using installScripts the first two steps will be done for you, you just need to install
+
+(for the following, you can also use the https link instead of the ssh link)
 
 ```bash
 git clone git@github.com:InspirationRobotics/robosub_2023.git 
 mv robosub_2023 auv && cd auv
 python3 -m pip install -e .
-```
-
-#### For Graey
-
-```bash
-git clone git@github.com:InspirationRobotics/robosub_2023.git 
-mv robosub_2023 auv && cd auv
-python3 -m pip install -e .
-python2 -m pip install -e .
 ```
 
 #### On your own computer
 
 ```bash
-git clone git clone git@github.com:InspirationRobotics/robosub_2023.git 
+git clone git@github.com:InspirationRobotics/robosub_2023.git 
 cd robosub_2023
-python3 -m pip install -e .[cv,dev]
+python3 -m pip install -e ."[cv,dev]"
 # or 
-python2 -m pip install -e .[cv,dev]
+python2 -m pip install -e ."[cv,dev]"
 ```
 
 ### Repo Structure
@@ -70,13 +66,13 @@ robosub_2023
 │   │   ├── # TODO
 │   ├── mission 
 │   │   ├── # Mission classes
-│   │   ├── # see auv/mission/template.py for an example
+│   │   ├── # see auv/mission/template_mission.py for an example
 │   ├── motion
 │   │   ├── # Actuators code
 │   │   ├── # each actuator should have its own file/folder
 │   ├── cv
 │   │   ├── # All CV classes and functions
-│   │   ├── # see auv/cv/template.py for an example
+│   │   ├── # see auv/cv/template_cv.py for an example
 │   ├── utils
 │   │   ├── # utility functions
 ├── scripts
@@ -126,7 +122,7 @@ mission = <MissionClass>()
 # run mission
 mission.run() 
 # cleanup mission after it is done
-mission.terminate()
+mission.cleanup()
 ```
 
 #### CV
@@ -162,3 +158,59 @@ If you have trouble running this command, you can use the following command inst
 ```bash
 python3 -m black .
 ```
+
+(bonus) Code analysis is done using pylint. we will omit C0115 and C0116 for now, but try to fix the other errors.
+
+```bash
+pylint --disable=C0115,C0116 auv
+```
+
+## Running the AUVs
+
+### Graey and Onyx
+
+1. Git pull if necessary
+
+    ```bash
+    cd auv
+    git pull
+    ```
+
+2. First, start running roscore and mavros. This script will launch both at the same time in separate screens.
+
+    ```bash
+    bash ./scripts/mavros.sh
+    ```
+
+3. Now run the cams scripts:
+
+    ```bash
+    screen -S cams
+    python3 camsVersatile.py
+    ```
+
+    Follow the prompts, enter which camera id you are using and then enter "start" or "stop"
+
+4. If you would like camera feed
+
+    ```bash
+    screen -S bash
+    cd ~/rtsp
+    ./start_video.sh <camera_id>
+    ```
+
+5. Run pix_standalone for sensor and thruster capabilities.
+
+    ```bash
+    screen -S pix
+    python3 pix_standalone.py
+    ```
+
+    This will arm the sub by default. To disarm, run `python3 -m auv.utils.disarm`, to arm it back again use: `python3 -m auv.utils.arm`
+
+6. Run your mission program
+
+    ```bash
+    cd auv/missions/
+    python3 yourMission.py
+    ```

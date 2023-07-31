@@ -1,8 +1,9 @@
-import brping
-import logging
 import time
 
-logger = logging.getLogger(__name__)
+import brping
+import numpy as np
+
+from . import utils
 
 
 class Ping360(brping.Ping360):
@@ -58,7 +59,7 @@ class Ping360(brping.Ping360):
         self.set_max_range(max_range)
         self.set_gain_setting(gain)
 
-        logger.debug("Ping360 initialized")
+        print("[DEBUG] Ping360 initialized")
 
     def set_scan_mode(self, scan_mode):
         if scan_mode != 0 and scan_mode != 1:
@@ -68,12 +69,8 @@ class Ping360(brping.Ping360):
         return self._scan_mode
 
     def set_angle_range(self, angle_range):
-        if (
-            angle_range[0] < 0
-            or angle_range[1] > 399
-            or angle_range[0] > angle_range[1]
-        ):
-            raise ValueError("invalid angle range: {}".format(angle_range))
+        if angle_range[0] < 0 or angle_range[1] > 399 or angle_range[0] > angle_range[1]:
+            raise ValueError(f"invalid angle range: {angle_range}")
 
         self._angle_range = (angle_range[0] % 400, angle_range[1] % 400)
         self._angle = self._angle_range[0]
@@ -81,7 +78,7 @@ class Ping360(brping.Ping360):
 
     def set_angle_step(self, angle_step):
         if angle_step < 1 or angle_step > 20:
-            raise ValueError("invalid angle step: {}".format(angle_step))
+            raise ValueError(f"invalid angle step: {angle_step}")
 
         self._angle_step = angle_step
         self._increment = angle_step
@@ -97,29 +94,17 @@ class Ping360(brping.Ping360):
             int: distance set
         """
         if max_range < 1 or max_range > 50:
-            raise ValueError("invalid max range: {}".format(max_range))
+            raise ValueError(f"invalid max range: {max_range}")
 
         self._max_range = max_range
         self._number_of_samples = int(
             min(
                 self.max_samples,
-                2
-                * self._max_range
-                / (
-                    self.sample_period_tick_duration
-                    * self.min_sample_period
-                    * self.speed_of_sound
-                ),
+                2 * self._max_range / (self.sample_period_tick_duration * self.min_sample_period * self.speed_of_sound),
             )
         )
         self._sample_period = int(
-            2
-            * self._max_range
-            / (
-                self._number_of_samples
-                * self.sample_period_tick_duration
-                * self.speed_of_sound
-            )
+            2 * self._max_range / (self._number_of_samples * self.sample_period_tick_duration * self.speed_of_sound)
         )
 
         self._transmit_duration = int(
@@ -128,6 +113,8 @@ class Ping360(brping.Ping360):
                 (8000 * self._max_range) / self.speed_of_sound,
             )
         )
+
+        self.norm_dist_factor = self._max_range / self._number_of_samples
 
     def __next__(self):
         """Get a step scan from the sensor and return the current angle and distances"""
@@ -172,3 +159,36 @@ class Ping360(brping.Ping360):
             curr_increment = self._increment
             while curr_increment == self._increment:
                 yield self.__next__()
+
+    def get_polar_image(self):
+        """Get a polar image from the sensor
+
+        Returns:
+            numpy.ndarray: polar image
+        """
+        size = (400, self._number_of_samples)
+        img = np.zeros((size[0], size[1], 1), dtype=np.uint8)
+
+        # do a full scan for the given range
+        for ts, angle, points in self:
+            img = utils.plot_to_polar_gray(img, angle, points, imsize=size, step_angle=self._angle_step)
+
+        return img
+
+    def get_obstacles(self, threshold=60, smallest_area=20):
+        """Get a list of obstacles by doing a sweep of the sonar
+
+        Returns:
+            list: list of obstacles
+        """
+        img = self.get_polar_image()
+
+        # object detection
+        obs = utils.object_detection(
+            img,
+            dist_factor=self.norm_dist_factor,
+            threshold=threshold,
+        )
+
+        # filter out small obstacles
+        obs = [o for o in obs if o.area > smallest_area]

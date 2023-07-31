@@ -99,7 +99,7 @@ def mission_planner():
     rospy.Subscriber("/wamv/mission/octagon_bins/confidence", String, state_estimator_octbin_callback)
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
-        hello_str = "hello world %s" % rospy.get_time() # this can be edited to print relevant messages 
+        hello_str = f"hello world {rospy.get_time()}" # this can be edited to print relevant messages 
         rospy.loginfo(hello_str)
         lat_target.publish(hello_str)
         lon_target.publish(hello_str)

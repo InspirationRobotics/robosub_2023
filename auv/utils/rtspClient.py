@@ -2,13 +2,12 @@
 Alternative to QGroundControl for rtsp
 """
 import argparse
-import logging
+
 import os
 
 import cv2
 import numpy as np
 
-logging.basicConfig(level=logging.INFO)
 
 argparser = argparse.ArgumentParser(description="RTSCP Client")
 argparser.add_argument(
@@ -22,14 +21,14 @@ argparser.add_argument(
 
 args = argparser.parse_args()
 
-RTSP_URL = "rtsp://{}/test".format(args.host)
+RTSP_URL = f"rtsp://{args.host}/test"
 # H265 codec
 cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 cap.set(cv2.CAP_PROP_FPS, 30)
 
 if not cap.isOpened():
-    logging.error("Failed to open RTSP stream")
+    print("[ERROR] Failed to open RTSP stream")
     exit(1)
 
 while True:

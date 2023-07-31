@@ -7,6 +7,10 @@
 #define mic2  A11 //ADC 0 //Middle
 #define mic3  A12 //ADC 1 //Left
 
+#define oldPin1 A16
+#define oldPin2 A15
+#define oldPin3 A14
+
 ADC *adc = new ADC(); // adc object
 
 Adafruit_SI5351 clockgen = Adafruit_SI5351();
@@ -41,6 +45,9 @@ void setup() {
   pinMode(mic1, INPUT_PULLDOWN);
   pinMode(mic2, INPUT_PULLDOWN);
   pinMode(mic3, INPUT_PULLDOWN);
+  pinMode(oldPin1, INPUT_PULLDOWN);
+  pinMode(oldPin2, INPUT_PULLDOWN);
+  pinMode(oldPin3, INPUT_PULLDOWN);
 
   Serial.begin(115200);
 
@@ -56,7 +63,7 @@ void setup() {
   adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
   adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED); // change the sampling speed
 
-  setClock(235);
+  setClock(220);
 }
 
 int mic1Val = 0;
@@ -139,14 +146,14 @@ void loop() {
       setClock(tab2);
     }
   }*/
-  if(mic1Val<115) {mic1Val = 0;}
+  /*if(mic1Val<115) {mic1Val = 0;}
   //else{Serial.println(mic1Val);}
   if(mic2Val<115) {mic2Val = 0;}
   //else{Serial.println(mic2Val);}
   if(mic3Val<115) {mic3Val = 0;}
-  //else{Serial.println(mic3Val);}
+  //else{Serial.println(mic3Val);}*/
   
   Serial.print(mic1Val); Serial.print(", "); Serial.print(mic2Val); Serial.print(", "); Serial.println(mic3Val);
-  //delay(1);
+  delay(1);
   
 }

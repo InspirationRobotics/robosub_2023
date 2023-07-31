@@ -1,19 +1,23 @@
-from auv.mission import template
+import os
+import time
 
-import logging
+from auv.mission import template_mission
+from auv.utils import arm, deviceHelper
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# load sub config
+config = deviceHelper.variables
 
+# arm.arm()
+# time.sleep(5)
 
 # create the mission object
-mission = template.TemplateMission()
+mission = template_mission.TemplateMission(**config)
 
 # run the mission
 mission.run()
 
 # terminate the mission
-mission.terminate()
+mission.cleanup()
 
 # end
-logger.info("Mission ended")
+print("[INFO] Mission ended")

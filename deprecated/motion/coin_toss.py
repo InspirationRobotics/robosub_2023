@@ -4,10 +4,11 @@
 # log it within config.txt
 # turn the robot to the heading, move through the gate
 
-from auv.motion.robot_control import RobotControl
-import time
-import os
 import json
+import os
+import time
+
+from robot_control import RobotControl
 
 # getting the values from the config file
 f = open('config.json')

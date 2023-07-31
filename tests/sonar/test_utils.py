@@ -16,7 +16,8 @@ def test_draw_polar():
 
     cv2.imshow("cart", cartesian)
     cv2.imshow("polar", img)
-    cv2.waitKey(5000)
+    cv2.waitKey(2000)
+    cv2.destroyAllWindows()
 
 
 def test_dummy_obstacle():
@@ -33,7 +34,8 @@ def test_dummy_obstacle():
     cv2.imshow("obstacles_cart", cartesian)
     cv2.imshow("obstacles_cart_filled", cartesian_filled)
     cv2.imshow("obstacles_polar_filled", polar_filled)
-    cv2.waitKey(5000)
+    cv2.waitKey(2000)
+    cv2.destroyAllWindows()
 
 
 def test_obstacles_detection():
@@ -49,4 +51,5 @@ def test_obstacles_detection():
 
     cv2.imshow("obstacles", img)
     cv2.imshow("obstacles_detected", img_detected)
-    cv2.waitKey(0)
+    cv2.waitKey(2000)
+    cv2.destroyAllWindows()
