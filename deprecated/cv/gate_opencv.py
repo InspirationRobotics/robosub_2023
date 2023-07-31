@@ -6,11 +6,13 @@ Author: Team Inspiration
 # import what you need from within the package
 
 import time
+import os
 
 import cv2
 import numpy as np
 from sklearn import cluster
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
 
 class CV:
     """Template CV class, don't change the name of the class"""
@@ -23,10 +25,77 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
+        self.config = config
 
-        self.buffer_size = config.get("buffer_size", 30)
+        print(file_dir)
+
+        self.reference_abydos = cv2.imread(f"{file_dir}/samples/abydos.png")
+        self.reference_earth = cv2.imread(f"{file_dir}/samples/earth.png")
+        assert self.reference_abydos is not None, "abydos.png not found"
+        assert self.reference_earth is not None, "earth.png not found"
+
+        self.reference_abydos = cv2.cvtColor(self.reference_abydos, cv2.COLOR_BGR2GRAY)
+        self.reference_earth = cv2.cvtColor(self.reference_earth, cv2.COLOR_BGR2GRAY)
+
+        cv2.imshow("abydos", self.reference_abydos)
+        cv2.imshow("earth", self.reference_earth)
+
+        self.sift = cv2.SIFT_create(contrastThreshold=0.04, edgeThreshold=10, sigma=1.6)
+        self.bf = cv2.BFMatcher()
+
+        self.abydos_kp, self.abydos_des = self.sift.detectAndCompute(self.reference_abydos, None)
+        self.earth_kp, self.earth_des = self.sift.detectAndCompute(self.reference_earth, None)
+
+        self.buffer_size = config.get("buffer_size", 20)
         self.memory_box = []
         print("[INFO] Template CV init")
+
+    
+    def process_sift(
+        self,
+        ref_img,
+        img,
+        kp1,
+        des1,
+        kp2=None,
+        des2=None,
+        threshold=0.9,
+        window_viz=None,
+    ):
+        """
+        Sift matching with reference points
+        if kp2 and des2 are not given, it will compute them
+        """
+        if kp2 is None or des2 is None:
+            kp2, des2 = self.sift.detectAndCompute(img, None)
+
+        matches = self.bf.knnMatch(des1, des2, k=2)
+        good = []
+        for m, n in matches:
+            if m.distance < threshold * n.distance:
+                good.append(m)
+
+        if len(good) < 4:
+            return None
+
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+        H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+
+        if window_viz is not None:
+            # draw the matches
+            img = cv2.drawMatches(
+                ref_img,
+                kp1,
+                img,
+                kp2,
+                good,
+                None,
+                flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
+            )
+            cv2.imshow(window_viz, img)
+        return H
+
 
     def gate_box_clustering(self, frame):
         """
@@ -50,15 +119,6 @@ class CV:
 
         # get the number of clusters
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-
-        # # viz the clusters on the frame
-        # for i in range(n_clusters_):
-        #     # get the cluster
-        #     (x, y, w, h) = (memory_box[labels == i].mean(axis=0) * 640).astype(int)
-        #     standard_deviation = memory_box_trimmed[labels == i].std(axis=0)
-
-        #     # draw the bounding box
-        #     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
 
         # sort the boxes by x value
         box_clusters = [memory_box[labels == i].mean(axis=0) for i in range(n_clusters_)]
@@ -117,6 +177,18 @@ class CV:
 
         return None, None, None
 
+    def gate_on_border(self, gate_box, border=50, shape=(640, 480)):
+        """
+        Check if the gate is on the border of the frame
+        """
+        if gate_box is None:
+            return False
+
+        x, y, w, h = gate_box
+        if x < border or x + w > shape[0] - border:
+            return True
+        return False
+
     def run(self, frame, target, oakd_data):
         """
         CV gate detection based on bounding box detection and ratio
@@ -126,15 +198,28 @@ class CV:
         frame = frame[200:480, 0:640]
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        left_H = self.process_sift(
+            self.reference_abydos,
+            gray,
+            self.abydos_kp,
+            self.abydos_des,
+            window_viz="left",
+        )
+
+        right_H = self.process_sift(
+            self.reference_earth,
+            gray,
+            self.earth_kp,
+            self.earth_des,
+            window_viz="right",
+        )
+
+
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        # Apply Canny edge detection
         # adaptative thresholding
         edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
-
-        # # Apply a morphological operation to close gaps between edge segments
-        # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-        # closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
         # Find contours
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -156,19 +241,30 @@ class CV:
                     self.memory_box.pop(0)
 
         left_gate, middle_gate, right_gate = self.gate_box_clustering(frame)
-        left_gate = (left_gate * 640).astype(int) if left_gate is not None else None
-        middle_gate = (middle_gate * 640).astype(int) if middle_gate is not None else None
-        right_gate = (right_gate * 640).astype(int) if right_gate is not None else None
 
         if left_gate is not None:
+            left_gate = (left_gate * 640).astype(int)
             (x, y, w, h) = left_gate
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
         if middle_gate is not None:
+            middle_gate = (middle_gate * 640).astype(int)
             (x, y, w, h) = middle_gate
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 5)
         if right_gate is not None:
+            right_gate = (right_gate * 640).astype(int)
             (x, y, w, h) = right_gate
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 5)
+
+        # detect glyphs
+
+        if left_gate is not None and right_gate is not None:
+            # both legs are on the border = detect abydos (TODO)
+            if self.gate_on_border(left_gate) and self.gate_on_border(right_gate):
+                return {"lateral": 0, "forward": 0, "end": True}, frame
+
+            # both legs are not on the border = go forward
+            if not self.gate_on_border(left_gate) and not self.gate_on_border(right_gate):
+                return {"lateral": 0, "forward": 0.5, "end": False}, frame
 
         cv2.imshow("edges", edges)
 
