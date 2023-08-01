@@ -290,7 +290,7 @@ class CV:
                 centered+=1
             if centered==2:
                 forward=1
-                if dist<1: end = True
+                if dist<1.4: end = True
 
         elif dist==0:
             print("dist is 0", boardCenter[0])

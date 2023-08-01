@@ -18,6 +18,6 @@ OUTPUT=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py)
 
 echo "Found pixhawk on "${OUTPUT}
 screen -dmS roscore bash -c "source /opt/ros/$DISTRO/setup.bash ; roscore"
-screen -dmS mavros bash -c "source /opt/ros/$DISTRO/setup.bash ; sleep 5 ; roslaunch mavros apm.launch fcu_url:=$OUTPUT"
+screen -dmS mavros bash -c "source /opt/ros/$DISTRO/setup.bash ; sleep 5 ; roslaunch --wait mavros apm.launch fcu_url:=$OUTPUT"
 echo "Done"
 # TODO: fix mavros
