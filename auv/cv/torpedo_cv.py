@@ -188,7 +188,7 @@ class CV:
             kp2,
             des2,
             threshold,
-            None,
+            "M",
         )
         H_o = self.process_sift(
             self.reference_image_o,
@@ -198,7 +198,7 @@ class CV:
             kp2,
             des2,
             threshold,
-            None,
+            "N",
         )
 
         if H_c is None or H_o is None:
@@ -211,7 +211,7 @@ class CV:
             # draw the center
             cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
             cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
-            #cv2.imshow(window_viz, img)
+            cv2.imshow(window_viz, img)
 
         return center_c, center_o
 
@@ -309,7 +309,7 @@ class CV:
                 self.kp1,
                 self.des1,
                 threshold=0.65,
-                window_viz=None,
+                window_viz="H",
             )
             if H is None:
                 # skip (maybe go forward a bit)
@@ -464,7 +464,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/Torpedo5.mp4")
+    cap = cv2.VideoCapture("testing_data/TRANSDEC1.mp4")
 
     while True:
         # grab a frame
