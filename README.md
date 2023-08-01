@@ -42,6 +42,13 @@ mv robosub_2023 auv && cd auv
 python3 -m pip install -e .
 ```
 
+if operating Onyx, you will need this additionnal step to install the dependancy for the DVL:
+
+```bash
+git clone https://github.com/waterlinked/dvl-python.git
+cd dvl-python
+pip install -e .
+
 #### On your own computer
 
 ```bash
