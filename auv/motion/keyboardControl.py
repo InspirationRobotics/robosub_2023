@@ -13,7 +13,8 @@ rospy.init_node("Keyboard", anonymous=True)
 
 arm.arm()
 rc = RobotControl()
-rc.set_depth(0.55)
+data = input(f"current depth {rc.depth}, Enter absolute depth\n")
+rc.set_depth(float(data))
 
 sub = deviceHelper.variables.get("sub")
 if sub == "onyx":
@@ -56,9 +57,12 @@ while flag:
         elif var == "l":
             yaw = 1
         elif var == "z":
-            rc.set_depth(rc.depth - 0.1)
+            rc.set_relative_depth(-0.3)
         elif var == "x":
-            rc.set_depth(rc.depth + 0.1)
+            rc.set_relative_depth(0.3)
+        elif var == "c":
+            data = input("Enter absolute depth\n")
+            rc.set_depth(float(data))
         elif var == "t" and sub == "onyx":
             servo.torpedo()
             pass

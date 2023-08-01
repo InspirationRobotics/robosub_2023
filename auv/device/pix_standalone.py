@@ -205,7 +205,7 @@ class AUV(RosHandler):
     def thrusterCallback(self, msg):
         self.thrustTime = time.time()
         self.channels = list(msg.channels)
-        print(self.channels)
+        #print(self.channels)
 
     def enable_topics_for_read(self):
         self.topic_subscriber(self.TOPIC_STATE, self.update_parameters_from_topic)

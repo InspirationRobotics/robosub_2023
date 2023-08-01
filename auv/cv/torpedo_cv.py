@@ -385,6 +385,7 @@ class CV:
 
                 # Check distance from object
                 # Now can fire or move forward
+                print(f"Dist: {dist}")
                 if dist > self.firing_range:
                     # Too far from target
                     print("[INFO] Aligned, moving forward")
