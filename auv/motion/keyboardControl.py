@@ -66,6 +66,9 @@ while flag:
         elif var == "t" and sub == "onyx":
             servo.torpedo()
             pass
+        elif var == "u":
+            dist = input("Enter distance to move forward\n")
+            rc.forward_dvl(2, float(dist))
         elif var == "b" and sub == "onyx":
             servo.dropper()
             pass
