@@ -200,7 +200,7 @@ class CV:
             # draw the center
             cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
             cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
-             cv2.imshow(window_viz, img)
+            cv2.imshow(window_viz, img)
 
         return center_c, center_o
 
