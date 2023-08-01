@@ -57,7 +57,7 @@ class BinMission:
         """
 
         # here is an example of how to set a target
-        self.cv_handler.set_target("bin_cv", "Bin")
+        self.cv_handler.set_target("bin_cv", "Earth")
 
         while not rospy.is_shutdown():
             if not self.received:
@@ -75,7 +75,6 @@ class BinMission:
             lateral = self.data["bin_cv"].get("lateral", None)
             yaw = self.data["bin_cv"].get("yaw", None)
             forward = self.data["bin_cv"].get("forward", None)
-            vertical = self.data["bin_cv"].get("vertical", None)
             do_drop = self.data["bin_cv"].get("drop", None)
 
             if do_drop:
@@ -90,11 +89,8 @@ class BinMission:
                 print(f"[BIN MISSION] Dropping ball #{self.ball_count}")
                 continue
 
-            if None in (lateral, forward):
-                continue
-
-            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=vertical)
-            print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}, vertical: {vertical}")
+            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+            print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}")
 
         self.robot_control.movement()
         print("[INFO] Bin mission end")

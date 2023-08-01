@@ -20,6 +20,10 @@ def equilize(img):
     r = cv2.equalizeHist(r)
     return cv2.merge((b, g, r))
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
+
+file_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 class CV:
     camera = "/auv/camera/videoUSBRaw0"
@@ -29,22 +33,10 @@ class CV:
         Init of torpedo CV,
         """
 
-        # self.reference_image_c = cv2.imread("/home/inspiration/auv/auv/cv/samples/torpedo_closed.png")
-        # self.reference_image_o = cv2.imread("/home/inspiration/auv/auv/cv/samples/torpedo_opened.png")
-        # self.reference_image_top_opened = cv2.imread(
-        #     "/home/inspiration/auv/auv/cv/samples/torpedo_top_opened.png"
-        # )
-        # self.reference_image_top_closed = cv2.imread(
-        #     "/home/inspiration/auv/auv/cv/samples/torpedo_top_closed.png"
-        # )
-        self.reference_image_c = cv2.imread("auv/cv/samples/torpedo_closed.png")
-        self.reference_image_o = cv2.imread("auv/cv/samples/torpedo_opened.png")
-        self.reference_image_top_opened = cv2.imread(
-            "auv/cv/samples/torpedo_top_opened.png"
-        )
-        self.reference_image_top_closed = cv2.imread(
-            "auv/cv/samples/torpedo_top_closed.png"
-        )
+        self.reference_image_c = cv2.imread(f"{file_dir}/samples/torpedo_closed.png")
+        self.reference_image_o = cv2.imread(f"{file_dir}/samples/torpedo_opened.png")
+        self.reference_image_top_opened = cv2.imread(f"{file_dir}/samples/torpedo_top_opened.png")
+        self.reference_image_top_closed = cv2.imread(f"{file_dir}/samples/torpedo_top_closed.png")
         assert self.reference_image_c is not None
         assert self.reference_image_o is not None
         assert self.reference_image_top_opened is not None
@@ -54,12 +46,8 @@ class CV:
 
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
-        self.kp1_c, self.des1_c = self.sift.detectAndCompute(
-            self.reference_image_c, None
-        )
-        self.kp1_o, self.des1_o = self.sift.detectAndCompute(
-            self.reference_image_o, None
-        )
+        self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
+        self.kp1_o, self.des1_o = self.sift.detectAndCompute(self.reference_image_o, None)
 
         self.kp1, self.des1 = None, None  # will be calculated later on
         self.reference_image = None  # will be determined later on
@@ -137,7 +125,7 @@ class CV:
                 None,
                 flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
             )
-            cv2.imshow(window_viz, img)
+            #cv2.imshow(window_viz, img)
         return H
 
     def get_center(self, H, src_shape, norm=False):
@@ -147,7 +135,7 @@ class CV:
         center = cv2.perspectiveTransform(center, H).astype(np.int32)[0][0]
         if norm:
             center = [(center[0] - 320) / 320, (center[1] - 240) / 240]
-        return h, w, center
+        return center
 
     def get_orientation(self, H, src_shape):
         h, w, _ = src_shape
@@ -169,7 +157,8 @@ class CV:
         left_h_dist = np.linalg.norm(pts[0] - pts[3])
         right_h_dist = np.linalg.norm(pts[1] - pts[2])
         width = np.linalg.norm(pts[0] - pts[1])
-        #print(f"Width: {width}")
+        # REVIEW: normalize the dist using FOV of the camera
+        # print(f"Width: {width}")
 
         # TODO find the right formula for this
         yaw = math.atan((left_h_dist - right_h_dist) / (left_h_dist + right_h_dist))
@@ -204,14 +193,14 @@ class CV:
         if H_c is None or H_o is None:
             return None, None
 
-        _, _, center_c = self.get_center(H_c, self.ref_c_shape)
-        _, _, center_o = self.get_center(H_o, self.ref_o_shape)
+        center_c = self.get_center(H_c, self.ref_c_shape)
+        center_o = self.get_center(H_o, self.ref_o_shape)
 
         if window_viz is not None:
             # draw the center
             cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
             cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
-            cv2.imshow(window_viz, img)
+             cv2.imshow(window_viz, img)
 
         return center_c, center_o
 
@@ -238,9 +227,7 @@ class CV:
 
         # find setup (closed or opened on top)
         if self.step == 0:
-            center_c, center_o = self.init_find_both_centers(
-                frame, window_viz="centers"
-            )
+            center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
                 # print("[INFO] No Vis")
@@ -274,9 +261,7 @@ class CV:
                     self.reference_image = self.reference_image_top_opened
 
                 # compute kp1 des1 for the desired ref image
-                self.kp1, self.des1 = self.sift.detectAndCompute(
-                    self.reference_image, None
-                )
+                self.kp1, self.des1 = self.sift.detectAndCompute(self.reference_image, None)
                 print(f"[INFO] {self.on_top} is on top")
                 # print([NOT] HERE")
 
@@ -315,49 +300,47 @@ class CV:
                 # skip (maybe go forward a bit)
                 return {}, None
 
-            h, w, center = self.get_center(H, self.reference_image.shape, norm=True)
-            #print(f"Height: {h}, Width: {w}")
+            center = self.get_center(H, self.reference_image.shape, norm=True)
+            # print(f"Height: {h}, Width: {w}")
 
             yaw, dist = self.get_orientation(H, self.reference_image.shape)
 
             if not yaw:
                 print("[WARN] no yaw")
 
-            if (yaw >= 0 and yaw < self.threshold) or (
-                yaw <= 0 and yaw > (-1 * self.threshold)
-            ):
+            if -self.threshold <= yaw <= self.threshold:
                 # Aligned enough that we don't need to yaw
                 # We can go forward now
                 yaw = 0
-            # print(f"[INFO] Yaw: {yaw}")
-            if yaw > self.threshold:
+            elif yaw > self.threshold:
                 print("[INFO] Yaw Left")
                 yaw = 1
                 self.aligned = False
 
-
             if yaw < (-1 * self.threshold):
                 print("[INFO] Yaw Right")
-                yaw = -1                    
+                yaw = -1
                 self.aligned = False
 
+            # print(f"[INFO] Yaw: {yaw}")
 
             # center_c, center_o = self.init_find_both_centers(
             #     frame, window_viz="centers"
             # )
             print(f"[INFO] Centers: {center}")
 
-            #240,320
+            # 240,320
             cv2.circle(
-                    frame,
-                    center=(320, 240),
-                    radius=1,
-                    color=(0, 255, 0),
-                    thickness=3,)
+                frame,
+                center=(320, 240),
+                radius=1,
+                color=(0, 255, 0),
+                thickness=3,
+            )
             # print([NOT] HERE6")
 
             # center = center_c
-            if self.fired1 and self.on_top == "open"  or not self.fired1 and self.on_top == "closed":
+            if self.fired1 and self.on_top == "open" or not self.fired1 and self.on_top == "closed":
                 center[1] += self.offset_center
 
             elif self.fired1 and self.on_top == "closed" or not self.fired1 and self.on_top == "open":
@@ -366,7 +349,7 @@ class CV:
             # print([NOT] HERE7")
 
             if center is not None:
-                #print(f"[INFO] X: {center[0]}\nY:{center[1]}")
+                # print(f"[INFO] X: {center[0]}\nY:{center[1]}")
                 if center[0] > 0 + self.x_threshold:
                     # Strafe Right
                     print("[INFO] Right")
@@ -392,13 +375,13 @@ class CV:
                     self.aligned = False
 
                 # print([NOT] HERE8")
-            #elif center is None:
-                #print("[WARN] center is none")
+            # elif center is None:
+            # print("[WARN] center is none")
 
             if self.aligned:
                 # print([NOT] HERE9")
 
-                #print(f"[INFO] Distance to target: {distance_to_target}")
+                # print(f"[INFO] Distance to target: {distance_to_target}")
 
                 # Check distance from object
                 # Now can fire or move forward
@@ -421,10 +404,18 @@ class CV:
                         end = True
                         print("[Info] Mission complete")
 
+                    
+
                 if self.fired1 and counter <= 50:
                     print("[Info] Backing up to align with closed target")
                     forward = -1
                     counter += 1
+                
+                #print([NOT] HERE 11")
+
+
+            #print([NOT] HERE 12")
+
 
                 # print([NOT] HERE 11")
 
@@ -478,7 +469,7 @@ if __name__ == "__main__":
         # print(f"[INFO] {result}")
 
         # show the frame
-        if img_viz is not None:
-            cv2.imshow("viz", img_viz)
+        #if img_viz is not None:
+            #cv2.imshow("viz", img_viz)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break

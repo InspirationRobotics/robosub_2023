@@ -70,11 +70,6 @@ class GateMission:
             if not "gate_cv" in self.data.keys():
                 continue
 
-            if self.data["gate_cv"].get("end", False):
-                # idle the robot
-                self.robot_control.movement()
-                break
-
             # get the lateral and forward values from the cv (if they exist)
             lateral = self.data["gate_cv"].get("lateral", None)
             forward = self.data["gate_cv"].get("forward", None)
@@ -85,10 +80,11 @@ class GateMission:
             # direcly feed the cv output to the robot control
             if(end):
                 print("Ending...")
-                self.robot_control.forwardDist(3, 2)
+                self.robot_control.forwardDist(6, 3)
+                break
             else:
                 self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
-                print(forward, lateral, yaw)
+                print(lateral, forward, yaw)
 
         print("[INFO] Gate mission run")
 
