@@ -11,7 +11,7 @@ from ...utils import deviceHelper
 class DVL:
     """DVL class to enable position estimation"""
 
-    def __init__(self, autostart=True, test=False):
+    def __init__(self, autostart=True, compass=False, test=False):
         self.test = test
         if not self.test:
             self.dvlPort = deviceHelper.dataFromConfig("dvl")
@@ -41,6 +41,8 @@ class DVL:
                 self.read = self.read_graey
             else:
                 raise ValueError(f"Invalid sub {sub}")
+
+        self.enable_compass = compass
 
         self.__running = False
         self.__thread_vel = None
@@ -143,7 +145,7 @@ class DVL:
             data = None
         return data
 
-    def process_packet(self, packet):
+    def process_packet_compass(self, packet):
         """integrate velocity into position"""
 
         vel = [packet.get("vx", 0), packet.get("vy", 0), packet.get("vz", 0)]
@@ -198,6 +200,51 @@ class DVL:
 
         return True
 
+    def process_packet(self, packet):
+        """Integrate velocity into position without compass"""
+
+        vel = [packet.get("vx", 0), packet.get("vy", 0), packet.get("vz", 0)]
+        current_time = packet.get("time", 0)  # seconds
+
+        if self.prev_time is None:
+            self.prev_time = current_time
+            print("[WARN] DVL not ready, waiting for some more sample")
+            return False
+
+        dt = current_time - self.prev_time
+        if dt < 0:
+            print("[WARN] DVL time error, skipping")
+            return False
+
+        self.is_valid = packet["valid"]
+        if not self.is_valid:
+            # print("[WARN] DVL velocity not valid, skipping")
+            return False
+
+        self.prev_time = current_time
+
+        # integrate velocity to position with respect to time
+        self.position = [
+            self.position[0] + vel[0] * dt,
+            self.position[1] + vel[1] * dt,
+            self.position[2] + vel[2] * dt,
+        ]
+
+        vel_error = [
+            vel[0] + self.dvl_error,
+            vel[1] + self.dvl_error,
+            vel[2] + self.dvl_error,
+        ]
+
+        # calculate accumulated error
+        self.error = [
+            self.error[0] + abs(vel[0] - vel_error[0]) * dt,
+            self.error[1] + abs(vel[1] - vel_error[1]) * dt,
+            self.error[2] + abs(vel[2] - vel_error[2]) * dt,
+        ]
+
+        return True
+
     def reset_position(self):
         """Reset position to 0"""
         self.position = [0, 0, 0]
@@ -209,7 +256,10 @@ class DVL:
             vel_packet = self.read()
             if vel_packet is None:
                 continue
-            ret = self.process_packet(vel_packet)
+            if self.enable_compass:
+                ret = self.process_packet_compass(vel_packet)
+            else:
+                ret = self.process_packet(vel_packet)
             self.data_available = ret
 
     def start(self):

@@ -16,15 +16,18 @@ config = deviceHelper.variables
 class RobotControl:
     """Class to control the robot"""
 
-    def __init__(self):
+    def __init__(self, dvl=True):
         # init some variables
         self.config = config
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
         # dvl sensor setup (both subs)
-        self.dvl = dvl.DVL()
-        self.dvl.start()
+        if dvl:
+            self.dvl = dvl.DVL()
+            self.dvl.start()
+        else:
+            self.dvl = None
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
@@ -44,14 +47,14 @@ class RobotControl:
                 output_limits=(-2, 2),
             ),
             "forward": PID(
-                self.config.get("FORWARD_PID_P", 2.0),
+                self.config.get("FORWARD_PID_P", 4.0),
                 self.config.get("FORWARD_PID_I", 0.01),
                 self.config.get("FORWARD_PID_D", 0.1),
                 setpoint=0,
                 output_limits=(-2, 2),
             ),
             "lateral": PID(
-                self.config.get("LATERAL_PID_P", 2.0),
+                self.config.get("LATERAL_PID_P", 4.0),
                 self.config.get("LATERAL_PID_I", 0.01),
                 self.config.get("LATERAL_PID_D", 0.0),
                 setpoint=0,
@@ -157,7 +160,10 @@ class RobotControl:
 
     def navigate_dvl(self, x, y, z, end_heading=None, relative_coord=True, relative_heading=True, update_freq=10):
         """
-        Navigate to a given point, blocking function
+        # NOTE: this function is complex and requires compass to work PERFECTLY
+        if you want to simply move forward, use forward_dvl instead
+
+        Navigate to a given point, blocking function, compass should be calibrated 
         x, y are in meters, by default relative to the current position and heading ; z is absolute
         x = lateral, y = forward, z = depth
 
@@ -167,7 +173,9 @@ class RobotControl:
         update_freq is the frequency at which the PID controllers are updated
         """
 
-        print(self.dvl)
+        if self.dvl is None:
+            print("[ERROR] DVL not available, cannot navigate")
+            return
 
         # reset PID integrals
         for pid in self.PIDs.values():
@@ -225,6 +233,76 @@ class RobotControl:
                 output_y = self.PIDs["forward"](-err_y)
                 print(f"[DEBUG] err_x={err_x}, err_y={err_y}, output_x={output_x}, output_y={output_y}")
                 self.movement(lateral=output_x, forward=output_y)
+
+    def forward_dvl(self, throttle, distance):
+        """Move forward using the DVL, blocking function"""
+        if self.dvl is None:
+            print("[ERROR] DVL not available, cannot navigate")
+            return
+
+        print(f"[INFO] Moving forward {distance}m at throttle {throttle}")
+
+        # enter a local scope to handle coordinates nicely
+        with self.dvl:
+            # navigate to the target point
+            while not rospy.is_shutdown():
+                if not self.dvl.is_valid:
+                    print("[WARN] DVL data not valid, skipping")
+                    time.sleep(0.5)
+                    continue
+
+                # ensure position data is updated
+                if not self.dvl.data_available:
+                    continue
+                self.dvl.data_available = False
+
+                y = self.dvl.position[1]
+                error = distance - y
+
+                # check if we reached the target
+                if abs(error) <= 0.1:
+                    print("[INFO] Target reached")
+                    break
+                
+                forward_output = np.clip(error * 4, -throttle, throttle)
+                print(f"[DEBUG] error={error}, forward_output={forward_output}")
+
+                self.movement(forward=forward_output)
+
+    def lateral_dvl(self, throttle, distance):
+        """Move laterally using the DVL, blocking function"""
+        if self.dvl is None:
+            print("[ERROR] DVL not available, cannot navigate")
+            return
+
+        print(f"[INFO] Moving laterally {distance}m at throttle {throttle}")
+
+        # enter a local scope to handle coordinates nicely
+        with self.dvl:
+            # navigate to the target point
+            while not rospy.is_shutdown():
+                if not self.dvl.is_valid:
+                    print("[WARN] DVL data not valid, skipping")
+                    time.sleep(0.5)
+                    continue
+
+                # ensure position data is updated
+                if not self.dvl.data_available:
+                    continue
+                self.dvl.data_available = False
+
+                x = self.dvl.position[0]
+                error = distance - x
+
+                # check if we reached the target
+                if abs(error) <= 0.1:
+                    print("[INFO] Target reached")
+                    break
+                
+                lateral_output = np.clip(error * 4, -throttle, throttle)
+                print(f"[DEBUG] error={error}, lateral_output={lateral_output}")
+
+                self.movement(lateral=lateral_output)
 
     def forwardHeading(self, power, t):
         # Power 1: 7.8t+3.4 (in inches)
