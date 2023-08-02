@@ -10,7 +10,7 @@ import rospy
 
 from ..device import cvHandler
 from ..motion import robot_control
-from ..motion.servo import Servo
+from ..motion.servo import Dropper
 
 
 class BinMission:
@@ -38,8 +38,11 @@ class BinMission:
             self.cv_handler.start_cv(file_name, self.callback, dummy_camera=dummy)
 
         # init variables for the mission
-        self.servo = Servo()
+        self.dropper = Dropper()
         self.ball_count = 0
+        self.time_going_down = None
+        self.time_dropping = None
+        self.time_going_up = None
 
         print("[INFO] Template mission init")
 
@@ -75,25 +78,36 @@ class BinMission:
             lateral = self.data["bin_cv"].get("lateral", None)
             yaw = self.data["bin_cv"].get("yaw", None)
             forward = self.data["bin_cv"].get("forward", None)
-            do_drop = self.data["bin_cv"].get("drop", None)
+            is_aligned = self.data["bin_cv"].get("drop", None)
 
-            if do_drop:
-                if self.ball_count == 1:
-                    print(f"[BIN MISSION] already dropped 1 ball, 2nd drop not implemented yet")
-                    # print(f"[BIN MISSION] ending mission")
-                    # break
-                    pass
+            # we are aligned, we are moving down to get closer to the bin
+            if is_aligned and not self.time_going_down:
+                self.rc.set_depth(1.5)
+                self.time_going_down = time.time()
 
-                self.servo.dropper()
+            # we are aligned, we are dropping the ball
+            elif is_aligned and self.time_going_down - time.time() > 5:
+                self.dropper.drop()
                 self.ball_count += 1
                 print(f"[BIN MISSION] Dropping ball #{self.ball_count}")
-                continue
+                self.time_dropping = time.time()
 
-            self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
-            print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}")
+            # wait for us to see the ball drop
+            elif self.time_dropping and time.time() - self.time_dropping > 3:
+                self.rc.set_depth(0.75)
+                print("[BIN MISSION] Going up")
+                self.time_going_up = time.time()
+
+            # wait for us to go up = end of mission
+            elif self.time_going_up and time.time() - self.time_going_up > 3:
+                print("[BIN MISSION] Mission complete")
+                break
+
+            else:
+                self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
+                print(f"[BIN MISSION] lateral: {lateral}, forward: {forward}, yaw: {yaw}")
 
         self.robot_control.movement()
-        print("[INFO] Bin mission end")
 
     def cleanup(self):
         """
@@ -106,7 +120,7 @@ class BinMission:
         # idle the robot
         self.robot_control.movement()
         rospy.signal_shutdown("End of mission")
-        print("[INFO] Template mission terminate")
+        print("[INFO] Bin mission terminate")
 
 
 if __name__ == "__main__":
