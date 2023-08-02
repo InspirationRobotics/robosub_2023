@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # You can also import it in a mission file outside of the package
 
     # Create a mission object with arguments
-    mission = TemplateMission()
+    mission = CoinTossMission()
 
     # Run the mission
     mission.run()
