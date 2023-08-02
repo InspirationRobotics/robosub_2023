@@ -54,6 +54,8 @@ class BuoyMission:
         This could be a loop, a finite state machine, etc.
         """
 
+        self.rc.set_depth(2.0)
+
         while not rospy.is_shutdown():
             if not self.received:
                 continue
@@ -66,12 +68,11 @@ class BuoyMission:
             self.received = False
             self.next_data = {}
 
-            # TODO: do something with the data
             if not "buoy_cv" in self.data.keys():
                 continue
 
             if self.data["buoy_cv"].get("end", False):
-                # go forward, bump, back, up, opposite diagnol, bump, back
+                # TODO: go forward, bump, back, up, opposite diagnol, bump, back
                 self.robot_control.movement()
                 break
 
