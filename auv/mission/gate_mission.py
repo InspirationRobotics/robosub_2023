@@ -18,7 +18,7 @@ from ..utils import disarm
 class GateMission:
     cv_files = ["gate_cv"]
 
-    def __init__(self, **config):
+    def __init__(self, target, **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -36,7 +36,8 @@ class GateMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        #self.cv_handler.switch_oakd_model("gate_cv", "gate") # model is now selected in cv script itself
+        # set target for gate
+        self.cv_handler.set_target("gate_cv", target)
         print("[INFO] Gate mission init")
 
     def callback(self, msg):

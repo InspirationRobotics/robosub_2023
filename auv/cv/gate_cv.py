@@ -160,15 +160,14 @@ class CV:
             ratio = abs(detection.xmin - detection.xmax)/abs(detection.ymin-detection.ymax)
             targetConfidences.append((detection.confidence, x, detection.label, abs(detection.xmin - detection.xmax), area, ratio))
 
-        # Finding which symbol is detected with highest confidence rate
         for det_confidence, det_x, det_label, det_length, det_area, det_ratio in targetConfidences:
-            if det_label == "A":
+            if target in det_label:
                 target_x = det_x
                 target_length = det_length
                 target_area = det_area
                 target_ratio = det_ratio
 
-            if det_label == "E":
+            else:
                 other_x = det_x
                 other_length = det_length
                 other_area = det_area

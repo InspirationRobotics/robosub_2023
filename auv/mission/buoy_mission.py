@@ -26,9 +26,7 @@ class BuoyMission:
         self.data = {}  # dict to store the data from the cv handlers
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
-        self.target = "A2"
-        if "e" in target.str.lower():
-            self.target = "E2"
+        self.target = target
             
         rospy.init_node("buoy_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
