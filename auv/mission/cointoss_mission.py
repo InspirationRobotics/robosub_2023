@@ -28,7 +28,7 @@ class CoinTossMission:
 
         print("[INFO] Coin Toss mission init")
 
-    def run(self, heading, depth):
+    def run(self):
         # the coin toss mission takes two parameters: heading and depth, which it will set accordingly
 
         while not rospy.is_shutdown():
@@ -44,11 +44,12 @@ class CoinTossMission:
             self.next_data = {}
 
         print("[INFO] Coin Toss")
-
+        heading = 331
         time.sleep(1)
-        self.robot_control.set_depth(depth)  # setting depth, robot decends
-        time.sleep(5)  # wait
+        self.robot_control.set_depth(0.65)  # setting depth, robot decends
+        time.sleep(3)  # wait
         self.robot_control.set_heading(heading)  # turning to the heading
+        self.robot_control.forwardDist(5, 2)
 
     def cleanup(self):
         """
