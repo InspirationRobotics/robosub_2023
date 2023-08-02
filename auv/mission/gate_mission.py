@@ -18,7 +18,7 @@ from ..utils import disarm
 class GateMission:
     cv_files = ["gate_cv"]
 
-    def __init__(self, target, **config):
+    def __init__(self, target="abydos", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
