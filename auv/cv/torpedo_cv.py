@@ -25,8 +25,12 @@ class CV:
 
         self.reference_image_c = cv2.imread(f"{file_dir}/samples/torpedo_closed.png")
         self.reference_image_o = cv2.imread(f"{file_dir}/samples/torpedo_opened.png")
-        self.reference_image_top_opened = cv2.imread(f"{file_dir}/samples/torpedo_top_opened.png")
-        self.reference_image_top_closed = cv2.imread(f"{file_dir}/samples/torpedo_top_closed.png")
+        self.reference_image_top_opened = cv2.imread(
+            f"{file_dir}/samples/torpedo_top_opened.png"
+        )
+        self.reference_image_top_closed = cv2.imread(
+            f"{file_dir}/samples/torpedo_top_closed.png"
+        )
         assert self.reference_image_c is not None
         assert self.reference_image_o is not None
         assert self.reference_image_top_opened is not None
@@ -37,8 +41,12 @@ class CV:
         self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
-        self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
-        self.kp1_o, self.des1_o = self.sift.detectAndCompute(self.reference_image_o, None)
+        self.kp1_c, self.des1_c = self.sift.detectAndCompute(
+            self.reference_image_c, None
+        )
+        self.kp1_o, self.des1_o = self.sift.detectAndCompute(
+            self.reference_image_o, None
+        )
 
         self.kp1, self.des1 = None, None  # will be calculated later on
         self.reference_image = None  # will be determined later on
@@ -52,7 +60,7 @@ class CV:
         self.on_top = None
 
         # absolute, normalized
-        self.offset_center = 0.25
+        self.offset_center = 0.8
         self.target_coords = (0.0, 0.0)
         self.threshold = 4
         self.x_threshold = 0.1
@@ -65,15 +73,6 @@ class CV:
         self.fired1 = False
         self.fired2 = False
 
-        # initialize the known distance from the camera to the object, which
-        # in this case is 24 inches
-        self.KNOWN_DISTANCE = 60.0  # TODO find proper distance
-        # initialize the known object width, which in this case, the piece of
-        # paper is 12 inches wide
-        self.KNOWN_WIDTH = 48.0  # TODO add proper width
-        # load the furst image that contains an object that is KNOWN TO BE 2 feet
-        # from our camera, then find the paper marker in the image, and initialize
-        # the focal lengthera(KNOWN_WIDTH, focalLength, marker[1][0])
         print("[INFO] Torpedo cv Init")
 
     def equalize_clahe(self, image):
@@ -165,10 +164,7 @@ class CV:
         left_h_dist = np.linalg.norm(pts[0] - pts[3])
         right_h_dist = np.linalg.norm(pts[1] - pts[2])
         width = np.linalg.norm(pts[0] - pts[1])
-        # REVIEW: normalize the dist using FOV of the camera
-        # print(f"Width: {width}")
 
-        # TODO find the right formula for this
         yaw = math.atan((left_h_dist - right_h_dist) / (left_h_dist + right_h_dist))
         yaw = math.degrees(yaw)
         print(f"[INFO] Yaw: {yaw}")
@@ -212,19 +208,12 @@ class CV:
 
         return center_c, center_o
 
-    def distance_to_camera(self, knownWidth, focalLength, perWidth):
-        # compute and return the distance from the maker to the camera
-        return (knownWidth * focalLength) / perWidth
-
     def run(self, frame, target, detections):
         """
         Here should be all the code required to run the CV.
         This could be a loop, grabing frames using ROS, etc.
         """
-        # print("[INFO] Torpedo cv run")
         print("~~~~~~~~~~~~~~~~~~")
-
-        # print([NOT] HERE1")
 
         frame = self.equalize_clahe(frame)
 
@@ -233,27 +222,16 @@ class CV:
         yaw = 0
         end = False
 
-        # find setup (closed or opened on top)
+        # Find setup (closed or opened on top)
         if self.step == 0:
-            center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
+            center_c, center_o = self.init_find_both_centers(
+                frame, window_viz="centers"
+            )
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
-                # print("[INFO] No Vis")
-                # frame = cv2.putText(frame, "No Vis", 50,50, cv2.FONT_HERSHEY_SIMPLEX,
-                #   1, (255, 0, 0), 2, cv2.LINE_AA)
-                # return {
-                # "lateral": 0,
-                # "forward": 0,
-                # "yaw": 0,
-                # "vertical": 0,
-                # "fire1": self.fired1,
-                # "fire2": self.fired2,
-                # "end": False,
-                #  }, frame
                 return {}, frame
-            # calculate mean of the centers
-            # print([NOT] HERE2")
 
+            # calculate mean of the centers
             if len(self.center_c) > 10 and len(self.center_o) > 10:
                 mean_c = np.mean(self.center_c, axis=0)
                 mean_o = np.mean(self.center_o, axis=0)
@@ -269,29 +247,19 @@ class CV:
                     self.reference_image = self.reference_image_top_opened
 
                 # compute kp1 des1 for the desired ref image
-                self.kp1, self.des1 = self.sift.detectAndCompute(self.reference_image, None)
+                self.kp1, self.des1 = self.sift.detectAndCompute(
+                    self.reference_image, None
+                )
                 print(f"[INFO] {self.on_top} is on top")
-                # print([NOT] HERE")
-
-                # cleanup and go to next step
-                # self.center_c = []
-                # self.center_o = []
-                # self.reference_image_c = None
-                # self.reference_image_o = None
-                # self.kp1_c, self.des1_c = None, None
-                # self.kp1_o, self.des1_o = None, None
                 cv2.destroyAllWindows()
-
                 self.step = 1
 
             else:
                 self.center_c.append(center_c)
                 self.center_o.append(center_o)
 
-        # yaw and lateral to align with the torpedo
-
+        # Yaw and lateral to align with the torpedo
         elif self.step == 1:
-            # print([NOT] HERE4")
             self.aligned = True
             forward = 0
             lateral = 0
@@ -310,23 +278,33 @@ class CV:
 
             center = self.get_center(H, self.reference_image.shape, norm=True)
 
-
             cent = self.get_center(H, self.reference_image.shape)
-            
+
+            # Draw a visual target
+            if self.on_top == "open":
+                if self.fired1:
+                    self.offset_center = 0.8
+                elif not self.fired1:
+                    self.offset_center = -0.8
+            if self.on_top == "closed":
+                if self.fired1:
+                    self.offset_center = -0.8
+                elif not self.fired1:
+                    self.offset_center = 0.8
+
+            target = [cent[0], int((center[1] - self.offset_center) * 240 + 240)]
             cv2.circle(
                 frame,
-                center=(cent[0], cent[1]),
+                center=(target[0], target[1]),
                 radius=1,
                 color=(0, 0, 255),
                 thickness=3,
             )
 
-            # print(f"Height: {h}, Width: {w}")
-
             yaw, dist = self.get_orientation(H, self.reference_image.shape)
 
             if not yaw:
-                print("[WARN] no yaw")
+                print("[WARN] No yaw")
 
             if -self.threshold <= yaw <= self.threshold:
                 # Aligned enough that we don't need to yaw
@@ -342,14 +320,9 @@ class CV:
                 yaw = -1
                 self.aligned = False
 
-            # print(f"[INFO] Yaw: {yaw}")
-
-            # center_c, center_o = self.init_find_both_centers(
-            #     frame, window_viz="centers"
-            # )
             print(f"[INFO] Centers: {center}")
+            print(f"[INFO] Dist: {dist}")
 
-            # 240,320
             cv2.circle(
                 frame,
                 center=(320, 240),
@@ -357,101 +330,76 @@ class CV:
                 color=(0, 255, 0),
                 thickness=3,
             )
-            # print([NOT] HERE6")
 
-            # center = center_c
-            if self.fired1 and self.on_top == "open" or not self.fired1 and self.on_top == "closed":
+            # Define the offset for the different targets
+            if (
+                self.fired1
+                and self.on_top == "open"
+                or not self.fired1
+                and self.on_top == "closed"
+            ):
                 center[1] += self.offset_center
 
-            elif self.fired1 and self.on_top == "closed" or not self.fired1 and self.on_top == "open":
+            elif (
+                self.fired1
+                and self.on_top == "closed"
+                or not self.fired1
+                and self.on_top == "open"
+            ):
                 center[1] -= self.offset_center
 
-            # print([NOT] HERE7")
-
             if center is not None:
-                # print(f"[INFO] X: {center[0]}\nY:{center[1]}")
-                if center[0] > 0 + self.x_threshold:
+                if target[0] > 0 + self.x_threshold:
                     # Strafe Right
                     print("[INFO] Right")
                     lateral = 1
                     self.aligned = False
 
-                elif center[0] < 0 - self.x_threshold:
+                elif target[0] < 0 - self.x_threshold:
                     # Strafe Left
                     print("[INFO] Left")
                     lateral = -1
                     self.aligned = False
 
-                if center[1] > 0 + self.y_threshold:
+                if target[1] > 0 + self.y_threshold:
                     # Dive
                     print("[INFO] Dive")
                     self.depth += 0.02
                     self.aligned = False
 
-                elif center[1] < 0 - self.y_threshold:
+                elif target[1] < 0 - self.y_threshold:
                     # Ascent
                     print("[INFO] Ascend")
                     self.depth -= 0.02
                     self.aligned = False
 
-                # print([NOT] HERE8")
-            # elif center is None:
-            # print("[WARN] center is none")
-
             if self.aligned:
-                # print([NOT] HERE9")
-
-                # print(f"[INFO] Distance to target: {distance_to_target}")
-
                 # Check distance from object
                 # Now can fire or move forward
-                print(f"Dist: {dist}")
+
                 if dist > self.firing_range:
                     # Too far from target
                     print("[INFO] Aligned, moving forward")
                     forward = 1
 
-                    # print([NOT] HERE10")
-
-                elif dist <= self.firing_range:
+                elif dist >= self.firing_range:
                     # Fire
                     if not self.fired1:
-                        print("[Info] Fire torpedo 1")
+                        print("[INFO] Fire torpedo 1")
                         self.fired1 = True
 
-                    elif self.fired1:
-                        print("[Info] Fire torpedo 2")
+                    elif self.fired1 and self.counter > 100:
+                        print("[INFO] Fire torpedo 2")
                         self.fired2 = True
                         end = True
-                        print("[Info] Mission complete")
+                        print("[INFO] Mission complete")
 
-                if self.fired1 and self.counter <= 50:
-                    print("[Info] Backing up to align with closed target")
+                if self.fired1 and self.counter <= 100:
+                    print("[INFO] Backing up to align with closed target")
                     forward = -1
                     self.counter += 1
+                    print("[INFO] Counter: {counter}")
 
-                # print([NOT] HERE 11")
-
-            # print([NOT] HERE 12")
-
-            # print([NOT] HERE 11")
-
-            # print([NOT] HERE 12")
-
-            # print(f"[INFO] Yaw: {yaw}")
-
-            # frame = cv2.circle(
-            #     frame, (int(center[0]), int(center[1])), 5, (0, 0, 255), -1
-            # )
-
-            ##print([NOT] HERE 13")
-
-            # if self.on_top == "closed":
-            #     self.target_coords = (0.0, -self.offset_center)
-
-            ##print([NOT] HERE 14")
-
-        # print([NOT] HERE END")
         return {
             "lateral": lateral,
             "forward": forward,
