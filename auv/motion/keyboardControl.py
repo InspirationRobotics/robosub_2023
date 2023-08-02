@@ -28,9 +28,13 @@ flag = True
 
 
 def sendData():
+    idle = False
     while flag:
-        time.sleep(0.05)
-        rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
+        if not idle:
+            rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
+            time.sleep(0.05)
+        if forward == 0 and lateral == 0 and yaw == 0:
+            idle = True
 
 
 thread_mov = threading.Thread(target=sendData)
