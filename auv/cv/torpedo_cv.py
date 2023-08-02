@@ -125,7 +125,7 @@ class CV:
                 None,
                 flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
             )
-            #cv2.imshow(window_viz, img)
+            cv2.imshow(window_viz, img)
         return H
 
     def get_center(self, H, src_shape, norm=False):
@@ -301,6 +301,18 @@ class CV:
                 return {}, None
 
             center = self.get_center(H, self.reference_image.shape, norm=True)
+
+
+            cent = self.get_center(H, self.reference_image.shape)
+            
+            cv2.circle(
+                frame,
+                center=(cent[0], cent[1]),
+                radius=1,
+                color=(0, 0, 255),
+                thickness=3,
+            )
+
             # print(f"Height: {h}, Width: {w}")
 
             yaw, dist = self.get_orientation(H, self.reference_image.shape)
@@ -469,7 +481,7 @@ if __name__ == "__main__":
         # print(f"[INFO] {result}")
 
         # show the frame
-        #if img_viz is not None:
-            #cv2.imshow("viz", img_viz)
+        if img_viz is not None:
+            cv2.imshow("viz", img_viz)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
