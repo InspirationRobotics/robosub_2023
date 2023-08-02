@@ -28,7 +28,7 @@ class StyleMission:
 
         print("[INFO] style_mission init")
 
-    def run(self, heading):
+    def run(self):
         while not rospy.is_shutdown():
             if not self.received:
                 continue
@@ -43,9 +43,9 @@ class StyleMission:
 
         print("[INFO] Style mission run")
 
-        self.robot_control.movement(yaw=3)  # turn
+        self.robot_control.movement(yaw=2)  # turn
         time.sleep(8)  # keep turning
-        self.robot_control.set_heading(heading)  # return to heading
+        self.robot_control.movement(yaw=0)
 
     def cleanup(self):
         """

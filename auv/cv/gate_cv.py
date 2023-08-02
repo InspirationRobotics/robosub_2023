@@ -234,7 +234,7 @@ class CV:
                 message = "BACK IN FRAME"
                 self.outPrev = False
 
-            lateral = np.clip(lateral * dist * 4.5, -1, 1)
+            lateral = np.clip(lateral * dist * 5.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"
