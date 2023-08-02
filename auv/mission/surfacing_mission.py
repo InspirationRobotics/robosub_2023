@@ -30,7 +30,6 @@ class SurfacingMission:
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
 
-        rospy.init_node("surfacing_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
 
@@ -125,6 +124,8 @@ if __name__ == "__main__":
             # "cv_dummy": ["/somepath/thisisavideo.mp4"],
         }
     )
+
+    rospy.init_node("surfacing_mission", anonymous=True)
 
     # Create a mission object with arguments
     mission = SurfacingMission(**config)

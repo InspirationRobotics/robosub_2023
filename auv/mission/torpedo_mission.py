@@ -30,7 +30,6 @@ class TorpedoMission:
         self.torpedo_1_fired = False
         self.torpedo_2_fired = False
 
-        rospy.init_node("torpedo_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
 
@@ -133,6 +132,8 @@ if __name__ == "__main__":
     # You can also import it in a mission file outside of the package
     import time
     from auv.utils import deviceHelper
+
+    rospy.init_node("torpedo_mission", anonymous=True)
 
     config = deviceHelper.variables
     config.update(

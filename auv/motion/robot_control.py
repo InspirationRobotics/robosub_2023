@@ -10,20 +10,21 @@ from .utils import get_distance, get_heading_from_coords, heading_error, rotate_
 from ..utils import deviceHelper
 from ..device.dvl import dvl
 import math
+import numpy as np
 
 config = deviceHelper.variables
 
 class RobotControl:
     """Class to control the robot"""
 
-    def __init__(self, dvl=True):
+    def __init__(self, enable_dvl=True):
         # init some variables
         self.config = config
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
         # dvl sensor setup (both subs)
-        if dvl:
+        if enable_dvl:
             self.dvl = dvl.DVL()
             self.dvl.start()
         else:
@@ -367,7 +368,9 @@ class RobotControl:
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
-        self.backStop(pwm, t)
+
+        # TODO: cleanup this shit
+        # self.backStop(pwm, t)
 
     # universal backstop that is given pwm to reduce and overall time of movement which calculates inertia and sends commands/pwms for thrust in the negative direction for backstopping
     def backStop(self, pwm, t):

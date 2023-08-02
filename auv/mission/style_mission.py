@@ -24,7 +24,6 @@ class StyleMission:
         """
         self.config = config
 
-        rospy.init_node("style_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
 
         print("[INFO] style_mission init")
@@ -65,6 +64,7 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
     
+    rospy.init_node("style_mission", anonymous=True)
     # Create a mission object with arguments
     mission = StyleMission()
 

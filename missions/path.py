@@ -4,6 +4,9 @@ import time
 from auv.mission import path_mission
 from auv.utils import arm, deviceHelper
 
+import rospy
+rospy.init_node("missions", anonymous=True)
+
 # load sub config
 config = deviceHelper.variables
 
