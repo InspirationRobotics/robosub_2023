@@ -83,7 +83,7 @@ class GateMission:
                 print("Ending...")
                 self.robot_control.movement(lateral=-0.3)
                 self.robot_control.forwardDist(6, 2)
-                self.robot_control.movement(lateral=0)
+                self.robot_control.movement(lateral=0, yaw=0, forward=0)
                 break
             else:
                 self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
@@ -100,7 +100,6 @@ class GateMission:
             self.cv_handler.stop_cv(file_name)
 
         self.robot_control.movement(lateral=0, forward=0, yaw=0)
-        disarm.disarm()
         print("[INFO] Gate mission terminate")
 
 
