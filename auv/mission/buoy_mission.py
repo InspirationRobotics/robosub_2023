@@ -16,7 +16,7 @@ from ..motion import robot_control
 class BuoyMission:
     cv_files = ["buoy_cv"]
 
-    def __init__(self, target, **config):
+    def __init__(self, target="A2", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
