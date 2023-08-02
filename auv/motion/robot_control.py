@@ -96,7 +96,7 @@ class RobotControl:
         rel_depth = Float64()
         rel_depth.data = delta_depth
         self.pub_rel_depth.publish(rel_depth)
-        print(f"[INFO] Changing Depth relatively by {delta_depth}")
+        print(f"[INFO] Changing Depth relatively by {delta_depth}, current {self.depth}")
 
     def movement(
         self,

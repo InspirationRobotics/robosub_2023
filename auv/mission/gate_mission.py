@@ -18,7 +18,7 @@ from ..utils import disarm
 class GateMission:
     cv_files = ["gate_cv"]
 
-    def __init__(self, **config):
+    def __init__(self, target="abydos", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -36,7 +36,8 @@ class GateMission:
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        #self.cv_handler.switch_oakd_model("gate_cv", "gate") # model is now selected in cv script itself
+        # set target for gate
+        self.cv_handler.set_target("gate_cv", target)
         print("[INFO] Gate mission init")
 
     def callback(self, msg):
@@ -80,7 +81,9 @@ class GateMission:
             # direcly feed the cv output to the robot control
             if(end):
                 print("Ending...")
-                self.robot_control.forwardDist(6, 3)
+                self.robot_control.movement(lateral=-0.3)
+                self.robot_control.forwardDist(6, 2)
+                self.robot_control.movement(lateral=0, yaw=0, forward=0)
                 break
             else:
                 self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw)
@@ -97,7 +100,6 @@ class GateMission:
             self.cv_handler.stop_cv(file_name)
 
         self.robot_control.movement(lateral=0, forward=0, yaw=0)
-        disarm.disarm()
         print("[INFO] Gate mission terminate")
 
 

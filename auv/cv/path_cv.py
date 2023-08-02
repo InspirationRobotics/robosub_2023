@@ -10,7 +10,7 @@ import time
 import cv2
 import numpy as np
 
-from ..utils import deviceHelper
+# from ..utils import deviceHelper
 
 class CV:
     """Template CV class, don't change the name of the class"""
@@ -24,13 +24,14 @@ class CV:
         config is a dictionnary containing the config of the sub
         """
         # self.config = config
-        self.config = deviceHelper.variables
+        # self.config = deviceHelper.variables
         self.aligned = False
-        self.current_sub = self.config.get("sub", "graey")
-        if self.current_sub == "graey":
-            self.camera = "/auv/camera/videoUSBRaw1"
-        elif self.current_sub == "onyx":
-            self.camera = "/auv/camera/videoOAKdRawBottom"
+        self.state = "strafe"
+        # self.current_sub = self.config.get("sub", "graey")
+        # if self.current_sub == "graey":
+        #     self.camera = "/auv/camera/videoUSBRaw1"
+        # elif self.current_sub == "onyx":
+        #     self.camera = "/auv/camera/videoOAKdRawBottom"
         print("[INFO] Template CV init")
 
     def equalizeHist(self, frame):
@@ -41,6 +42,15 @@ class CV:
         frame = cv2.merge((frame_b, frame_g, frame_r))
         return frame
 
+    def alignMidpoint(self, midpoint, tolerance):
+        if midpoint < 320 - tolerance:
+            lateral = -1
+        elif midpoint > 320 + tolerance:
+            lateral = 1
+        else:
+            lateral=0
+        
+        return lateral
     def run(self, frame, target, oakdData=None):
         """
         frame: the frame from the camera
@@ -67,13 +77,16 @@ class CV:
         # for more range
         # L_limit = np.array([3, 25, 20])
         # U_limit = np.array([50, 255, 255])
+        kernel = np.ones((5, 5), np.uint8)
 
         orange=cv2.inRange(into_hsv,L_limit,U_limit)
-        # edges = cv2.Canny(gray, threshold1=200, threshold2=100)
+        edges = cv2.Canny(gray, threshold1=100, threshold2=200)
+        ret, thresh3 = cv2.threshold(edges, 230, 255, cv2.THRESH_BINARY)
+        ret2, thresh3 = cv2.threshold(thresh3, 1, 255, cv2.THRESH_OTSU)
+        cv2.imshow("edges", thresh3)
         # Removing Noise
-        kernel = np.ones((5, 5), np.uint8)
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
-
+        time.sleep(0.2)
         # Blur and Threshold 
         orange = cv2.GaussianBlur(orange, (11, 11), 0)
         ret, thresh = cv2.threshold(orange, 230, 255, cv2.THRESH_BINARY)
@@ -82,7 +95,7 @@ class CV:
         ret2, thresh2 = cv2.threshold(blur, 1, 255, cv2.THRESH_OTSU)
 
         # Find Contours
-        contours, heirarchy = cv2.findContours(orange, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, heirarchy = cv2.findContours(thresh3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(frame, contours, -1, 255, 3)
 
         yaw = lateral = forward = 0
@@ -112,18 +125,24 @@ class CV:
 
             # Calculate slope
             slope = (lefty - righty) / (0 - (cols - 1))
-            print(slope)
             # cv2.putText(frame, str(slope), (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-
+            dist = abs(cx - 320) / 320
+            if(self.state == "strafe"):
+                lateral = self.alignMidpoint(cx, 20)
+                if(lateral == 0):
+                    self.state = "yaw"
+                else:
+                    lateral = np.clip(lateral * dist * 4, -1, 1)
             # Movement Decisions
-            if -10 < slope < 0:
-                print("yaw clockwise")
-                yaw = 0.7
-            elif 0 < slope < 10:
-                print("yaw counter-clockwise")
-                yaw = -0.7
-            else:
-                forward=2
+            elif(self.state == "yaw"):
+                if -10 < slope < 0:
+                    print("yaw clockwise")
+                    yaw = 0.65
+                elif 0 < slope < 10:
+                    print("yaw counter-clockwise")
+                    yaw = -0.65
+                else:
+                    forward=2
                 
         elif self.aligned == True:
             end = True
@@ -141,7 +160,7 @@ if __name__ == "__main__":
     # Create a CV object with arguments
     cv = CV()
 
-    cap = cv2.VideoCapture("../../testing_data/pvid.MOV")
+    cap = cv2.VideoCapture("../../testing_data/path_footage.MKV")
 
     while True:
         ret, img = cap.read()
@@ -149,7 +168,7 @@ if __name__ == "__main__":
             break
 
         # set the frame
-        img = cv2.resize(img, (480, 640))
+        img = cv2.resize(img, (640, 480))
 
         # run the CV
         result, img_viz = cv.run(img, None, None)

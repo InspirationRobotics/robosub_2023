@@ -96,6 +96,16 @@ class CV:
             lateral = 0
         return lateral
 
+    # def alignMidpointYaw(self, midpoint, tolerance):
+    #     if midpoint < self.CENTER_FRAME_X - tolerance:
+    #         yaw = -1
+    #     elif midpoint > self.CENTER_FRAME_X + tolerance:
+    #         yaw = 1
+    #     else:
+    #         yaw=0
+        
+    #     return yaw
+    
     def outFrameYaw(self, target_x, other_x, tolerance):
         if(target_x < other_x and 0<target_x<tolerance):
             yaw=1
@@ -160,15 +170,14 @@ class CV:
             ratio = abs(detection.xmin - detection.xmax)/abs(detection.ymin-detection.ymax)
             targetConfidences.append((detection.confidence, x, detection.label, abs(detection.xmin - detection.xmax), area, ratio))
 
-        # Finding which symbol is detected with highest confidence rate
         for det_confidence, det_x, det_label, det_length, det_area, det_ratio in targetConfidences:
-            if det_label == "E":
+            if target in det_label:
                 target_x = det_x
                 target_length = det_length
                 target_area = det_area
                 target_ratio = det_ratio
 
-            if det_label == "A":
+            else:
                 other_x = det_x
                 other_length = det_length
                 other_area = det_area
@@ -186,9 +195,14 @@ class CV:
             if(target_area > 650):
                 message = "TOO CLOSE! GOING BACKWARD"
                 forward = -1
-            elif(target_area<330):
+            elif(target_area<310):
                 message = "TOO FAR! GOING FORWARD"
                 forward = 1
+                # if(len(detections) == 2):
+                #     midpoint = (target_x + other_x)/2
+                #     dist = abs(midpoint - 320) / 320
+                #     yaw = self.alignMidpointYaw(midpoint, 20)
+                #     yaw = np.clip(yaw * dist * 4, -1, 1)       
             else:
                 self.state = "strafe"
                 message = "JUST RIGHT! BEGINNING STRAFE/YAW"

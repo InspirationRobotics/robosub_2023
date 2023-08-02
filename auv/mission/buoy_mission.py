@@ -16,7 +16,7 @@ from ..motion import robot_control
 class BuoyMission:
     cv_files = ["buoy_cv"]
 
-    def __init__(self, **config):
+    def __init__(self, target="A2", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -26,7 +26,8 @@ class BuoyMission:
         self.data = {}  # dict to store the data from the cv handlers
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
-
+        self.target = target
+            
         rospy.init_node("buoy_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
@@ -53,6 +54,8 @@ class BuoyMission:
         This could be a loop, a finite state machine, etc.
         """
 
+        self.rc.set_depth(2.0)
+
         while not rospy.is_shutdown():
             if not self.received:
                 continue
@@ -65,16 +68,15 @@ class BuoyMission:
             self.received = False
             self.next_data = {}
 
-            # TODO: do something with the data
             if not "buoy_cv" in self.data.keys():
                 continue
 
             if self.data["buoy_cv"].get("end", False):
-                # idle the robot
+                # TODO: go forward, bump, back, up, opposite diagnol, bump, back
                 self.robot_control.movement()
                 break
 
-            self.cv_handler.set_target("buoy_cv", "A2")
+            self.cv_handler.set_target("buoy_cv", self.target)
             lateral = self.data["buoy_cv"].get("lateral", None)
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)

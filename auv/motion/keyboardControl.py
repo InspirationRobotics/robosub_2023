@@ -13,7 +13,8 @@ rospy.init_node("Keyboard", anonymous=True)
 
 arm.arm()
 rc = RobotControl()
-rc.set_depth(0.55)
+data = input(f"current depth {rc.depth}, Enter absolute depth\n")
+rc.set_depth(float(data))
 
 sub = deviceHelper.variables.get("sub")
 if sub == "onyx":
@@ -27,9 +28,17 @@ flag = True
 
 
 def sendData():
+    idle = False
     while flag:
-        time.sleep(0.05)
-        rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
+        if not idle:
+            rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
+            time.sleep(0.05)
+
+        # wanna make sure we do send a stop command before idling
+        if forward == 0 and lateral == 0 and yaw == 0:
+            idle = True
+        else:
+            idle = False
 
 
 thread_mov = threading.Thread(target=sendData)
@@ -56,12 +65,18 @@ while flag:
         elif var == "l":
             yaw = 1
         elif var == "z":
-            rc.set_depth(rc.depth - 0.1)
+            rc.set_relative_depth(-0.3)
         elif var == "x":
-            rc.set_depth(rc.depth + 0.1)
+            rc.set_relative_depth(0.3)
+        elif var == "c":
+            data = input("Enter absolute depth\n")
+            rc.set_depth(float(data))
         elif var == "t" and sub == "onyx":
             servo.torpedo()
             pass
+        elif var == "u":
+            dist = input("Enter distance to move forward\n")
+            rc.forward_dvl(2, float(dist))
         elif var == "b" and sub == "onyx":
             servo.dropper()
             pass
