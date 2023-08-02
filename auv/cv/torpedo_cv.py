@@ -12,16 +12,6 @@ import cv2
 import numpy as np
 
 
-def equilize(img):
-    """Equilize the histogram of the image"""
-    b, g, r = cv2.split(img)
-    b = cv2.equalizeHist(b)
-    g = cv2.equalizeHist(g)
-    r = cv2.equalizeHist(r)
-    return cv2.merge((b, g, r))
-
-file_dir = os.path.dirname(os.path.abspath(__file__))
-
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -44,6 +34,7 @@ class CV:
         self.ref_c_shape = self.reference_image_c.shape
         self.ref_o_shape = self.reference_image_o.shape
 
+        self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
         self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
@@ -68,6 +59,7 @@ class CV:
         self.y_threshold = 0.1
         self.depth = 0.35
 
+        self.counter = 0
         self.aligned = True
         self.firing_range = 950
         self.fired1 = False
@@ -83,6 +75,22 @@ class CV:
         # from our camera, then find the paper marker in the image, and initialize
         # the focal lengthera(KNOWN_WIDTH, focalLength, marker[1][0])
         print("[INFO] Torpedo cv Init")
+
+    def equalize_clahe(self, image):
+        """Equalize the histogram of the image"""
+        b, g, r = cv2.split(image)
+        b = self.clahe.apply(b)
+        g = self.clahe.apply(g)
+        r = self.clahe.apply(r)
+        return cv2.merge((b, g, r))
+
+    def equilize(img):
+        """Equilize the histogram of the image"""
+        b, g, r = cv2.split(img)
+        b = cv2.equalizeHist(b)
+        g = cv2.equalizeHist(g)
+        r = cv2.equalizeHist(r)
+        return cv2.merge((b, g, r))
 
     def process_sift(
         self,
@@ -125,7 +133,7 @@ class CV:
                 None,
                 flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
             )
-            #cv2.imshow(window_viz, img)
+            # cv2.imshow(window_viz, img)
         return H
 
     def get_center(self, H, src_shape, norm=False):
@@ -200,7 +208,7 @@ class CV:
             # draw the center
             cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
             cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
-            cv2.imshow(window_viz, img)
+            # cv2.imshow(window_viz, img)
 
         return center_c, center_o
 
@@ -218,7 +226,7 @@ class CV:
 
         # print([NOT] HERE1")
 
-        # frame = equilize(frame)
+        frame = self.equalize_clahe(frame)
 
         forward = 0
         lateral = 0
@@ -242,7 +250,7 @@ class CV:
                 # "fire2": self.fired2,
                 # "end": False,
                 #  }, frame
-                return {}, None
+                return {}, frame
             # calculate mean of the centers
             # print([NOT] HERE2")
 
@@ -298,7 +306,7 @@ class CV:
             )
             if H is None:
                 # skip (maybe go forward a bit)
-                return {}, None
+                return {}, frame
 
             center = self.get_center(H, self.reference_image.shape, norm=True)
             # print(f"Height: {h}, Width: {w}")
@@ -405,20 +413,16 @@ class CV:
                         end = True
                         print("[Info] Mission complete")
 
-                    
-
-                if self.fired1 and counter <= 50:
+                if self.fired1 and self.counter <= 50:
                     print("[Info] Backing up to align with closed target")
                     forward = -1
-                    counter += 1
-                
-                #print([NOT] HERE 11")
-
-
-            #print([NOT] HERE 12")
-
+                    self.counter += 1
 
                 # print([NOT] HERE 11")
+
+            # print([NOT] HERE 12")
+
+            # print([NOT] HERE 11")
 
             # print([NOT] HERE 12")
 
@@ -456,7 +460,7 @@ if __name__ == "__main__":
     cv = CV()
 
     # here you can for example initialize your camera, etc
-    cap = cv2.VideoCapture("testing_data/TRANSDEC1.mp4")
+    cap = cv2.VideoCapture("testing_data/Torpedo4.mp4")
 
     while True:
         # grab a frame
@@ -470,7 +474,8 @@ if __name__ == "__main__":
         # print(f"[INFO] {result}")
 
         # show the frame
-        #if img_viz is not None:
-            #cv2.imshow("viz", img_viz)
+        if img_viz is not None:
+            cv2.imshow("viz", img_viz)
+
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
