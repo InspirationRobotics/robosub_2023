@@ -33,8 +33,12 @@ def sendData():
         if not idle:
             rc.movement(forward=forward, lateral=lateral, yaw=yaw, pitch=0, roll=0)
             time.sleep(0.05)
+
+        # wanna make sure we do send a stop command before idling
         if forward == 0 and lateral == 0 and yaw == 0:
             idle = True
+        else:
+            idle = False
 
 
 thread_mov = threading.Thread(target=sendData)
