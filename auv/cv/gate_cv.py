@@ -96,15 +96,15 @@ class CV:
             lateral = 0
         return lateral
 
-    # def alignMidpointYaw(self, midpoint, tolerance):
-    #     if midpoint < self.CENTER_FRAME_X - tolerance:
-    #         yaw = -1
-    #     elif midpoint > self.CENTER_FRAME_X + tolerance:
-    #         yaw = 1
-    #     else:
-    #         yaw=0
+    def alignMidpointYaw(self, midpoint, tolerance):
+        if midpoint < self.CENTER_FRAME_X - tolerance:
+            yaw = -1
+        elif midpoint > self.CENTER_FRAME_X + tolerance:
+            yaw = 1
+        else:
+            yaw=0
         
-    #     return yaw
+        return yaw
     
     def outFrameYaw(self, target_x, other_x, tolerance):
         if(target_x < other_x and 0<target_x<tolerance):
@@ -198,11 +198,11 @@ class CV:
             elif(target_area<310):
                 message = "TOO FAR! GOING FORWARD"
                 forward = 1
-                # if(len(detections) == 2):
-                #     midpoint = (target_x + other_x)/2
-                #     dist = abs(midpoint - 320) / 320
-                #     yaw = self.alignMidpointYaw(midpoint, 20)
-                #     yaw = np.clip(yaw * dist * 4, -1, 1)       
+                if(len(detections) == 2):
+                    midpoint = (target_x + other_x)/2
+                    dist = abs(midpoint - 320) / 320
+                    yaw = self.alignMidpointYaw(midpoint, 20)
+                    yaw = np.clip(yaw * dist * 4, -1, 1)       
             else:
                 self.state = "strafe"
                 message = "JUST RIGHT! BEGINNING STRAFE/YAW"
@@ -234,7 +234,7 @@ class CV:
                 message = "BACK IN FRAME"
                 self.outPrev = False
 
-            lateral = np.clip(lateral * dist * 4, -1, 1)
+            lateral = np.clip(lateral * dist * 4.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"

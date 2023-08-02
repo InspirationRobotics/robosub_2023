@@ -10,7 +10,7 @@ import time
 import cv2
 import numpy as np
 
-# from ..utils import deviceHelper
+from ..utils import deviceHelper
 
 class CV:
     """Template CV class, don't change the name of the class"""
@@ -23,15 +23,15 @@ class CV:
         setup here everything that will be needed for the run fonction
         config is a dictionnary containing the config of the sub
         """
-        # self.config = config
-        # self.config = deviceHelper.variables
+        self.config = config
+        self.config = deviceHelper.variables
         self.aligned = False
         self.state = "strafe"
-        # self.current_sub = self.config.get("sub", "graey")
-        # if self.current_sub == "graey":
-        #     self.camera = "/auv/camera/videoUSBRaw1"
-        # elif self.current_sub == "onyx":
-        #     self.camera = "/auv/camera/videoOAKdRawBottom"
+        self.current_sub = self.config.get("sub", "graey")
+        if self.current_sub == "graey":
+            self.camera = "/auv/camera/videoUSBRaw1"
+        elif self.current_sub == "onyx":
+            self.camera = "/auv/camera/videoOAKdRawBottom"
         print("[INFO] Template CV init")
 
     def equalizeHist(self, frame):
@@ -83,7 +83,7 @@ class CV:
         edges = cv2.Canny(gray, threshold1=100, threshold2=200)
         ret, thresh3 = cv2.threshold(edges, 230, 255, cv2.THRESH_BINARY)
         ret2, thresh3 = cv2.threshold(thresh3, 1, 255, cv2.THRESH_OTSU)
-        cv2.imshow("edges", thresh3)
+        # cv2.imshow("edges", thresh3)
         # Removing Noise
         orange = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
         time.sleep(0.2)

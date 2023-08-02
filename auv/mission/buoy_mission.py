@@ -28,7 +28,6 @@ class BuoyMission:
         self.received = False
         self.target = target
             
-        rospy.init_node("buoy_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
 
@@ -109,6 +108,8 @@ if __name__ == "__main__":
     # You can also import it in a mission file outside of the package
     import time
     from auv.utils import deviceHelper
+
+    rospy.init_node("buoy_mission", anonymous=True)
 
     config = deviceHelper.variables
     config.update(

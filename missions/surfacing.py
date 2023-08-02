@@ -3,6 +3,9 @@ import time
 from auv.mission import surfacing_mission
 from auv.utils import arm, disarm, deviceHelper
 
+import rospy
+rospy.init_node("missions", anonymous=True)
+
 # load sub config
 config = deviceHelper.variables
 arm.arm()

@@ -3,6 +3,8 @@ import signal
 import threading
 import time
 
+import numpy as np
+
 import serial
 
 from ...utils import deviceHelper
@@ -133,10 +135,10 @@ class DVL:
             seconds = int(TS[1][10:12])
             minutes = int(TS[1][8:10]) * 60
             hours = int(TS[1][6:8]) * 60 * 60
-            time = hours + minutes + seconds + milli
+            t = hours + minutes + seconds + milli
 
             # this is the only data we need
-            data["time"] = time
+            data["time"] = t
             data["vx"] = int(BS[1]) / 1000
             data["vy"] = int(BS[2]) / 1000
             data["vz"] = int(BS[3]) / 1000

@@ -24,7 +24,6 @@ class CoinTossMission:
         """
         self.config = config
 
-        rospy.init_node("coin_toss", anonymous=True)
         self.robot_control = robot_control.RobotControl()
 
         print("[INFO] Coin Toss mission init")
@@ -68,6 +67,7 @@ if __name__ == "__main__":
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
 
+    rospy.init_node("coin_toss", anonymous=True)
     # Create a mission object with arguments
     mission = CoinTossMission()
 

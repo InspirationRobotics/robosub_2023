@@ -29,7 +29,6 @@ class GateMission:
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
 
-        rospy.init_node("gate_mission", anonymous=True)
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
         # init the cv handlers
@@ -79,7 +78,7 @@ class GateMission:
             #if any(i == None for i in (lateral, forward, yaw)):
             #    continue
             # direcly feed the cv output to the robot control
-            if(end):
+            if end:
                 print("Ending...")
                 self.robot_control.movement(lateral=-0.3)
                 self.robot_control.forwardDist(6, 2)
@@ -111,6 +110,7 @@ if __name__ == "__main__":
     import time
     from auv.utils import deviceHelper
 
+    rospy.init_node("gate_mission", anonymous=True)
     config = deviceHelper.variables
     config.update(
         {
@@ -124,5 +124,4 @@ if __name__ == "__main__":
 
     # Run the mission
     mission.run()
-    time.sleep(2)
     mission.cleanup()
