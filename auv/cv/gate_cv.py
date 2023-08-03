@@ -108,13 +108,13 @@ class CV:
     
     def outFrameYaw(self, target_x, other_x, tolerance):
         if(target_x < other_x and 0<target_x<tolerance):
-            yaw=1
+            yaw=0.65
         elif(other_x < target_x and 0<other_x<tolerance):
-            yaw=1
+            yaw=0.65
         elif(target_x < other_x and ((640-tolerance)<other_x<640)):
-            yaw = -1
+            yaw = -0.65
         elif(other_x < target_x and ((640-tolerance)<target_x<640)):
-            yaw = -1
+            yaw = -0.65
         else:
             yaw = 0
         return yaw
@@ -198,11 +198,11 @@ class CV:
             elif(target_area<310):
                 message = "TOO FAR! GOING FORWARD"
                 forward = 1
-                if(len(detections) == 2):
-                    midpoint = (target_x + other_x)/2
-                    dist = abs(midpoint - 320) / 320
-                    yaw = self.alignMidpointYaw(midpoint, 20)
-                    yaw = np.clip(yaw * dist * 4, -1, 1)       
+                # if(len(detections) == 2):
+                #     midpoint = (target_x + other_x)/2
+                #     dist = abs(midpoint - 320) / 320
+                #     yaw = self.alignMidpointYaw(midpoint, 20)
+                #     yaw = np.clip(yaw * dist * 4, -1, 1)       
             else:
                 self.state = "strafe"
                 message = "JUST RIGHT! BEGINNING STRAFE/YAW"
@@ -228,10 +228,12 @@ class CV:
             latval = self.outFrameLateral(target_x, other_x, 50)
             if(latval!=0 and self.outPrev==False):
                 message = "OUT OF FRAME"
+                cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.state = "yaw"
                 self.outPrev = True
             if(latval==0 and self.outPrev):
                 message = "BACK IN FRAME"
+                cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.outPrev = False
 
             lateral = np.clip(lateral * dist * 5.5, -1, 1)
@@ -252,16 +254,18 @@ class CV:
                 self.flag[1] = True
                 message = "FINISHED YAW"
                 self.state ="target"
-            yawval = self.outFrameYaw(target_x, other_x, 20)
+            yawval = self.outFrameYaw(target_x, other_x, 50)
             if(yawval!=0 and self.outPrev==False):
                 message = "OUT OF FRAME"
+                cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.outPrev = True
                 self.state = "strafe"
             if(yawval==0 and self.outPrev):
                 message = "BACK IN FRAME"
+                cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.outPrev = False
             
-            yaw = np.clip(yaw * r * 4, -0.65, 0.65)
+            yaw = np.clip(yaw * r * 3, -0.65, 0.65)
             cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
         if(self.state=="target"):
             message = "ALIGNING WITH TARGET IMAGE"

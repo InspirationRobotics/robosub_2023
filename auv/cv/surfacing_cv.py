@@ -89,7 +89,7 @@ class CV:
 
         # get coordinates of each symbols
         coords = [(d.xmin + d.xmax) / 2 + (d.ymin + d.ymax) / 2 for d in symbols.values()]
-        xc, yc, r, sigma = circle_fit.taubinSVD(coords)
+        xc, yc, r, sigma = taubinSVD(coords)
 
         cv2.circle(self.viz_frame, (int(xc), int(yc)), int(r), (0, 0, 255), 2)
         return xc, yc
