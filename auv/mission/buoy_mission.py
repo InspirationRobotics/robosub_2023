@@ -55,7 +55,7 @@ class BuoyMission:
         This could be a loop, a finite state machine, etc.
         """
 
-        self.robot_control.set_depth(2.0)
+        self.robot_control.set_depth(2.5)
         time.sleep(4)
 
         while not rospy.is_shutdown():
@@ -75,6 +75,7 @@ class BuoyMission:
 
             if self.data["buoy_cv"].get("end", False):
                 # TODO: go up and forward
+                print("Ended")
                 self.robot_control.set_depth(1)
                 time.sleep(2)
                 self.robot_control.set_depth(0.5)
@@ -84,19 +85,19 @@ class BuoyMission:
             if self.data["buoy_cv"].get("finished", False) and self.target != "board":
                 print("Doing bump procedure")
                 # TODO: go forward, bump, back, up, opposite diagnol, bump, back
-                self.robot_control.forwardDist(1, 1.2)
-                self.robot_control.forwardDist(1, -1.2)
+                self.robot_control.forwardDist(2, 2)
+                self.robot_control.forwardDist(2.2, -2)
                 print("Bump 1 complete")
                 if self.side != None:
-                    self.robot_control.set_depth(1.5)
+                    self.robot_control.set_depth(1.8)
                     time.sleep(2)
                     if self.side == 0: # 0 is left and 1 is right (for og target)
-                        self.robot_control.lateralUni(1.5, 3)
+                        self.robot_control.lateralUni(1.5,4)
                     else:
-                        self.robot_control.lateralUni(-1.5, 3)
-                    self.robot_control.forwardDist(1, 1.2) # bump it
+                        self.robot_control.lateralUni(-1.5,4)
+                    self.robot_control.forwardDist(2.2, 2) # bump it
                     print("Bumped other side")
-                    self.robot_control.forwardDist(1.5, -1.2) # go back
+                    self.robot_control.forwardDist(2, -2) # go back
                 print("Done bumping, aligning with board")
                 self.target = "board" # realign to board
 
@@ -105,8 +106,10 @@ class BuoyMission:
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)
             vertical = self.data["buoy_cv"].get("vertical", None)
+            #print(self.data["buoy_cv"].get("targetSide", None))
             if self.data["buoy_cv"].get("targetSide", None) != None:
                 self.side = self.data["buoy_cv"].get("targetSide", None)
+                #print(f"Got side:{self.side}")
 
             if any(i == None for i in (lateral, forward)):
                 continue
@@ -135,6 +138,16 @@ if __name__ == "__main__":
     # You can also import it in a mission file outside of the package
     import time
     from auv.utils import deviceHelper
+    # from ..motion import robot_control
+    # import rospy
+
+    # rospy.init_node("buoy_mission", anonymous=True)
+    # rc = robot_control.RobotControl()
+    # time.sleep(2)
+    # rc.forwardDist(1.5, 2) #dist power
+    # time.sleep(1)
+    # rc.lateralUni(1.2,4) #power time
+    # print("Finished forward")
 
     rospy.init_node("buoy_mission", anonymous=True)
 

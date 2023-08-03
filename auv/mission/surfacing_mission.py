@@ -75,7 +75,6 @@ class SurfacingMission:
 
                 if self.data["surfacing_cv"].get("end", None):
                     # idle the robot
-                    print("ending True")
                     self.robot_control.movement()
                     break
 
@@ -93,6 +92,7 @@ class SurfacingMission:
                 break
 
         print("[INFO] Template mission finished")
+        disarm.disarm()
 
     def cleanup(self):
         """

@@ -16,8 +16,8 @@ class CV:
         self.config = config
         self.current_sub = self.config.get("sub", "graey")
 
-        self.camera = "/auv/camera/videoUSBRaw1"
-        self.model = "dhd_approach"
+        self.camera = "/auv/camera/videoOAKdRawForward"
+        self.model = "dhdA"
 
         self.viz_frame = None
         self.error_buffer = []
@@ -28,7 +28,7 @@ class CV:
 
     def get_error(self, center_x, center_y, shape=(480, 640)):
         """Returns the error in x and y, normalized to the frame size."""
-        x_error = (center_x - shape[1] / 2) / max_size
+        x_error = (center_x - shape[1] / 2) / shape[1]
         y_error = (shape[0] - center_y) / shape[0]
         return (x_error, y_error)
 
@@ -38,9 +38,10 @@ class CV:
         self.viz_frame = frame
 
         if detections is None or len(detections) == 0:
-            if self.prev_pos is None or self.prev_pos[1] < 600:
+            if self.prev_pos is None or self.prev_pos[1] < 440:
                 return {"lateral": 0, "forward": 1.5, "yaw": 0}, self.viz_frame
             else:
+                # we are close to dhd, end mission
                 return {"lateral": 0, "forward": 0, "yaw": 0, "end": True}, self.viz_frame
 
         target = None
@@ -50,15 +51,18 @@ class CV:
                 target = detection
                 confidence = detection.confidence
         target_center = int((target.xmin + target.xmax) / 2), int((target.ymin + target.ymax) / 2)
+        if target_center[1] > 620:
+            return {"end": True}, self.viz_frame
+
         cv2.circle(self.viz_frame, target_center, 5, (0, 0, 255), 2)
 
         x_error, y_error = self.get_error(target_center[0], target_center[1])
-        # TODO: tweak those values
-        yaw = np.clip(x_error * 3, -0.75, 0.75)
-        forward = np.clip(y_error * 10, 1, 2)
+
+        yaw = np.clip(x_error * 3.5, -1.0, 1.0)
+        forward = np.clip(y_error * 10, 1, 2.5)
 
         self.prev_pos = target_center
-        return {"lateral": 0, "forward": forward, "yaw": yaw}, self.viz_frame
+        return {"lateral": 0, "forward": forward, "yaw": yaw, "end": end}, self.viz_frame
 
 
 if __name__ == "__main__":

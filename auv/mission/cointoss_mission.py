@@ -28,16 +28,25 @@ class CoinTossMission:
 
         print("[INFO] Coin Toss mission init")
 
-    def run(self):
+    def run(self, heading):
         # the coin toss mission takes two parameters: heading and depth, which it will set accordingly
 
         print("[INFO] Coin Toss")
-        heading = 275
+        # heading = 218
         time.sleep(1)
         self.robot_control.set_depth(0.65)  # setting depth, robot decends
-        time.sleep(3)  # wait
-        self.robot_control.setHeadingOld(heading)  # turning to the heading
-        self.robot_control.forwardDist(5, 2)
+        self.robot_control.setHeadingOld(heading)
+        t=0
+        while(t < 50):
+            self.robot_control.movement(forward=2)
+            time.sleep(0.1)
+            t+=0.1
+            
+        t=0
+        while(t<1):
+            self.robot_control.movement(forward=0)
+            time.sleep(0.1)
+            t+=0.1
 
     def cleanup(self):
         """
@@ -61,6 +70,6 @@ if __name__ == "__main__":
     mission = CoinTossMission()
 
     # Run the mission
-    mission.run()
+    mission.run(218)
     time.sleep(2)
     mission.cleanup()

@@ -17,6 +17,7 @@ class CV:
         self.current_sub = self.config.get("sub", "graey")
         if self.current_sub == "graey":
             self.camera = "/auv/camera/videoUSBRaw1"
+            self.model = "raw"
             self.run = self.run_graey
         elif self.current_sub == "onyx":
             self.camera = "/auv/camera/videoOAKdRawBottom"
