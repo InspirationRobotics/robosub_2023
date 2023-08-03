@@ -6,7 +6,7 @@ from ...utils.deviceHelper import dataFromConfig
 
 
 class Modem:
-    def __init__(self):
+    def __init__(self, on_receive_msg=None):
         port = dataFromConfig("modem")
         self.ser = serial.Serial(
             port=port,
@@ -17,6 +17,9 @@ class Modem:
         )
 
         assert self.ser.isOpen(), "Failed to open serial port"
+
+        if on_receive_msg is not None:
+            self.on_receive_msg = on_receive_msg
 
         # ACK is used to ensure message is received
         self.ACK = 0
@@ -128,8 +131,7 @@ class Modem:
             self.ACK += 1
             ack = self.ACK
 
-        time = time.time()
-        self.in_transit.append([msg, time, 0, ack, dest_addr, priority])
+        self.in_transit.append([msg, time.time(), 0, ack, dest_addr, priority])
 
     def send_ack(self, ack, dest_addr=None):
         """
@@ -218,17 +220,10 @@ class Modem:
         print(f"[WARNING] Received ack: {ack} but no corresponding message found, maybe timed out?")
 
     def start(self):
-        if self.receive_active or self.thread_recv.is_alive():
-            print("[WARNING] Already receiving")
-        else:
-            self.receive_active = True
-            self.thread_recv.start()
-
-        if self.sending_active or self.thread_send.is_alive():
-            print("[WARNING] Already sending")
-        else:
-            self.sending_active = True
-            self.thread_send.start()
+        self.receive_active = True
+        self.sending_active = True
+        self.thread_recv.start()
+        self.thread_send.start()
 
     def stop(self):
         self.receive_active = False
