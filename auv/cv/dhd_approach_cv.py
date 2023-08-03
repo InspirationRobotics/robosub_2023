@@ -62,7 +62,7 @@ class CV:
         forward = np.clip(y_error * 10, 1, 2.5)
 
         self.prev_pos = target_center
-        return {"lateral": 0, "forward": forward, "yaw": yaw, "end": end}, self.viz_frame
+        return {"lateral": 0, "forward": forward, "yaw": yaw}, self.viz_frame
 
 
 if __name__ == "__main__":

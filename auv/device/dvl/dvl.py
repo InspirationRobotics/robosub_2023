@@ -37,10 +37,13 @@ class DVL:
                 self.read = self.read_onyx
 
             elif sub == "graey":
-                from wldvl import wlDVL
+                autostart = False
+                print("[WARNING] DVL disabled, not implemented")
+                pass
+                # from wldvl import wlDVL
 
-                self.dvla50 = wlDVL(self.dvlPort)
-                self.read = self.read_graey
+                # self.dvla50 = wlDVL(self.dvlPort)
+                # self.read = self.read_graey
             else:
                 raise ValueError(f"Invalid sub {sub}")
 
