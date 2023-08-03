@@ -16,7 +16,7 @@ class CV:
     """Buoy CV class, don't change the name of the class"""
 
     camera = "/auv/camera/videoOAKdRawForward"
-    model = "buoy"
+    model = "buoytransdec"
 
     def __init__(self, **config):
         """
@@ -168,12 +168,14 @@ class CV:
                     side="center"
                 # now checking which are two lowest targets and returning those
                 lowerDetects = {}
-                temp = deepcopy(testPoints)
+                temp = testPoints.copy()
                 temp.sort(reverse=True, key=lambda p: p.y) # sorts from lowest on screen to highest (high y to low y)
                 temp = temp[:2] # gets the two lowest targets
                 temp.sort(key=lambda p: p.x) # sorts from left to right # so 0 is left and 1 is right
+                label_keys = list(detectedLabels.keys())
+                label_values = list(detectedLabels.values())
                 for i in range(len(temp)):
-                    tempLabel = (list(detectedLabels.keys())[list(detectedLabels.values()).index(temp[i])]) #finds label by value
+                    tempLabel = label_keys[label_values.index(temp[i])]
                     lowerDetects[tempLabel] = i # adds the label of the two lowest targets
                 
                 if target != "board" and target not in lowerDetects:
@@ -188,6 +190,7 @@ class CV:
                         elif "earth2" in lowerDetects:
                             self.target = "earth2"
                     self.targetSide = lowerDetects[self.target]
+                    print(f"On this side: {self.targetSide}")
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:

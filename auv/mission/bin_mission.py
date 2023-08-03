@@ -81,7 +81,7 @@ class BinMission:
 
             # we are aligned, we are moving down to get closer to the bin
             if is_aligned and not self.time_going_down:
-                self.rc.set_depth(1.5)
+                self.robot_control.set_depth(1.5)
                 self.time_going_down = time.time()
 
             # we are aligned, we are dropping the ball
@@ -93,7 +93,7 @@ class BinMission:
 
             # wait for us to see the ball drop
             elif self.time_dropping and time.time() - self.time_dropping > 3:
-                self.rc.set_depth(0.75)
+                self.robot_control.set_depth(0.75)
                 print("[BIN MISSION] Going up")
                 self.time_going_up = time.time()
 

@@ -54,7 +54,7 @@ class BuoyMission:
         This could be a loop, a finite state machine, etc.
         """
 
-        self.rc.set_depth(2.0)
+        self.robot_control.set_depth(2.0)
 
         while not rospy.is_shutdown():
             if not self.received:
