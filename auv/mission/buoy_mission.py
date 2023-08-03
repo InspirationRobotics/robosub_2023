@@ -11,6 +11,7 @@ from std_msgs.msg import String
 
 from ..device import cvHandler
 from ..motion import robot_control
+import time
 
 
 class BuoyMission:
@@ -55,6 +56,7 @@ class BuoyMission:
         """
 
         self.robot_control.set_depth(2.0)
+        time.sleep(4)
 
         while not rospy.is_shutdown():
             if not self.received:

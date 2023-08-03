@@ -5,21 +5,25 @@ import os
 
 killPin = 35
 global state
+startTime = 0
 state = True
+
 GPIO.setmode(GPIO.BOARD)
 
 GPIO.setup(killPin, GPIO.IN)
 
-
-def printState(tp):
-    global state
-    print("Detected")
-    GPIO.cleanup()
-    state = False
-    os.system("sudo poweroff")
-
-GPIO.add_event_detect(killPin, GPIO.FALLING, callback=printState, bouncetime=10)
-
 while state:
-    #print(GPIO.input(killPin))
+    current = GPIO.input(killPin)
+    if current == 1:
+        startTime = time.time()
+    if current == 0:
+        if time.time() - startTime > 1:
+            print("Shutting down")
+            GPIO.cleanup()
+            state = False
+            break
+    print(GPIO.input(killPin))
     time.sleep(0.1)
+
+os.system("sudo poweroff")
+exit(1)

@@ -31,20 +31,8 @@ class CoinTossMission:
     def run(self):
         # the coin toss mission takes two parameters: heading and depth, which it will set accordingly
 
-        while not rospy.is_shutdown():
-            if not self.received:
-                continue
-
-            for key in self.next_data.keys():
-                if key in self.data.keys():
-                    self.data[key].update(self.next_data[key])
-                else:
-                    self.data[key] = self.next_data[key]
-            self.received = False
-            self.next_data = {}
-
         print("[INFO] Coin Toss")
-        heading = 331
+        heading = 275
         time.sleep(1)
         self.robot_control.set_depth(0.65)  # setting depth, robot decends
         time.sleep(3)  # wait
