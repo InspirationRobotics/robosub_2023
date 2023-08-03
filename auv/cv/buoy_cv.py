@@ -10,7 +10,6 @@ import cv2
 import numpy as np
 from shapely.geometry import LineString
 import math
-from copy import deepcopy
 
 class CV:
     """Buoy CV class, don't change the name of the class"""
@@ -153,7 +152,7 @@ class CV:
                     lines.append(self.line(testPoints[i], testPoints[nextPoint]))
         ######
         #Now calculating center of board based off lines
-        #print("Reached 3")
+        # print("Reached 3")
         if len(lines)>=1:
             lines.sort(reverse=True, key=lambda p: p.length)
             if len(lines)>4:
@@ -177,11 +176,12 @@ class CV:
                 for i in range(len(temp)):
                     tempLabel = label_keys[label_values.index(temp[i])]
                     lowerDetects[tempLabel] = i # adds the label of the two lowest targets
-                
+                print("Reached 3.3")
                 if target != "board" and target not in lowerDetects:
                     if "abydos" in target:
                         if "abydos1" in lowerDetects:
                             self.target = "abydos1" # maxime help me make this less stupid
+                            print("entered")
                         elif "abydos2" in lowerDetects:
                             self.target = "abydos2"
                     elif "earth" in target:
@@ -189,8 +189,10 @@ class CV:
                             self.target = "earth1"
                         elif "earth2" in lowerDetects:
                             self.target = "earth2"
+                    print(f"Reached 3.4 {self.target}    {lowerDetects}")
                     self.targetSide = lowerDetects[self.target]
                     print(f"On this side: {self.targetSide}")
+                print("Reached 3.5")
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:
@@ -288,13 +290,14 @@ class CV:
         elif len(oakd_data)==0:
             yaw=1
             return {"yaw": yaw}, frame
+        print(target)
         result = self.calculate_data(frame, target, oakd_data)
         ratioTol = 1
         ratio = result["ratio"]
         boardCenter = result["boardCenter"]
         dist = result["avgDist"]
         side = result["side"]
-        print(ratio, dist)
+        #print(ratio, dist)
         if dist>2:
             forward = 1
             if(ratio>ratioTol):
@@ -330,7 +333,7 @@ class CV:
         self.prevYaw = yaw
         self.prevRatio = ratio
         
-        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "finished": self.finished, "end": end}, result["frame"]
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "targetSide": self.targetSide, "finished": self.finished, "end": end}, result["frame"]
 
 
 if __name__ == "__main__":

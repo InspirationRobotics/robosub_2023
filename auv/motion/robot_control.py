@@ -382,7 +382,7 @@ class RobotControl:
         forwardPower = (power * 80) + 1500
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
-        pwm.channels[5] = forwardPower
+        pwm.channels[5] = int(forwardPower)
         startTime = time.time()
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)
@@ -394,7 +394,7 @@ class RobotControl:
         forwardPower = (power * 80) + 1500
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
-        pwm.channels[4] = forwardPower
+        pwm.channels[4] = int(forwardPower)
         startTime = time.time()
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)
@@ -442,14 +442,17 @@ class RobotControl:
     def forwardDist(self, dist, power):
         inches = 39.37 * dist
         print(power, inches)
-        if power == 3:
+        eqPower = round(power)
+        if eqPower >= 3:
             inches = inches - 9.843
             time = (inches + 18.7) / 32.1
             print(time)
-            self.forwardUni(3, time)
-        elif power == 2:
+            self.forwardUni(power, time)
+        elif eqPower == 2:
             time = (inches - 0.01) / 21
-            self.forwardUni(2, time)
-        elif power == 1:
+            print(time)
+            self.forwardUni(power, time)
+        elif eqPower == 1:
             time = (inches - 3.4) / 7.8
-            self.forwardUni(1, time)
+            print(time)
+            self.forwardUni(power, time)
