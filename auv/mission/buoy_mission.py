@@ -27,6 +27,7 @@ class BuoyMission:
         self.next_data = {}  # dict to store the data from the cv handlers
         self.received = False
         self.target = target
+        self.side = None
             
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
@@ -72,18 +73,38 @@ class BuoyMission:
 
             if self.data["buoy_cv"].get("end", False):
                 # TODO: go up and forward
-                self.robot_control.movement()
+                self.robot_control.set_depth(1)
+                time.sleep(2)
+                self.robot_control.set_depth(0.5)
+                self.robot_control.forwardDist(1, 1.2)
                 break
             
-            if self.data["buoy_cv"].get("finished", False):
+            if self.data["buoy_cv"].get("finished", False) and self.target != "board":
+                print("Doing bump procedure")
                 # TODO: go forward, bump, back, up, opposite diagnol, bump, back
-                pass
+                self.robot_control.forwardDist(1, 1.2)
+                self.robot_control.forwardDist(1, -1.2)
+                print("Bump 1 complete")
+                if self.side != None:
+                    self.robot_control.set_depth(1.5)
+                    time.sleep(2)
+                    if self.side == 0: # 0 is left and 1 is right (for og target)
+                        self.robot_control.lateralUni(1.5, 3)
+                    else:
+                        self.robot_control.lateralUni(-1.5, 3)
+                    self.robot_control.forwardDist(1, 1.2) # bump it
+                    print("Bumped other side")
+                    self.robot_control.forwardDist(1.5, -1.2) # go back
+                print("Done bumping, aligning with board")
+                self.target = "board" # realign to board
 
             self.cv_handler.set_target("buoy_cv", self.target)
             lateral = self.data["buoy_cv"].get("lateral", None)
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)
             vertical = self.data["buoy_cv"].get("vertical", None)
+            if self.data["buoy_cv"].get("targetSide", None) != None:
+                self.side = self.data["buoy_cv"].get("targetSide", None)
 
             if any(i == None for i in (lateral, forward)):
                 continue

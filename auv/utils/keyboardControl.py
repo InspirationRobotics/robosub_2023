@@ -5,9 +5,9 @@ import time
 import rospy
 
 
-from ..utils import arm, disarm, deviceHelper
-from .robot_control import RobotControl
-from .servo import Servo
+from . import arm, disarm, deviceHelper
+from ..motion.robot_control import RobotControl
+from ..motion.servo import Servo
 
 rospy.init_node("Keyboard", anonymous=True)
 

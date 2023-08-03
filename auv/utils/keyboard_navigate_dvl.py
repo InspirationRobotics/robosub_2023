@@ -5,8 +5,8 @@ import time
 
 import rospy
 
-from ..utils import arm, disarm
-from .robot_control import RobotControl
+from . import arm, disarm
+from ..motion.robot_control import RobotControl
 
 rospy.init_node("NavigateDVL", anonymous=True)
 
