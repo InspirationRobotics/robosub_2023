@@ -150,13 +150,15 @@ class oakCamera:
             print(f"Camera {str(self.id)} Output Error, make sure running in correct python")
             print(e)
 
-    def modelSelect(self, modelName):
+    def modelSelect(self, modelName: str):
         root = os.path.normpath("/home/inspiration/auv/auv/device/cams/models/")
 
         if modelName == "raw":
             modelPath = "raw"
         elif os.path.sep in modelName:
             # direct path to model
+            if not modelName.endswith(os.path.sep):
+                modelName += os.path.sep
             modelPath = modelName
         else:
             # model name

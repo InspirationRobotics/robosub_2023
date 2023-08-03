@@ -359,7 +359,7 @@ class RobotControl:
         self.backStop(pwm, t)
 
     # incorporates universal backstop for forward movement
-    def forwardHeadingUni(self, power, t):
+    def forwardUni(self, power, t):
         forwardPower = (power * 80) + 1500
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
@@ -368,10 +368,11 @@ class RobotControl:
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)
             time.sleep(0.1)
+        self.backStop(pwm, t)
 
-        # TODO: cleanup this shit
-        # self.backStop(pwm, t)
-
+    def mapping(self, x, in_min, in_max, out_min, out_max):
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+    
     # universal backstop that is given pwm to reduce and overall time of movement which calculates inertia and sends commands/pwms for thrust in the negative direction for backstopping
     def backStop(self, pwm, t):
         if t > 3:
@@ -389,7 +390,6 @@ class RobotControl:
             for i in range(len(pwm.channels)):
                 if pwm.channels[i] != 1500:
                     pwm.channels[i] = int(
-                        # TODO: this doesn't exist anymore
                         self.mapping(
                             time.time() - startTime,
                             0,
@@ -415,10 +415,10 @@ class RobotControl:
             inches = inches - 9.843
             time = (inches + 18.7) / 32.1
             print(time)
-            self.forwardHeadingUni(3, time)
+            self.forwardUni(3, time)
         elif power == 2:
             time = (inches - 0.01) / 21
-            self.forwardHeadingUni(2, time)
+            self.forwardUni(2, time)
         elif power == 1:
             time = (inches - 3.4) / 7.8
-            self.forwardHeadingUni(1, time)
+            self.forwardUni(1, time)

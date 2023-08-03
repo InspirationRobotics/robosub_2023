@@ -18,11 +18,11 @@
     },
     "mappings": {
         "labels": [
-            "abydosA",
-            "abydosB",
+            "abydos1",
+            "abydos2",
             "board",
-            "earthA",
-            "earthB"
+            "earth1",
+            "earth2"
         ]
     },
     "version": 1

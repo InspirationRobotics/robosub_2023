@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 from shapely.geometry import LineString
 import math
+from copy import deepcopy
 
 class CV:
     """Buoy CV class, don't change the name of the class"""
@@ -29,6 +30,8 @@ class CV:
         self.prevStrafe = 1
         self.prevRatio=1
         self.step=0
+        self.finished=False
+        self.target = None
         print("[INFO] Buoy CV init")
 
 
@@ -94,10 +97,11 @@ class CV:
 
     def calculate_data(self, frame, target, detections):
         toReturn = {}
-        correctRatios = {"A1": 1.1154, "A2": 0.2881, "E1": 1.186, "E2": 1.5476, "board": 1.0149} # based off sample footage with sub looking straight at them
-        correctSizes = {"A1": 9000, "A2": 3700, "E1": 6308, "E2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
+        correctRatios = {"abydos1": 1.1154, "abydos2": 0.2881, "earth1": 1.186, "earth2": 1.5476, "board": 1.0149} # based off sample footage with sub looking straight at them
+        correctSizes = {"abydos1": 9000, "abydos2": 3700, "earth1": 6308, "earth2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
+        lowerDetects = []
         avgOffset = avgDist = c = 0
         targetCenter=boardCenter=boardDetect=side=None
         # first parse for valid dections and ignore duplicates/reflections
@@ -162,6 +166,22 @@ class CV:
                     side="right"
                 else:
                     side="center"
+                # now checking which are two lowest targets and returning those
+                temp = deepcopy(testPoints)
+                temp.sort(reverse=True, key=lambda p: p.y) # sorts from lowest on screen to highest (high y to low)
+                for i in range(2):
+                    lowerDetects.append(list(detectedLabels.keys())[list(detectedLabels.values()).index(temp[i])]) # adds the label of the two lowest targets
+                if target != "board" and target not in lowerDetects:
+                    if "abydos" in target:
+                        if "abydos1" in lowerDetects:
+                            self.target = "abydos1" # maxime help me make this less stupid
+                        elif "abydos2" in lowerDetects:
+                            self.target = "abydos2"
+                    elif "earth" in target:
+                        if "earth1" in lowerDetects:
+                            self.target = "earth1"
+                        elif "earth2" in lowerDetects:
+                            self.target = "earth2"
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:
@@ -173,7 +193,10 @@ class CV:
             boardCenter = testPoints[0].getPointInt()
         boardCenter = [0 if v is None else v for v in boardCenter]
         cv2.circle(frame, (int(boardCenter[0]), int(boardCenter[1])), 5, (255,255,255),-1)
-        targetCenter = detectedLabels.get(target, None)
+        if self.target == None:
+            targetCenter = detectedLabels.get(target, None)
+        else:
+            targetCenter = detectedLabels.get(self.target, None)
         if targetCenter!=None:
             targetCenter = targetCenter.getPointInt()
             cv2.circle(frame, targetCenter, 5, (0,255,0),-1)
@@ -183,6 +206,7 @@ class CV:
         toReturn["side"] = side #tells us which side of the buoy we are on
         toReturn["targetCenter"] = targetCenter
         toReturn["boardCenter"] = boardCenter
+        toReturn["lowerDetects"] = []
         return toReturn
 
     def yawAndLateralFix(self, center, side):
@@ -274,23 +298,11 @@ class CV:
             targetCenter = result["targetCenter"]
             if targetCenter==None:
                 targetCenter=boardCenter
-            centered = 0
-            tolerance = 20
-            if targetCenter[0]<self.midX-tolerance:
-                lateral = -1.2
-            elif targetCenter[0]>self.midX+tolerance:
-                lateral=1.2
-            else:
-                centered+=1
-            if targetCenter[1]>self.midY+tolerance:
-                vertical=0.002
-            elif targetCenter[1]<self.midY-tolerance:
-                vertical=-0.002
-            else:
-                centered+=1
-            if centered==2:
-                forward=1
-                if dist<1.4: end = True
+            yaw, lateral, do_forward = self.yawAndLateralMaintain(targetCenter, ratio)
+            if do_forward:
+                if dist<1.4: 
+                    self.finished = True
+                forward=0.8
 
         elif dist==0:
             print("dist is 0", boardCenter[0])
@@ -307,7 +319,7 @@ class CV:
         self.prevYaw = yaw
         self.prevRatio = ratio
         
-        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "end": end}, result["frame"]
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "finished": self.finished, "end": end}, result["frame"]
 
 
 if __name__ == "__main__":

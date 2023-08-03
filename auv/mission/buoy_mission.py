@@ -16,7 +16,7 @@ from ..motion import robot_control
 class BuoyMission:
     cv_files = ["buoy_cv"]
 
-    def __init__(self, target="A2", **config):
+    def __init__(self, target="abydos2", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -71,9 +71,13 @@ class BuoyMission:
                 continue
 
             if self.data["buoy_cv"].get("end", False):
-                # TODO: go forward, bump, back, up, opposite diagnol, bump, back
+                # TODO: go up and forward
                 self.robot_control.movement()
                 break
+            
+            if self.data["buoy_cv"].get("finished", False):
+                # TODO: go forward, bump, back, up, opposite diagnol, bump, back
+                pass
 
             self.cv_handler.set_target("buoy_cv", self.target)
             lateral = self.data["buoy_cv"].get("lateral", None)
