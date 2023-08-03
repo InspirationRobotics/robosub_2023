@@ -38,9 +38,10 @@ class CV:
         self.viz_frame = frame
 
         if detections is None or len(detections) == 0:
-            if self.prev_pos is None or self.prev_pos[1] < 600:
+            if self.prev_pos is None or self.prev_pos[1] < 440:
                 return {"lateral": 0, "forward": 1.5, "yaw": 0}, self.viz_frame
             else:
+                # we are close to dhd, end mission
                 return {"lateral": 0, "forward": 0, "yaw": 0, "end": True}, self.viz_frame
 
         target = None

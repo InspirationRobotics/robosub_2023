@@ -46,6 +46,7 @@ if operating Onyx, you will need this additionnal step to install the dependancy
 
 ```bash
 git clone https://github.com/waterlinked/dvl-python.git
+cd serial
 cd dvl-python
 pip install -e .
 

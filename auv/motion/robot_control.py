@@ -17,7 +17,7 @@ config = deviceHelper.variables
 class RobotControl:
     """Class to control the robot"""
 
-    def __init__(self, enable_dvl=False):
+    def __init__(self, enable_dvl=True):
         # init some variables
         self.config = config
         self.depth = self.config.get("INIT_DEPTH", 0.0)
@@ -453,3 +453,6 @@ class RobotControl:
         elif power == 1:
             time = (inches - 3.4) / 7.8
             self.forwardUni(1, time)
+
+if __name__ == "__main__":
+    rc = RobotControl(enable_dvl=True)

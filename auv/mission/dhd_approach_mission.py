@@ -68,11 +68,13 @@ class DHDApproachMission:
             end = self.data["dhd_approach_cv"].get("end", False)
 
             if end:
-                print("[INFO] dhd approach mission end")
                 break
 
             self.robot_control.movement(yaw=yaw, forward=forward)
             print(f"[DEBUG] yaw: {yaw}, forward: {forward}")
+        
+        print("[INFO] DHD approach mission end")
+
 
     def cleanup(self):
         """
