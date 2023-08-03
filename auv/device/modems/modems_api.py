@@ -83,14 +83,14 @@ class Modem:
 
         if msg is None:
             # ack message
-            msg = f"${ack}$"
+            msg = f"@{ack}@"
         else:
             # normal message with ack
             # if ack is None, generate a new ack
             if ack is None:
                 self.ACK += 1
                 ack = self.ACK
-            msg = f"*{msg}*${ack}$"
+            msg = f"*{msg}*@{ack}@"
 
         # max length is 64 bytes
         # min length is 3 bytes
@@ -166,7 +166,6 @@ class Modem:
         data = ""
         expecting_ack = False
         msg_state = False  # True = message in receiving
-        ack_state = False  # True = ack in receiving
 
         while self.receive_active:
             if self.ser.inWaiting() > 0:
@@ -176,33 +175,35 @@ class Modem:
                     try:
                         rawOut = out.decode("utf-8")
                         data += rawOut
-                        if rawOut == "*":
-                            msg_state = not msg_state
 
-                        if rawOut == "$":
-                            ack_state = not ack_state
+                        # detect when we are changing state
+                        if rawOut == "*" or rawOut == "@":
+                            msg_state = not msg_state
 
                         # finished receiving message
                         if not msg_state and len(data) > 0:
-                            self.on_receive_msg(data)
-                            expecting_ack = True
-                            data = ""
-
-                        # finished receiving ack
-                        if not ack_state and len(data) > 0:
-                            self.on_receive_ack(data, expecting_ack)
-                            expecting_ack = False
-                            data = ""
+                            # dispatch to msg callback
+                            if "*" in data:
+                                self.on_receive_msg(data)
+                                expecting_ack = True
+                                data = ""
+                            # dispatch to ack callback
+                            if "@" in data:
+                                self.on_receive_ack(data, expecting_ack)
+                                expecting_ack = False
+                                data = ""
 
                     except:
                         pass
 
-    def on_receive_msg(self, msg):
-        # TODO: log into a file or something
+    def on_receive_msg(self, msg: str):
+        # TODO: log into a file or use it for events triggers
+        msg = msg.replace("*", "")
         print("Received message:", msg)
 
-    def on_receive_ack(self, ack, expecting_ack):
+    def on_receive_ack(self, ack: str, expecting_ack):
         # just after a message (ack of the message)
+        ack = ack.replace("@", "")
         if expecting_ack:
             self.send_ack(ack)
             return
@@ -234,6 +235,7 @@ class Modem:
         self.sending_active = False
         self.thread_recv.join()
         self.thread_send.join()
+
 
 if __name__ == "__main__":
     # TODO: how to get the other sub modem address?
