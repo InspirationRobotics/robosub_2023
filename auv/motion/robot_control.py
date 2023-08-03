@@ -17,7 +17,7 @@ config = deviceHelper.variables
 class RobotControl:
     """Class to control the robot"""
 
-    def __init__(self, enable_dvl=True):
+    def __init__(self, enable_dvl=False):
         # init some variables
         self.config = config
         self.depth = self.config.get("INIT_DEPTH", 0.0)
