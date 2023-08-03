@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 from circle_fit import taubinSVD
 
+
 class CV:
     def __init__(self, **config):
         """
@@ -43,17 +44,23 @@ class CV:
         """
         Returns the center of the octogon in the frame
         using a color detection approach
+        # NOTE: this is a very naive approach, it will not work in all conditions, will fix later
         """
-
-        # filter the image to red objects, filters what is white
-        gray = cv2.inRange(frame, (0, 0, 200), (30, 30, 255))
+        # filters what is white
+        gray = cv2.inRange(frame, (200, 200, 200), (255, 255, 255))
         if viz:
             self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
 
-        # get the centroid of the red points
-        M = cv2.moments(gray)
-        std = np.std(gray)
-        if M["m00"] == 0 or std > 50:
+        # get biggest contour
+        contours, _ = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if len(contours) == 0:
+            return None, None
+        contour = max(contours, key=cv2.contourArea)
+
+        # get the centroid of the white points
+        M = cv2.moments(contour)
+
+        if M["m00"] == 0 or cv2.contourArea(contour) < 20000:
             return None, None
         x_center = int(M["m10"] / M["m00"])
         y_center = int(M["m01"] / M["m00"])
@@ -134,12 +141,12 @@ class CV:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        if avg_error < 0.1 and len(self.error_buffer) == 30:
+        if avg_error < 0.15 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
-            
+
         # apply a gain and clip the values
-        lateral = np.clip(x_error * 3, -1, 1)
-        forward = np.clip(y_error * 3, -1, 1)
+        lateral = np.clip(x_error * 3.5, -1, 1)
+        forward = np.clip(y_error * 3.5, -1, 1)
 
         return {"lateral": lateral, "forward": forward, "end": False}, self.viz_frame
 
@@ -162,7 +169,7 @@ if __name__ == "__main__":
             break
 
         # resize the frame
-        img = cv2.resize(img, (480, 640))
+        # img = cv2.resize(img, (480, 640))
 
         # run the CV
         result, img_viz = cv.run(img, None, None)
