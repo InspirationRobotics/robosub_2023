@@ -32,6 +32,7 @@ class CV:
         self.step=0
         self.finished=False
         self.target = None
+        self.targetSide = None
         print("[INFO] Buoy CV init")
 
 
@@ -101,7 +102,6 @@ class CV:
         correctSizes = {"abydos1": 9000, "abydos2": 3700, "earth1": 6308, "earth2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
         validDetections = {}
         detectedLabels = {}
-        lowerDetects = []
         avgOffset = avgDist = c = 0
         targetCenter=boardCenter=boardDetect=side=None
         # first parse for valid dections and ignore duplicates/reflections
@@ -167,10 +167,15 @@ class CV:
                 else:
                     side="center"
                 # now checking which are two lowest targets and returning those
+                lowerDetects = {}
                 temp = deepcopy(testPoints)
-                temp.sort(reverse=True, key=lambda p: p.y) # sorts from lowest on screen to highest (high y to low)
-                for i in range(2):
-                    lowerDetects.append(list(detectedLabels.keys())[list(detectedLabels.values()).index(temp[i])]) # adds the label of the two lowest targets
+                temp.sort(reverse=True, key=lambda p: p.y) # sorts from lowest on screen to highest (high y to low y)
+                temp = temp[:2] # gets the two lowest targets
+                temp.sort(key=lambda p: p.x) # sorts from left to right # so 0 is left and 1 is right
+                for i in range(len(temp)):
+                    tempLabel = (list(detectedLabels.keys())[list(detectedLabels.values()).index(temp[i])]) #finds label by value
+                    lowerDetects[tempLabel] = i # adds the label of the two lowest targets
+                
                 if target != "board" and target not in lowerDetects:
                     if "abydos" in target:
                         if "abydos1" in lowerDetects:
@@ -182,6 +187,7 @@ class CV:
                             self.target = "earth1"
                         elif "earth2" in lowerDetects:
                             self.target = "earth2"
+                    self.targetSide = lowerDetects[self.target]
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:
@@ -206,7 +212,7 @@ class CV:
         toReturn["side"] = side #tells us which side of the buoy we are on
         toReturn["targetCenter"] = targetCenter
         toReturn["boardCenter"] = boardCenter
-        toReturn["lowerDetects"] = []
+        toReturn["targetSide"] = self.targetSide
         return toReturn
 
     def yawAndLateralFix(self, center, side):
@@ -296,11 +302,13 @@ class CV:
                     forward=1.3
         elif dist>1:
             targetCenter = result["targetCenter"]
-            if targetCenter==None:
+            if targetCenter==None or target=="board":
                 targetCenter=boardCenter
             yaw, lateral, do_forward = self.yawAndLateralMaintain(targetCenter, ratio)
             if do_forward:
-                if dist<1.4: 
+                if dist<1.4:
+                    if target=="board":
+                        self.end=True
                     self.finished = True
                 forward=0.8
 
