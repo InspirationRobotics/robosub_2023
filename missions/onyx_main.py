@@ -10,9 +10,12 @@ rospy.init_node("missions", anonymous=True)
 time.sleep(30)
 
 # load sub config
-rc = robot_control.RobotControl()
 config = deviceHelper.variables
+rc = robot_control.RobotControl()
 arm.arm()
+
+modem = Modem()
+handshake_start(modem)
 heading = 218
 
 # Run coin toss

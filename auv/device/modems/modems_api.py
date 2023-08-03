@@ -231,18 +231,30 @@ class Modem:
         self.thread_recv.join()
         self.thread_send.join()
 
-def start_callback(self: Modem):
+def handshake_start(self: Modem):
     """waits for a handshake to continue"""
 
-    print("Waiting for handshake...")
+    received_handshake = False
+    def on_receive_msg(msg: str):
+        if msg == "handshake":
+            print("Handshake received")
+            received_handshake = True
+            self.on_receive_msg = dummy_callback
+    self.on_receive_msg = on_receive_msg
+
+    # sending handshake (no timeout)
     msg = "handshake"
     self.send_msg(msg, ack=42, priority=1)
-    time.sleep(2)
+    print("Waiting for handshake...")
     
-    while True:
-        if self.in_transit == []:
+    while not received_handshake:
+        if len(self.in_transit) == 0:
             break
         time.sleep(0.1)
+    print("Handshake complete")
+
+def dummy_callback(msg: str):
+    print("Received message:", msg)
 
 if __name__ == "__main__":
     # TODO: how to get the other sub modem address?
