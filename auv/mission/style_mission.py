@@ -43,9 +43,18 @@ class StyleMission:
 
         print("[INFO] Style mission run")
 
-        self.robot_control.movement(yaw=1.5)  # turn
-        time.sleep(8)  # keep turning
-        self.robot_control.movement(yaw=0)
+        t = 0
+        while t < 8:
+            self.robot_control.movement(yaw=1.5)
+            time.sleep(0.1)
+            t += 0.1
+
+        t = 0
+        while t < 1:
+            self.robot_control.movement(yaw=0)
+            time.sleep(0.1)
+            t += 0.1
+
         self.robot_control.setHeadingOld(heading)
 
     def cleanup(self):
