@@ -56,7 +56,6 @@ class TorpedoMission:
         Here should be all the code required to run the mission.
         This could be a loop, a finite state machine, etc.
         """
-        print("[INFO] Torpedo mission run")
         while not rospy.is_shutdown():
             try:
                 if not self.received:
@@ -112,7 +111,6 @@ class TorpedoMission:
                 # idle the robot (just in case something went wrong)
                 self.robot_control.movement()
                 break
-        print("[INFO] Torpedo mission ran")
 
     def cleanup(self):
         """
