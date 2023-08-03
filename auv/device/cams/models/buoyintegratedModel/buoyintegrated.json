@@ -1,0 +1,30 @@
+{
+    "model": {
+        "xml": "buoyintegrated.xml",
+        "bin": "buoyintegrated.bin"
+    },
+    "nn_config": {
+        "output_format": "detection",
+        "NN_family": "YOLO",
+        "input_size": "640x480",
+        "NN_specific_metadata": {
+            "classes": 6,
+            "coordinates": 4,
+            "anchors": [],
+            "anchor_masks": {},
+            "iou_threshold": 0.5,
+            "confidence_threshold": 0.5
+        }
+    },
+    "mappings": {
+        "labels": [
+            "abydosA",
+            "abydosB",
+            "board",
+            "earthA",
+            "earthB",
+            "congrats! you found the unused class."
+        ]
+    },
+    "version": 1
+}
