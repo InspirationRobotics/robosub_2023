@@ -103,7 +103,7 @@ class CV:
 
         height, width, _ = frame.shape
 
-        tolerance = 40 / 640
+        tolerance = 0.1
         maxConfidence = 0
         target_bin = None
         earth = None
@@ -145,6 +145,7 @@ class CV:
         elif "abydos" in target:
             target_bin = abydos
 
+        approach = False
         if target_bin is None:
             if earth is None and abydos is None:
                 if len(bins) == 0:
@@ -153,13 +154,15 @@ class CV:
                     # average the positions of the bins
                     avg_center = np.mean([self.get_bbox_center(b) for b in bins], axis=0)
                     target_bin_center = (int(avg_center[0]), int(avg_center[1]))
+                    approach = True
             elif earth is None:
                 target_bin = abydos
             elif abydos is None:
                 target_bin = earth
 
-        # remove the lids from the target bin
-        target_bin, target_bin_center = self.mask_out_lids(target_bin, lids)
+        if not approach:
+            # remove the lids from the target bin
+            target_bin, target_bin_center = self.mask_out_lids(target_bin, lids)
 
         cv2.rectangle(
             frame,
