@@ -288,6 +288,7 @@ class CV:
         elif len(oakd_data)==0:
             yaw=1
             return {"yaw": yaw}, frame
+        print(target)
         result = self.calculate_data(frame, target, oakd_data)
         ratioTol = 1
         ratio = result["ratio"]

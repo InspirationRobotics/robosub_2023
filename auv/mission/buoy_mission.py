@@ -37,7 +37,7 @@ class BuoyMission:
         # dummys are used to input a video file instead of the camera
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
-
+        self.cv_handler.set_target("buoy_cv", self.target)
         print("[INFO] Buoy mission init")
 
     def callback(self, msg):
@@ -61,7 +61,6 @@ class BuoyMission:
         while not rospy.is_shutdown():
             if not self.received:
                 continue
-
             for key in self.next_data.keys():
                 if key in self.data.keys():
                     self.data[key].update(self.next_data[key])
@@ -70,6 +69,7 @@ class BuoyMission:
             self.received = False
             self.next_data = {}
 
+            self.cv_handler.set_target("buoy_cv", self.target)
             if not "buoy_cv" in self.data.keys():
                 continue
 
