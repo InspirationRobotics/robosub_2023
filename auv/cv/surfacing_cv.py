@@ -117,7 +117,7 @@ class CV:
             self.error_buffer.pop(0)
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
-        if avg_error < 0.1 and len(self.error_buffer) == 30:
+        if avg_error < 0.2 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
         # apply a gain and clip the values
