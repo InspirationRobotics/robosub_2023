@@ -12,7 +12,8 @@ fi
 if [[ $PRODUCT == *"Nano"* ]]; then
   echo "Detected $PRODUCT setting to Nano init"
   DISTRO="melodic"
-  screen -dmS killscript -c "sleep 5 ; /usr/bin/python3 -m auv.utils.gShutdown"
+  # TODO: debug this
+  screen -dmS killscript -c "sleep 5 ; /usr/bin/python3 /home/inspiration/auv/auv.utils.gShutdown"
 fi
 
 OUTPUT=$(/usr/bin/python3 /home/inspiration/auv/auv/utils/deviceHelper.py)

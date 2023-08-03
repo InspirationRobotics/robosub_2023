@@ -13,8 +13,8 @@ from ..device import cvHandler
 from ..motion import robot_control
 
 
-class DVLApproachMission:
-    cv_files = ["dvl_approach_cv"]
+class DHDApproachMission:
+    cv_files = ["dhd_approach_cv"]
 
     def __init__(self, **config):
         """
@@ -34,7 +34,7 @@ class DVLApproachMission:
         # dummys are used to input a video file instead of the camera
         dummys = self.config.get("cv_dummy", [None] * len(self.cv_files))
         for file_name, dummy in zip(self.cv_files, dummys):
-            self.cv_handler.start_cv(file_name, self.callback, dummy=dummy)
+            self.cv_handler.start_cv(file_name, self.callback, dummy_camera=dummy)
 
         print("[INFO] dvl approach mission init")
 
@@ -63,12 +63,12 @@ class DVLApproachMission:
             self.received = False
             self.next_data = {}
 
-            yaw = self.data["dvl_approach_cv"].get("yaw", 0)
-            forward = self.data["dvl_approach_cv"].get("forward", 0)
-            end = self.data["dvl_approach_cv"].get("end", False)
+            yaw = self.data["dhd_approach_cv"].get("yaw", 0)
+            forward = self.data["dhd_approach_cv"].get("forward", 0)
+            end = self.data["dhd_approach_cv"].get("end", False)
 
             if end:
-                print("[INFO] dvl approach mission end")
+                print("[INFO] dhd approach mission end")
                 break
 
             self.robot_control.movement(yaw=yaw, forward=forward)
@@ -84,7 +84,7 @@ class DVLApproachMission:
 
         # idle the robot
         self.robot_control.movement()
-        print("[INFO] DVL Approach mission terminate")
+        print("[INFO] DHD Approach mission terminate")
 
 
 if __name__ == "__main__":
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     import time
     from auv.utils import deviceHelper
 
-    rospy.init_node("dvl_approach", anonymous=True)
+    rospy.init_node("dhd_approach", anonymous=True)
 
     config = deviceHelper.variables
     config.update(
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     )
 
     # Create a mission object with arguments
-    mission = TemplateMission(**config)
+    mission = DHDApproachMission(**config)
 
     # Run the mission
     mission.run()
