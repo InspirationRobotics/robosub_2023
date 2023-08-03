@@ -18,6 +18,8 @@ modem = Modem()
 handshake_start(modem)
 heading = 218
 
+sleep(15)
+
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission()
 time.sleep(2)
