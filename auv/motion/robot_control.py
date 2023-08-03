@@ -159,6 +159,37 @@ class RobotControl:
 
         print(f"[INFO] Finished setting heading to {target}")
 
+    # set heading is a function that yaws until reaches desired heading input integer
+    def setHeadingOld(self, target: int):
+        pwm = mavros_msgs.msg.OverrideRCIn()
+        pwm.channels = [1500] * 18
+        target = (target) % 360
+        # dir variable is direction; clockwise and counterclockwise
+        while not rospy.is_shutdown():
+            current = int(self.compass)
+            print(current)
+            dir = 1  # cw
+            diff = abs(target - current)
+            if diff >= 180:
+                dir *= -1
+            if current > target:
+                dir *= -1
+            if diff >= 180:
+                diff = 360 - diff
+            # if farther from desired heading, speed will be faster, if closer to heading, speed will decrease
+            if diff <= 10:
+                speed = 55
+            else:
+                speed = 70
+            # once compass is within 2 degrees of desired heading, stop sending pwms to yaw
+            if diff <= 1:
+                pwm.channels[3] = 1500
+                self.pub_thrusters.publish(pwm)  # publishing pwms to stop yawing
+                break
+            else:
+                pwm.channels[3] = 1500 + (dir * speed)
+                self.pub_thrusters.publish(pwm)  # publishing pwms to continue yawing
+
     def navigate_dvl(self, x, y, z, end_heading=None, relative_coord=True, relative_heading=True, update_freq=10):
         """
         # NOTE: this function is complex and requires compass to work PERFECTLY

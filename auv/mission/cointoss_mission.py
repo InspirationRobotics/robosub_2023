@@ -36,7 +36,7 @@ class CoinTossMission:
         time.sleep(1)
         self.robot_control.set_depth(0.65)  # setting depth, robot decends
         time.sleep(3)  # wait
-        self.robot_control.set_heading(heading)  # turning to the heading
+        self.robot_control.setHeadingOld(heading)  # turning to the heading
         self.robot_control.forwardDist(5, 2)
 
     def cleanup(self):
