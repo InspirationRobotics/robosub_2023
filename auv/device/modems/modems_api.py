@@ -25,6 +25,7 @@ class Modem:
         self.ACK = 0
         self.blocked = False
         self.in_transit = []  # [message, time_sent, ack-expected, modemaddr, priority]
+        self.ack_received = []
 
         self.modemAddr = None
         self.voltage = None
@@ -33,8 +34,8 @@ class Modem:
         self.receive_active = True
         self.sending_active = True
 
-        self.thread_recv = threading.Thread(target=self._receive_loop, daemon=True)
-        self.thread_send = threading.Thread(target=self._send_loop, daemon=True)
+        self.thread_recv = threading.Thread(target=self._receive_loop)
+        self.thread_send = threading.Thread(target=self._send_loop)
 
         if auto_start:
             self.start()
@@ -147,26 +148,32 @@ class Modem:
     def _send_loop(self):
         while self.sending_active:
             to_remove = []
+            self.ack_received = []
 
             for it, packet in enumerate(self.in_transit):
                 msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
 
-                if time.time() - time_sent > 20 and priority == 0:
+                if msg is None:
+                    self._transmit(msg, ack=ack, dest_addr=dest_addr)
+                    to_remove.append(it)
+                    continue
+
+                if time.time() - time_sent > 10 and priority == 0:
                     print(f'[WARNING] Message "{msg}" timed out')
                     to_remove.append(it)
                     continue
 
-                # retry if no ack received after 3 seconds
-                if time.time() - time_last_sent > 3.0:
-                    print(f'[DEBUG] Retrying message "{msg}"')
+                # retry if no ack received after 1 seconds (better be safe than sorry)
+                if time.time() - time_last_sent > 1.0 and ack not in self.ack_received:
                     ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
                     packet[2] = ret
 
-                    # give some time for other threads to be able to send ack
-                    time.sleep(0.05)
+                # print(self.ack_received)
+            
+            time.sleep(0.1)
 
-            # remove timed out messages
-            self.in_transit = [packet for it, packet in enumerate(self.in_transit) if it not in to_remove]
+            # remove timed out messages and received acks
+            self.in_transit = [packet for it, packet in enumerate(self.in_transit) if it not in to_remove and packet[3] not in self.ack_received]
 
     def _receive_loop(self):
         data = ""
@@ -201,6 +208,9 @@ class Modem:
                                 expecting_ack = False
                                 data = ""
 
+                    except KeyboardInterrupt:
+                        break
+
                     except Exception as e:
                         print(e)
                         data = ""
@@ -215,7 +225,8 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
-        print(ack, self.in_transit)
+        
+        # print(ack, self.in_transit, expecting_ack)
         if expecting_ack:
             self.send_ack(ack)
             return
@@ -224,7 +235,7 @@ class Modem:
         # remove the corresponding msg from in_transit
         for i, packet in enumerate(self.in_transit):
             if packet[3] == ack:
-                self.in_transit.pop(i)
+                self.ack_received.append(ack)
                 return
 
         print(f'[WARNING] Received ack: "{ack}" but no corresponding message found, maybe timed out?')
@@ -279,4 +290,5 @@ def handshake_start(self: Modem):
 
 
 if __name__ == "__main__":
-    manual_coms()
+    modem = Modem()
+    handshake_start(modem)

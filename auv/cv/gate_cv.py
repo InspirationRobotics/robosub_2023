@@ -16,7 +16,7 @@ class CV:
     """Template CV class, don't change the name of the class"""
 
     camera = "/auv/camera/videoOAKdRawForward"
-    model = "gate"
+    model = "gate3"
 
     def __init__(self, **config):
         """
@@ -197,7 +197,7 @@ class CV:
                 forward = -1
             elif(target_area<310):
                 message = "TOO FAR! GOING FORWARD"
-                forward = 1
+                forward = 1.5
                 # if(len(detections) == 2):
                 #     midpoint = (target_x + other_x)/2
                 #     dist = abs(midpoint - 320) / 320
@@ -220,7 +220,7 @@ class CV:
             dist = abs(midpoint - 320) / 320
 
             cv2.putText(frame, "ALIGNING STRAFE", (220, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
-            lateral = self.alignMidpoint(midpoint, 20)
+            lateral = self.alignMidpoint(midpoint, 50)
             if(lateral == 0):
                 message = "FINISHED STRAFE"
                 self.state = "yaw"
@@ -236,7 +236,7 @@ class CV:
                 cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.outPrev = False
 
-            lateral = np.clip(lateral * dist * 5.5, -1, 1)
+            lateral = np.clip(lateral * dist * 4.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"

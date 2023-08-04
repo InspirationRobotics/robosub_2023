@@ -310,11 +310,11 @@ def main():
         auv.calibrate_depth()
         time.sleep(2)
         # arming
-        while not auv.armed:
-            print("Attempting to arm...")
-            auv.arm(True)
-            time.sleep(3)
-        print("Armed!")
+        # while not auv.armed:
+        #     print("Attempting to arm...")
+        #     auv.arm(True)
+        #     time.sleep(3)
+        # print("Armed!")
         print("\nNow beginning loops...")
         auv.start_threads()
 

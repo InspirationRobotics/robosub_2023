@@ -1,9 +1,9 @@
 import time
 import serial
 import platform
-from ...utils.deviceHelper import findFromName
+from ...utils.deviceHelper import dataFromConfig
 
-modemsPort = findFromName("modem")
+modemsPort = dataFromConfig("modem")
 
 # configure the serial connections
 ser = serial.Serial(port=modemsPort, baudrate=9600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS)

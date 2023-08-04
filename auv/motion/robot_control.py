@@ -449,7 +449,6 @@ class RobotControl:
             time = (inches + 18.7) / 32.1
         elif eqPower == 2:
             time = (inches - 0.01) / 21
-            self.forwardUni(power, time)
         elif eqPower == 1:
             time = (inches - 3.4) / 7.8
         self.forwardUni(power, time)

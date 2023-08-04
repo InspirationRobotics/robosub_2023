@@ -13,7 +13,7 @@ config = deviceHelper.variables
 arm.arm()
 
 # create the mission object
-gateMission = gate_mission.GateMission(**config)
+gateMission = gate_mission.GateMission("earth")
 
 # run the mission
 gateMission.run()
