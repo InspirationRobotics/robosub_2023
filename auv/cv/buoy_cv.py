@@ -26,7 +26,7 @@ class CV:
         """
         self.midX = 320
         self.midY = 240
-        self.prevYaw=1.3
+        self.prevYaw=0.6
         self.prevStrafe = 1
         self.prevRatio=1
         self.step=0
@@ -209,7 +209,10 @@ class CV:
         if target == "board":
             targetCenter = boardCenter
         if targetCenter!=None:
-            targetCenter = targetCenter.getPointInt()
+            if target == "board":
+                targetCenter = (int(boardCenter[0]), int(boardCenter[1]))
+            else:
+                targetCenter = targetCenter.getPointInt()
             cv2.circle(frame, targetCenter, 5, (0,255,0),-1)
         toReturn["frame"] = frame
         toReturn["ratio"] = avgOffset
@@ -227,9 +230,9 @@ class CV:
         if(self.step==0):
             xTol = 20
             if(center[0]>self.midX+xTol):
-                yaw = 1
+                yaw = 0.7
             elif(center[0]<self.midX-xTol):
-                yaw = -1
+                yaw = -0.7
             else:
                 self.step=1
                 print("switched to 1")
@@ -254,12 +257,12 @@ class CV:
         yaw=0
         lateral=0
         state = False
-        tolerance = 10
+        tolerance = 20
         if(ratio>self.prevRatio):
             yaw=self.prevYaw*-1
         if center[0]<self.midX-tolerance:
             lateral = -1
-        elif center[1]>self.midX-tolerance:
+        elif center[0]>self.midX+tolerance:
             lateral=1
         else:
             state=True # maybe default too?
@@ -298,6 +301,12 @@ class CV:
         boardCenter = result["boardCenter"]
         dist = result["avgDist"]
         side = result["side"]
+
+        if dist!=None:
+            cv2.putText(frame, str(dist), (120, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+        if ratio!=None:
+            cv2.putText(frame, str(round(ratio,3)), (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"{str('none' if target is None else target)}  {str('none' if target is None else self.target)}", (120, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 120, 0), 2)
         #print(ratio, dist)
         if dist>2:
             forward = 1
@@ -313,10 +322,12 @@ class CV:
                 targetCenter=boardCenter
             yaw, lateral, do_forward = self.yawAndLateralMaintain(targetCenter, ratio)
             if do_forward:
-                if dist<1.4:
+                print("Aligned")
+                if dist<1.6:
                     if target=="board":
-                        self.end=True
+                        end=True
                     self.finished = True
+                    print("Finished")
                 forward=0.8
 
         elif dist==0:
@@ -334,7 +345,7 @@ class CV:
         self.prevYaw = yaw
         self.prevRatio = ratio
         
-        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "finished": self.finished, "end": end}, result["frame"]
+        return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "targetSide": self.targetSide, "finished": self.finished, "end": end}, result["frame"]
 
 
 if __name__ == "__main__":

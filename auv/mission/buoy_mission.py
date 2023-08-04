@@ -17,7 +17,7 @@ import time
 class BuoyMission:
     cv_files = ["buoy_cv"]
 
-    def __init__(self, target="abydos2", **config):
+    def __init__(self, target="earth1", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -101,6 +101,7 @@ class BuoyMission:
                     else:
                         print("Going to left side")
                         self.robot_control.lateralUni(-1.5,4)
+                    print("Now going forward")
                     self.robot_control.forwardDist(2.2, 2) # bump it
                     print("Bumped other side")
                     self.robot_control.forwardDist(2, -2) # go back
@@ -112,9 +113,8 @@ class BuoyMission:
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)
             vertical = self.data["buoy_cv"].get("vertical", None)
-            #print(self.data["buoy_cv"].get("targetSide", None))
             if self.data["buoy_cv"].get("targetSide", None) != None:
-                self.side = self.data["buoy_cv"].get("targetSide", None)
+                self.side = self.data["buoy_cv"].get("targetSide")
                 #print(f"Got side:{self.side}")
 
             if any(i == None for i in (lateral, forward)):
