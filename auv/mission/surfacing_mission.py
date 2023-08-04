@@ -92,7 +92,7 @@ class SurfacingMission:
                 break
 
         print("[INFO] Template mission finished")
-        disarm.disarm()
+        # disarm.disarm()
 
     def cleanup(self):
         """
