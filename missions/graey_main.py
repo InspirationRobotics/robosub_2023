@@ -14,11 +14,11 @@ config = deviceHelper.variables
 rc = robot_control.RobotControl()
 arm.arm()
 
-modem = Modem()
-handshake_start(modem)
-gate_heading = 218
-octagon_heading = 331
-rc.forwardDist(4, 2)
+# modem = Modem()
+# handshake_start(modem)
+gate_heading = 223
+octagon_heading = 240
+rc.forwardDist(3, 2)
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission(**config)
 time.sleep(2)
@@ -26,20 +26,21 @@ coin_toss.run(gate_heading)  # NOTE: TWEAK THIS BEFORE MISSION
 coin_toss.cleanup()
 
 gate = gate2_mission.Gate2Mission()
+gate.run()
+gate.cleanup()
+# coin_toss.run(octagon_heading)
+# coin_toss.cleanup()
+# t = 0
+# while t < 6: #50 seconds in transdec
+#     rc.movement(forward=2)
+#     time.sleep(0.1)
+#     t += 0.1
 
-coin_toss.run(octagon_heading)
-coin_toss.cleanup()
-t = 0
-while t < 6: #50 seconds in transdec
-    rc.movement(forward=2)
-    time.sleep(0.1)
-    t += 0.1
-
-t = 0
-while t < 1:
-    rc.movement(forward=0)
-    time.sleep(0.1)
-    t += 0.1
+# t = 0
+# while t < 1:
+#     rc.movement(forward=0)
+#     time.sleep(0.1)
+#     t += 0.1
 
 # # Run dhd approach
 # dhd_app = dhd_approach_mission.DHDApproachMission(**config)
