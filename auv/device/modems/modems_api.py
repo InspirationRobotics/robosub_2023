@@ -151,7 +151,7 @@ class Modem:
             for it, packet in enumerate(self.in_transit):
                 msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
 
-                if time.time() - time_sent > 20 and priority == 0:
+                if time.time() - time_sent > 10 and priority == 0:
                     print(f'[WARNING] Message "{msg}" timed out')
                     to_remove.append(it)
                     continue
@@ -161,6 +161,9 @@ class Modem:
                     print(f'[DEBUG] Retrying message "{msg}"')
                     ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
                     packet[2] = ret
+
+                    if msg is None:
+                        to_remove.append(it)
 
                     # give some time for other threads to be able to send ack
                     time.sleep(0.05)
@@ -215,7 +218,8 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
-        print(ack, self.in_transit)
+        
+        # print(ack, self.in_transit, expecting_ack)
         if expecting_ack:
             self.send_ack(ack)
             return
