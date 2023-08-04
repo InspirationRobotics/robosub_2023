@@ -228,8 +228,8 @@ class Modem:
     def start(self):
         self.receive_active = True
         self.sending_active = True
-        # self.thread_recv.start()
-        # self.thread_send.start()
+        self.thread_recv.start()
+        self.thread_send.start()
 
     def stop(self):
         self.receive_active = False
@@ -244,7 +244,6 @@ def dummy_callback(msg: str):
 
 def manual_coms():
     modem = Modem()
-    modem.start()
     while True:
         msg = input("Enter message: ")
         modem.send_msg(msg)
