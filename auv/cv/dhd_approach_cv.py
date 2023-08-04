@@ -53,7 +53,7 @@ class CV:
                 confidence = detection.confidence
                 ymin = detection.ymin
         target_center = int((target.xmin + target.xmax) / 2), int((target.ymin + target.ymax) / 2)
-        if target_center[1] > 620:
+        if target_center[1] > 440:
             return {"end": True}, self.viz_frame
 
         cv2.circle(self.viz_frame, target_center, 5, (0, 0, 255), 2)
