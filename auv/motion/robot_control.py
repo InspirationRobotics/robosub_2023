@@ -442,7 +442,7 @@ class RobotControl:
     def forwardDist(self, dist, power):
         inches = 39.37 * dist
         print(power, inches)
-        eqPower = round(power)
+        eqPower = abs(round(power))
         time = 0
         if eqPower >= 3:
             inches = inches - 9.843
