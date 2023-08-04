@@ -4,7 +4,7 @@ import time
 import os
 from .disarm import disarm
 
-killPin = 35
+killPin = 35 #19 on onyx
 global state
 startTime = 0
 state = True
