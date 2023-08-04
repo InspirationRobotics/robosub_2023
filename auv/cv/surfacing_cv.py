@@ -30,6 +30,8 @@ class CV:
 
         self.viz_frame = None
         self.error_buffer = []
+        self.timeout = 30
+        self.start_timeout = None
 
         print("[INFO] Surfacing CV init")
 
@@ -116,9 +118,15 @@ class CV:
         self.error_buffer.append((x_error, y_error))
         if len(self.error_buffer) > 30:
             self.error_buffer.pop(0)
+            if self.start_timeout is None:
+                self.start_timeout = time.time()
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.2 and len(self.error_buffer) == 30:
+            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
+
+        if self.start_timeout and self.start_timeout + self.timeout > time.time():
+            print("surfacing timeout")
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
         # apply a gain and clip the values
