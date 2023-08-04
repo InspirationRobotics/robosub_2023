@@ -8,7 +8,8 @@ import rospy
 import os
 
 
-dock_heading = 100 #chnage
+target = "abydos"
+#dock_heading = 100 #chnage
 gate_heading = 62 #change
 
 rospy.init_node("missions", anonymous=True)
@@ -35,7 +36,7 @@ if not fail_modem:
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission()
 time.sleep(2)
-coin_toss.run(dock_heading)
+coin_toss.run(gate_heading)
 coin_toss.cleanup()
 
 rc.forwardDist(5, 2)
@@ -46,7 +47,6 @@ if not fail_modem:
     modem.send_msg("coin toss end")
     modem.send_msg("gate")
 
-target = "abydos"
 gateMission = gate_mission.GateMission(target)
 gateMission.run()
 gateMission.cleanup()
@@ -64,7 +64,7 @@ if not fail_modem:
     modem.send_msg("style end")
     modem.send_msg("buoy")
 
-# Run dhd approach
+# Run buoy approach
 rc.forwardDist(1.5, 2)
 rc.set_depth(1)
 time.sleep(4)
@@ -80,4 +80,4 @@ rc.set_depth(1)
 time.sleep(4)
 rc.set_depth(0.5)
 
-disarm.disarm() # just in case
+disarm.disarm()

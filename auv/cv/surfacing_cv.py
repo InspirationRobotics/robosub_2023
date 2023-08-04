@@ -30,7 +30,7 @@ class CV:
 
         self.viz_frame = None
         self.error_buffer = []
-        self.timeout = 30
+        self.timeout = 15
         self.start_timeout = None
 
         print("[INFO] Surfacing CV init")
