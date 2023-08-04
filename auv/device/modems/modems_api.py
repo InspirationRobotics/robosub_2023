@@ -34,8 +34,8 @@ class Modem:
         self.receive_active = True
         self.sending_active = True
 
-        self.thread_recv = threading.Thread(target=self._receive_loop, daemon=True)
-        self.thread_send = threading.Thread(target=self._send_loop, daemon=True)
+        self.thread_recv = threading.Thread(target=self._receive_loop)
+        self.thread_send = threading.Thread(target=self._send_loop)
 
         if auto_start:
             self.start()
@@ -208,6 +208,9 @@ class Modem:
                                 expecting_ack = False
                                 data = ""
 
+                    except KeyboardInterrupt:
+                        break
+
                     except Exception as e:
                         print(e)
                         data = ""
@@ -287,4 +290,5 @@ def handshake_start(self: Modem):
 
 
 if __name__ == "__main__":
-    manual_coms()
+    modem = Modem()
+    handshake_start(modem)
