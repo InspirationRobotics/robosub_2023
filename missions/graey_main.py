@@ -3,15 +3,14 @@ import time
 from auv.mission import cointoss_mission, surfacing_mission, dhd_approach_mission, gate2_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
-from auv.device.modems.modems_api import Modem, handshake_start
+from auv.device.modems.modems_api import Modem, on_receive_msg_logging
 import rospy
 
 
-dock_heading = 100 #chnage
-gate_heading = 223 #change
+gate_heading = 223  # change
 
 rospy.init_node("missions", anonymous=True)
-time.sleep(60)
+time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
@@ -20,31 +19,28 @@ rc = robot_control.RobotControl()
 fail_modem = False
 
 try:
-    modem = Modem()
-    handshake_start(modem)
+    modem = Modem(on_receive_msg=on_receive_msg_logging)
 except:
     fail_modem = True
     print("Failed to start modem, starting directly")
 
 arm.arm()
 
+rc.set_depth(0.75)
+
 if not fail_modem:
     modem.send_msg("start graey")
-
-# Run coin toss
-coin_toss = cointoss_mission.CoinTossMission(**config)
-
-if not fail_modem:
-    modem.send_msg("gate")
+    modem.send_msg("set heading")
 
 time.sleep(2)
 rc.setHeadingOld(gate_heading)
 
 if not fail_modem:
-    modem.send_msg("gate end")
+    modem.send_msg("set heading end")
+    modem.send_msg("traveling")
 
 t = 0
-while t < 50: #50 seconds in transdec
+while t < 50:  # 50 seconds in transdec
     rc.movement(forward=2)
     time.sleep(0.1)
     t += 0.1
@@ -55,7 +51,6 @@ while t < 1:
     time.sleep(0.1)
     t += 0.1
 
-    
 if not fail_modem:
     modem.send_msg("dhd approach")
 
@@ -65,7 +60,6 @@ time.sleep(2)
 dhd_app.run()
 dhd_app.cleanup()
 
-    
 if not fail_modem:
     modem.send_msg("dhd approach end")
     modem.send_msg("surfacing")
