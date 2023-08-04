@@ -190,7 +190,7 @@ class CV:
                         elif "earth2" in lowerDetects:
                             self.target = "earth2"
                     self.targetSide = lowerDetects[self.target]
-                    print(f"On this side: {self.targetSide}")
+                    #print(f"On this side: {self.targetSide}")
             else:
                 boardCenter = lines[0].midpoint
         if boardDetect != None and boardCenter != None:
@@ -206,6 +206,8 @@ class CV:
             targetCenter = detectedLabels.get(target, None)
         else:
             targetCenter = detectedLabels.get(self.target, None)
+        if target == "board":
+            targetCenter = boardCenter
         if targetCenter!=None:
             targetCenter = targetCenter.getPointInt()
             cv2.circle(frame, targetCenter, 5, (0,255,0),-1)
@@ -233,7 +235,7 @@ class CV:
                 print("switched to 1")
         elif(self.step==1):
             xTol = 250
-            print(center[0])
+            #print(center[0])
             if(side=="left"):
                 lateral=1.2
             elif(side=="right"):
@@ -241,7 +243,8 @@ class CV:
             elif(side=="center"):
                 state = True
             else:
-                print("can't see all 4")
+                #print("can't see all 4")
+                pass
             if(center[0]<0+xTol or center[0]>self.midX*2-xTol):
                 print("switched to 0")
                 self.step=0
@@ -251,7 +254,7 @@ class CV:
         yaw=0
         lateral=0
         state = False
-        tolerance = 20
+        tolerance = 10
         if(ratio>self.prevRatio):
             yaw=self.prevYaw*-1
         if center[0]<self.midX-tolerance:
@@ -288,14 +291,14 @@ class CV:
         elif len(oakd_data)==0:
             yaw=1
             return {"yaw": yaw}, frame
-        print(target)
+        #print(target)
         result = self.calculate_data(frame, target, oakd_data)
         ratioTol = 1
         ratio = result["ratio"]
         boardCenter = result["boardCenter"]
         dist = result["avgDist"]
         side = result["side"]
-        print(ratio, dist)
+        #print(ratio, dist)
         if dist>2:
             forward = 1
             if(ratio>ratioTol):
@@ -306,7 +309,7 @@ class CV:
                     forward=1.3
         elif dist>1:
             targetCenter = result["targetCenter"]
-            if targetCenter==None or target=="board":
+            if targetCenter==None:
                 targetCenter=boardCenter
             yaw, lateral, do_forward = self.yawAndLateralMaintain(targetCenter, ratio)
             if do_forward:
@@ -317,7 +320,7 @@ class CV:
                 forward=0.8
 
         elif dist==0:
-            print("dist is 0", boardCenter[0])
+            #print("dist is 0", boardCenter[0])
             tolerance = 20
             if boardCenter[0]<self.midX-tolerance:
                 lateral = -1.5
