@@ -151,13 +151,14 @@ class Modem:
             for it, packet in enumerate(self.in_transit):
                 msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
 
-                if time.time() - time_sent > 10 and priority == 0:
+                if time.time() - time_sent > 20 and priority == 0:
                     print(f'[WARNING] Message "{msg}" timed out')
                     to_remove.append(it)
                     continue
 
-                # retry if no ack received after 5 seconds
-                if time.time() - time_last_sent > 5.0:
+                # retry if no ack received after 3 seconds
+                if time.time() - time_last_sent > 3.0:
+                    print(f'[DEBUG] Retrying message "{msg}"')
                     ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
                     packet[2] = ret
 
@@ -176,7 +177,6 @@ class Modem:
             if self.ser.inWaiting() > 0:
                 out = b""
                 out = self.ser.read(1)
-                print(out)
                 if out != b"":
                     try:
                         rawOut = out.decode("utf-8")
@@ -215,7 +215,7 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
-        print(ack)
+        print(ack, self.in_transit)
         if expecting_ack:
             self.send_ack(ack)
             return
@@ -250,7 +250,7 @@ def manual_coms():
     modem = Modem()
     while True:
         msg = input("Enter message: ")
-        modem.send_msg(msg)
+        modem.send_msg(msg, priority=1)
 
 
 def handshake_start(self: Modem):
