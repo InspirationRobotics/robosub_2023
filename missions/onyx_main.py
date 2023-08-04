@@ -1,6 +1,6 @@
 import time
 
-from auv.mission import cointoss_mission, buoy_mission, gate_mission, style_mission
+from auv.mission import cointoss_mission, buoy_mission, gate_mission, style_mission, dhd_approach_mission, surfacing_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
 from auv.device.modems.modems_api import Modem, on_receive_msg_logging
@@ -74,10 +74,41 @@ buoyMission.cleanup()
 
 if not fail_modem:
     modem.send_msg("buoy end")
+    modem.send_msg("heading to octagon")
 
+# goes up above buoy and then goes forward and lines up with octagon
 time.sleep(2)
 rc.set_depth(1)
 time.sleep(4)
-rc.set_depth(0.5)
+rc.set_depth(0.65) #0.5
+time.sleep(2)
+rc.forwardDist(3, 2)
+time.sleep(2)
+rc.setHeadingOld(gate_heading-20) # guesstimating
+time.sleep(2)
+
+rc.forwardDist(8, 2)
+
+if not fail_modem:
+    modem.send_msg("dhd approach")
+
+# Run dhd approach
+dhd_app = dhd_approach_mission.DHDApproachMission(**config)
+time.sleep(2)
+dhd_app.run()
+dhd_app.cleanup()
+
+if not fail_modem:
+    modem.send_msg("dhd approach end")
+    modem.send_msg("surfacing")
+
+# Run surfacing
+surfacing = surfacing_mission.SurfacingMission(**config)
+time.sleep(2)
+surfacing.run()
+surfacing.cleanup()
+
+if not fail_modem:
+    modem.send_msg("surfacing end")
 
 disarm.disarm()
