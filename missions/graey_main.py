@@ -12,10 +12,15 @@ time.sleep(30)
 # load sub config
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
+
+try:
+    modem = Modem()
+    handshake_start(modem)
+except:
+    print("Failed to start modem, starting directly")
+
 arm.arm()
 
-# modem = Modem()
-# handshake_start(modem)
 gate_heading = 223
 octagon_heading = 240
 rc.forwardDist(5, 2)

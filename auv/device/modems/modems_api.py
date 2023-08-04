@@ -158,7 +158,7 @@ class Modem:
                     to_remove.append(it)
                     continue
 
-                if time.time() - time_sent > 10 and priority == 0:
+                if time.time() - time_sent > 30 and priority == 0:
                     print(f'[WARNING] Message "{msg}" timed out')
                     to_remove.append(it)
                     continue
@@ -256,6 +256,10 @@ class Modem:
 def dummy_callback(msg: str):
     print("Received message:", msg)
 
+def on_receive_msg_logging(msg: str, log_file: str):
+    print("Received message:", msg)
+    with open(log_file, "a+") as f:
+        f.write(f"[{time.time()}]{msg}\n")
 
 def manual_coms():
     modem = Modem()
@@ -275,11 +279,16 @@ def handshake_start(self: Modem):
             received_handshake = True
             self.on_receive_msg = dummy_callback
 
+        try:
+            on_receive_msg_logging(msg, "underwater_coms.log")
+        except:
+            print("[WARNING] Failed to log message [WARNING]")
+
     self.on_receive_msg = on_receive_msg
 
     # sending handshake (no timeout)
     msg = "handshake"
-    self.send_msg(msg, ack=42, priority=1)
+    self.send_msg(msg, ack=42, priority=0)
     print("Waiting for handshake...")
 
     while not received_handshake:

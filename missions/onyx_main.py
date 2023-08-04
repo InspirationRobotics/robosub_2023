@@ -15,8 +15,13 @@ time.sleep(30)
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
-# modem = Modem()
-# handshake_start(modem)
+try:
+    modem = Modem()
+    handshake_start(modem)
+    time.sleep(30)
+except:
+    print("Failed to start modem, sleeping 15 seconds")
+    time.sleep(60)
 arm.arm()
 
 heading = 62
