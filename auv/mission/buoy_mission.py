@@ -88,23 +88,23 @@ class BuoyMission:
             if self.data["buoy_cv"].get("finished", False) and self.target != "board":
                 print("Doing bump procedure")
                 # TODO: go forward, bump, back, up, opposite diagnol, bump, back
-                self.robot_control.forwardDist(1.6, 2)
+                self.robot_control.forwardDist(3.2, 2) #1.6
                 print("Finished forward, going back")
-                self.robot_control.forwardDist(1.6, -2)
+                self.robot_control.forwardDist(3.2, -2)
                 print("Bump 1 complete")
                 if self.side != None:
                     self.robot_control.set_depth(self.upDepth)
                     time.sleep(4)
                     if self.side == 0: # 0 is left and 1 is right (for og target)
                         print("Going to right side")
-                        self.robot_control.lateralUni(1.5,4)
+                        self.robot_control.lateralUni(1.5,5)
                     else:
                         print("Going to left side")
-                        self.robot_control.lateralUni(-1.5,4)
+                        self.robot_control.lateralUni(-1.5,5)
                     print("Now going forward")
-                    self.robot_control.forwardDist(2.2, 2) # bump it
+                    self.robot_control.forwardDist(4.4, 2) # bump it 4.4
                     print("Bumped other side")
-                    self.robot_control.forwardDist(2, -2) # go back
+                    self.robot_control.forwardDist(4, -2) # go back
                 print("Done bumping, aligning with board")
                 self.target = "board" # realign to board
 

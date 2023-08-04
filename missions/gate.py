@@ -16,7 +16,7 @@ arm.arm()
 gateMission = gate_mission.GateMission(**config)
 
 # run the mission
-gateMission.run()
+gateMission.run(target="abydos")
 
 # terminate the mission
 gateMission.cleanup()
