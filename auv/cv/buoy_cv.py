@@ -189,7 +189,10 @@ class CV:
                             self.target = "earth1"
                         elif "earth2" in lowerDetects:
                             self.target = "earth2"
-                    self.targetSide = lowerDetects[self.target]
+                    try:
+                        self.targetSide = lowerDetects[self.target]
+                    except:
+                        print("self.target not in lowerDetects")
                     #print(f"On this side: {self.targetSide}")
             else:
                 boardCenter = lines[0].midpoint
