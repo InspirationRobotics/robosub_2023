@@ -26,7 +26,7 @@ arm.arm()
 
 gate_heading = 223
 octagon_heading = 240
-rc.forwardDist(5, 2)
+rc.forwardDist(4, 2)
 
 if not fail_modem:
     modem.send_msg("start graey")
