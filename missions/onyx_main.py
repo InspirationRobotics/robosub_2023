@@ -37,6 +37,7 @@ if not fail_modem:
     modem.send_msg("coin toss")
 
 # Run coin toss
+rc.forwardDist(5, 2)
 coin_toss = cointoss_mission.CoinTossMission()
 time.sleep(2)
 coin_toss.run(heading) # NOTE: TWEAK THIS BEFORE MISSION
@@ -44,8 +45,6 @@ coin_toss.cleanup()
 
 if not fail_modem:
     modem.send_msg("coin toss end")
-
-rc.forwardDist(6, 2)
 
 if not fail_modem:
     modem.send_msg("gate")
@@ -74,6 +73,8 @@ if not fail_modem:
     modem.send_msg("buoy")
 
 # Run dhd approach
+rc.forwardDist(1.5, 2)
+rc.set_depth(1)
 buoyMission = buoy_mission.BuoyMission(target)
 buoyMission.run()
 buoyMission.cleanup()
