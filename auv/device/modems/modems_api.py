@@ -176,14 +176,17 @@ class Modem:
             if self.ser.inWaiting() > 0:
                 out = b""
                 out = self.ser.read(1)
+                print(out)
                 if out != b"":
                     try:
                         rawOut = out.decode("utf-8")
-                        data += rawOut
 
                         # detect when we are changing state
                         if rawOut == "*" or rawOut == "@":
                             msg_state = not msg_state
+
+                        if msg_state:
+                            data += rawOut
 
                         # finished receiving message
                         if not msg_state and len(data) > 0:
@@ -200,6 +203,7 @@ class Modem:
 
                     except Exception as e:
                         print(e)
+                        data = ""
                         pass
 
     def on_receive_msg(self, msg: str):
