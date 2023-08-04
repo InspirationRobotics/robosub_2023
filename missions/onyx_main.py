@@ -7,6 +7,10 @@ from auv.device.modems.modems_api import Modem, handshake_start
 import rospy
 import os
 
+
+dock_heading = 100 #chnage
+gate_heading = 62 #change
+
 rospy.init_node("missions", anonymous=True)
 
 time.sleep(60)
@@ -27,26 +31,23 @@ except:
 
 time.sleep(20)
 arm.arm()
-heading = 62
 
 if not fail_modem:
     modem.send_msg("start onyx")
-
-
-if not fail_modem:
     modem.send_msg("coin toss")
 
 # Run coin toss
-rc.forwardDist(5, 2)
 coin_toss = cointoss_mission.CoinTossMission()
 time.sleep(2)
-coin_toss.run(heading) # NOTE: TWEAK THIS BEFORE MISSION
+coin_toss.run(dock_heading)
 coin_toss.cleanup()
+
+rc.forwardDist(5, 2)
+time.sleep(1)
+rc.setHeadingOld(gate_heading)
 
 if not fail_modem:
     modem.send_msg("coin toss end")
-
-if not fail_modem:
     modem.send_msg("gate")
 
 target = "abydos"
@@ -56,30 +57,31 @@ gateMission.cleanup()
 
 if not fail_modem:
     modem.send_msg("gate end")
-
-if not fail_modem:
     modem.send_msg("style")
 
 styleMission = style_mission.StyleMission()
-styleMission.run(heading)
+styleMission.run(gate_heading)
 styleMission.cleanup()
 
 
 if not fail_modem:
     modem.send_msg("style end")
-
-
-if not fail_modem:
     modem.send_msg("buoy")
 
 # Run dhd approach
 rc.forwardDist(1.5, 2)
 rc.set_depth(1)
+time.sleep(4)
 buoyMission = buoy_mission.BuoyMission(target)
 buoyMission.run()
 buoyMission.cleanup()
 
 if not fail_modem:
     modem.send_msg("buoy end")
+
+time.sleep(2)
+rc.set_depth(1)
+time.sleep(4)
+rc.set_depth(0.5)
 
 disarm.disarm() # just in case

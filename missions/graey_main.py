@@ -6,6 +6,11 @@ from auv.motion import robot_control
 from auv.device.modems.modems_api import Modem, handshake_start
 import rospy
 
+
+dock_heading = 100 #chnage
+gate_heading = 223 #change
+octagon_heading = 240 #change
+
 rospy.init_node("missions", anonymous=True)
 time.sleep(60)
 
@@ -24,22 +29,22 @@ except:
 
 arm.arm()
 
-gate_heading = 223
-octagon_heading = 240
-rc.forwardDist(4, 2)
-
 if not fail_modem:
     modem.send_msg("start graey")
 
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission(**config)
 time.sleep(2)
-coin_toss.run(gate_heading)  # NOTE: TWEAK THIS BEFORE MISSION
+coin_toss.run(dock_heading)
 coin_toss.cleanup()
 
 
 if not fail_modem:
     modem.send_msg("gate")
+
+rc.forwardDist(4, 2)
+time.sleep(2)
+rc.setHeadingOld(gate_heading)
 
 gate = gate2_mission.Gate2Mission()
 gate.run()
@@ -75,9 +80,6 @@ dhd_app.cleanup()
     
 if not fail_modem:
     modem.send_msg("dhd approach end")
-
-
-if not fail_modem:
     modem.send_msg("surfacing")
 
 # Run surfacing
@@ -86,9 +88,7 @@ time.sleep(2)
 surfacing.run()
 surfacing.cleanup()
 
-
 if not fail_modem:
     modem.send_msg("surfacing end")
-
 
 disarm.disarm()  # just in case
