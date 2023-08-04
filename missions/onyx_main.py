@@ -21,7 +21,7 @@ arm.arm()
 
 heading = 62
 
-# time.sleep(15)
+time.sleep(15)
 
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission()
@@ -32,9 +32,9 @@ coin_toss.cleanup()
 rc.forwardDist(6, 2)
 
 target = "abydos"
-# gateMission = gate_mission.GateMission(target)
-# gateMission.run()
-# gateMission.cleanup()
+gateMission = gate_mission.GateMission(target)
+gateMission.run()
+gateMission.cleanup()
 
 styleMission = style_mission.StyleMission()
 styleMission.run(heading)
