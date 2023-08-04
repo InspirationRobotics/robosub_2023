@@ -9,7 +9,6 @@ import rospy
 
 dock_heading = 100 #chnage
 gate_heading = 223 #change
-octagon_heading = 240 #change
 
 rospy.init_node("missions", anonymous=True)
 time.sleep(60)
@@ -34,23 +33,12 @@ if not fail_modem:
 
 # Run coin toss
 coin_toss = cointoss_mission.CoinTossMission(**config)
-time.sleep(2)
-coin_toss.run(dock_heading)
-coin_toss.cleanup()
-
 
 if not fail_modem:
     modem.send_msg("gate")
 
-rc.forwardDist(4, 2)
 time.sleep(2)
 rc.setHeadingOld(gate_heading)
-
-gate = gate2_mission.Gate2Mission()
-gate.run()
-gate.cleanup()
-coin_toss.run(octagon_heading)
-coin_toss.cleanup()
 
 if not fail_modem:
     modem.send_msg("gate end")
