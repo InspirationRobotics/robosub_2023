@@ -6,7 +6,7 @@ from ...utils.deviceHelper import dataFromConfig
 
 
 class Modem:
-    def __init__(self, on_receive_msg=None):
+    def __init__(self, on_receive_msg=None, auto_start=True):
         port = dataFromConfig("modem")
         self.ser = serial.Serial(
             port=port,
@@ -35,6 +35,9 @@ class Modem:
 
         self.thread_recv = threading.Thread(target=self._receive_loop, daemon=True)
         self.thread_send = threading.Thread(target=self._send_loop, daemon=True)
+
+        if auto_start:
+            self.start()
 
     def _send_to_modem(self, data):
         data = f"${data}\r\n"
@@ -149,7 +152,7 @@ class Modem:
                 msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
 
                 if time.time() - time_sent > 10 and priority == 0:
-                    print(f"[WARNING] Message {msg} timed out")
+                    print(f'[WARNING] Message "{msg}" timed out')
                     to_remove.append(it)
                     continue
 
@@ -195,7 +198,8 @@ class Modem:
                                 expecting_ack = False
                                 data = ""
 
-                    except:
+                    except Exception as e:
+                        print(e)
                         pass
 
     def on_receive_msg(self, msg: str):
@@ -206,6 +210,7 @@ class Modem:
     def on_receive_ack(self, ack: str, expecting_ack):
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
+        ack = int(ack)
         if expecting_ack:
             self.send_ack(ack)
             return
@@ -217,7 +222,7 @@ class Modem:
                 self.in_transit.pop(i)
                 return
 
-        print(f"[WARNING] Received ack: {ack} but no corresponding message found, maybe timed out?")
+        print(f'[WARNING] Received ack: "{ack}" but no corresponding message found, maybe timed out?')
 
     def start(self):
         self.receive_active = True
@@ -231,35 +236,44 @@ class Modem:
         self.thread_recv.join()
         self.thread_send.join()
 
+
+def dummy_callback(msg: str):
+    print("Received message:", msg)
+
+
+def manual_coms():
+    modem = Modem()
+    modem.start()
+    handshake_start(modem)
+    while True:
+        msg = input("Enter message: ")
+        modem.send_msg(msg)
+
+
 def handshake_start(self: Modem):
     """waits for a handshake to continue"""
 
     received_handshake = False
+
     def on_receive_msg(msg: str):
         if msg == "handshake":
             print("Handshake received")
             received_handshake = True
             self.on_receive_msg = dummy_callback
+
     self.on_receive_msg = on_receive_msg
 
     # sending handshake (no timeout)
     msg = "handshake"
     self.send_msg(msg, ack=42, priority=1)
     print("Waiting for handshake...")
-    
+
     while not received_handshake:
         if len(self.in_transit) == 0:
             break
         time.sleep(0.1)
     print("Handshake complete")
 
-def dummy_callback(msg: str):
-    print("Received message:", msg)
 
 if __name__ == "__main__":
-    # TODO: how to get the other sub modem address?
-    modem = Modem()
-    modem.start()
-    while True:
-        msg = input("Enter message: ")
-        modem.send_msg(msg)
+    manual_coms()
