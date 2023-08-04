@@ -46,10 +46,12 @@ class CV:
 
         target = None
         confidence = 0
+        ymin = 480
         for detection in detections:
-            if detection.confidence > confidence:
+            if detection.ymin < ymin:
                 target = detection
                 confidence = detection.confidence
+                ymin = detection.ymin
         target_center = int((target.xmin + target.xmax) / 2), int((target.ymin + target.ymax) / 2)
         if target_center[1] > 620:
             return {"end": True}, self.viz_frame
