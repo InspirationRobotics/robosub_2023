@@ -7,7 +7,7 @@ from auv.device.modems.modems_api import Modem, handshake_start
 import rospy
 
 rospy.init_node("missions", anonymous=True)
-time.sleep(30)
+time.sleep(45)
 
 # load sub config
 config = deviceHelper.variables
