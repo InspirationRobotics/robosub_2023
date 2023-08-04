@@ -165,7 +165,6 @@ class Modem:
 
                 # retry if no ack received after 3 seconds
                 if time.time() - time_last_sent > 3.0 and ack not in self.ack_received:
-                    print(f'[DEBUG] Retrying message "{msg}"')
                     ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
                     packet[2] = ret
 
@@ -223,8 +222,6 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
-
-        print(ack)
         
         # print(ack, self.in_transit, expecting_ack)
         if expecting_ack:
