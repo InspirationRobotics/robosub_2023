@@ -211,6 +211,7 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
+        print(ack)
         if expecting_ack:
             self.send_ack(ack)
             return
