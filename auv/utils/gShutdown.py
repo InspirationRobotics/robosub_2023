@@ -44,8 +44,8 @@ while loop:
             print("Disarming")
             try:
                 disarm()
-            except:
-                print("[ERROR] disarming failed, maybe mavros isn't running ?")
+            except Exception as e:
+                print(f"[ERROR]: {e}\ndisarming failed, maybe mavros isn't running ?")
             GPIO.setmode(GPIO.BOARD)
             GPIO.setup(killPin, GPIO.IN)
             state = False
