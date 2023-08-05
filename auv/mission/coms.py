@@ -6,7 +6,6 @@ from auv.motion import robot_control
 from auv.device.modems.modems_api import Modem, on_receive_msg_logging
 import rospy
 
-
 rospy.init_node("coms_mission", anonymous=True)
 # time.sleep(30)
 
@@ -28,3 +27,5 @@ arm.arm()
 rc.set_depth(0.75)
 
 time.sleep(90)
+
+disarm.disarm()
