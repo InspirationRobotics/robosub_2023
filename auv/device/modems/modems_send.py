@@ -4,6 +4,7 @@ import platform
 from ...utils.deviceHelper import dataFromConfig
 
 modemsPort = dataFromConfig("modem")
+print(modemsPort)
 
 # configure the serial connections
 ser = serial.Serial(port=modemsPort, baudrate=9600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS)

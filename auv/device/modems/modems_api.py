@@ -1,60 +1,50 @@
+import Jetson.GPIO as GPIO
 import time
 import serial
 import threading
 import math
 from ...utils.deviceHelper import dataFromConfig
 
+port = dataFromConfig("modem")
+modem_ser = serial.Serial(
+    port=port,
+    baudrate=9600,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+    bytesize=serial.EIGHTBITS,
+)
 
 class LED:
-    def __init__(self, port):
-        self.ser = serial.Serial(
-            port=port,
-            baudrate=115200,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-        )
-        assert self.ser.isOpen(), "Failed to open serial port"
-
+    def __init__(self):
+        self.t_pin = 31
+        self.r_pin = 32
+                
     def on_send_msg(self):
-        self.ser.write("t".encode())
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.t_pin, GPIO.OUT)
+        GPIO.output(self.t_pin, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(self.t_pin, GPIO.LOW)
+        GPIO.cleanup()
 
     def on_recv_msg(self):
-        self.ser.write("r".encode())
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.r_pin, GPIO.OUT)
+        GPIO.output(self.r_pin, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.cleanup()
 
-class DummyLED:
-    def __init__(self, port):
-        pass
-
-    def on_send_msg(self):
-        pass
-
-    def on_recv_msg(self):
-        pass
+led = LED()
 
 class Modem:
     def __init__(self, on_receive_msg=None, auto_start=True):
         port = dataFromConfig("modem")
-        self.ser = serial.Serial(
-            port=port,
-            baudrate=9600,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-        )
-
-        assert self.ser.isOpen(), "Failed to open serial port"
-
         if on_receive_msg is not None:
             self.on_receive_msg = on_receive_msg
 
-        # init LED
-        try:
-            self.led = LED(port)
-        except:
-            self.led = DummyLED(port)
-            print("Failed to init LED")
-
+        self.led = LED()
+        
         # ACK is used to ensure message is received
         self.ACK = 0
         self.blocked = False
@@ -63,7 +53,10 @@ class Modem:
 
         self.modemAddr = None
         self.voltage = None
-        self.query_status()
+
+        self.connected = False
+        th = threading.Thread(target=self.try_connect)
+        th.start()
 
         self.receive_active = True
         self.sending_active = True
@@ -71,23 +64,32 @@ class Modem:
         self.thread_recv = threading.Thread(target=self._receive_loop)
         self.thread_send = threading.Thread(target=self._send_loop)
 
-        if auto_start:
-            self.start()
+    def try_connect(self):
+        self.connected = False
+        while not self.connected:
+            try:
+                self.query_status()
+                self.connected = True
+                print("Modem connected")
+
+            except KeyboardInterrupt:
+                raise Exception
+            except:
+                print("failed connect")
+                time.sleep(1)
+                pass
+        self.start()
 
     def _send_to_modem(self, data):
-        data = f"${data}\r\n"
-        self.ser.write(data.encode())
+        buffer = f'${data}\r\n'
+        modem_ser.write(buffer.encode())
         out = b""
         time.sleep(0.1)
-        while self.ser.inWaiting() > 0:
-            out += self.ser.read(1)
+        while modem_ser.inWaiting() > 0:
+            out += modem_ser.read(1)
         if out != b"":
-            try:
-                rawOut = out.decode("utf-8").replace("\n", "").replace("\r", "")
-                # print(rawOut)
-                return rawOut
-            except:
-                print("Failed to parse")
+            output = out.decode()
+            return output
 
     def query_status(self):
         QUERY_COMMAND = "?"
@@ -158,7 +160,7 @@ class Modem:
         self.blocked = False
         return time.time()
 
-    def send_msg(self, msg, ack=None, dest_addr=None, priority=0):
+    def send_msg(self, msg, ack=None, dest_addr=None, priority=1):
         """
         Append a msg to the sending list, non-blocking
         The message would be processed after all the previous messages were sent out
@@ -216,9 +218,9 @@ class Modem:
         msg_state = False  # True = message in receiving
 
         while self.receive_active:
-            if self.ser.inWaiting() > 0:
+            if modem_ser.inWaiting() > 0:
                 out = b""
-                out = self.ser.read(1)
+                out = modem_ser.read(1)
                 if out != b"":
                     try:
                         rawOut = out.decode("utf-8")
@@ -293,7 +295,7 @@ def dummy_callback(msg: str):
 
 
 def on_receive_msg_logging(msg: str, log_file: str):
-    self.led.on_recv_msg()
+    led.on_recv_msg()
     msg = msg.replace("*", "")
     print("Received message:", msg)
     with open(log_file, "a+") as f:
@@ -339,4 +341,7 @@ def handshake_start(self: Modem):
 
 if __name__ == "__main__":
     modem = Modem()
-    handshake_start(modem)
+    modem.send_msg("this is a test")
+
+    # led.on_send_msg()
+    # led.on_recv_msg()
