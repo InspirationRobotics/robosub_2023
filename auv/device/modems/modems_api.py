@@ -173,6 +173,7 @@ class Modem:
             ack = self.ACK
 
         self.in_transit.append([msg, time.time(), 0, ack, dest_addr, priority])
+        on_send_msg_logging(msg, "underwater_coms_send.log")
 
     def send_ack(self, ack, dest_addr=None):
         """
@@ -294,7 +295,12 @@ def dummy_callback(msg: str):
     print("Received message:", msg)
 
 
-def on_receive_msg_logging(msg: str, log_file: str):
+def on_send_msg_logging(msg:str, log_file="underwater_coms_send.log"):
+    print("Sending message:", msg)
+    with open(log_file, "a+") as f:
+        f.write(f"[{time.time()}][send] {msg}\n")
+
+def on_receive_msg_logging(msg: str, log_file="underwater_coms_recv.log"):
     led.on_recv_msg()
     msg = msg.replace("*", "")
     print("Received message:", msg)
@@ -321,7 +327,7 @@ def handshake_start(self: Modem):
             self.on_receive_msg = dummy_callback
 
         try:
-            on_receive_msg_logging(msg, "underwater_coms.log")
+            on_receive_msg_logging(msg, "underwater_coms_recv.log")
         except:
             print("[WARNING] Failed to log message [WARNING]")
 
