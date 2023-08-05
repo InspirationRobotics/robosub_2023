@@ -42,9 +42,12 @@ while loop:
     if current == 0 and state == True and startTime!=0:
         if time.time() - startTime > 1:
             print("Disarming")
-            disarm()
+            try:
+                disarm()
+            except Exception as e:
+                print(f"[ERROR]: {e}\ndisarming failed, maybe mavros isn't running ?")
             GPIO.setmode(GPIO.BOARD)
             GPIO.setup(killPin, GPIO.IN)
             state = False
-    #print(GPIO.input(killPin))
+    print(GPIO.input(killPin))
     time.sleep(0.1)
