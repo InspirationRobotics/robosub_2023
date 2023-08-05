@@ -173,7 +173,6 @@ class Modem:
             ack = self.ACK
 
         self.in_transit.append([msg, time.time(), 0, ack, dest_addr, priority])
-        on_send_msg_logging(msg, "underwater_coms_send.log")
 
     def send_ack(self, ack, dest_addr=None):
         """
@@ -203,6 +202,7 @@ class Modem:
 
                 # retry if no ack received after 1 seconds (better be safe than sorry)
                 if time.time() - time_last_sent > 1.0 and ack not in self.ack_received:
+                    on_send_msg_logging(msg, "underwater_coms_send.log")
                     ret = self._transmit(msg, ack=ack, dest_addr=dest_addr)
                     packet[2] = ret
 
