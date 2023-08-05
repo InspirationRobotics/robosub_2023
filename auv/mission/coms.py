@@ -7,7 +7,7 @@ from auv.device.modems.modems_api import Modem, on_receive_msg_logging
 import rospy
 
 rospy.init_node("coms_mission", anonymous=True)
-# time.sleep(30)
+time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
