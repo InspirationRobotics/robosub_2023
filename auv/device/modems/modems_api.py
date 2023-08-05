@@ -5,6 +5,33 @@ import math
 from ...utils.deviceHelper import dataFromConfig
 
 
+class LED:
+    def __init__(self, port):
+        self.ser = serial.Serial(
+            port=port,
+            baudrate=115200,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+        )
+        assert self.ser.isOpen(), "Failed to open serial port"
+
+    def on_send_msg(self):
+        self.ser.write("t".encode())
+
+    def on_recv_msg(self):
+        self.ser.write("r".encode())
+
+class DummyLED:
+    def __init__(self, port):
+        pass
+
+    def on_send_msg(self):
+        pass
+
+    def on_recv_msg(self):
+        pass
+
 class Modem:
     def __init__(self, on_receive_msg=None, auto_start=True):
         port = dataFromConfig("modem")
@@ -20,6 +47,13 @@ class Modem:
 
         if on_receive_msg is not None:
             self.on_receive_msg = on_receive_msg
+
+        # init LED
+        try:
+            self.led = LED(port)
+        except:
+            self.led = DummyLED(port)
+            print("Failed to init LED")
 
         # ACK is used to ensure message is received
         self.ACK = 0
@@ -116,6 +150,7 @@ class Modem:
             dataToSend.insert(0, msg)
 
         for data in dataToSend:
+            self.led.on_send_msg()
             self._transmit_data_low_level(data, dest_addr, broadcast)
             sleepAmt = round(0.205 + (len(msg.encode("utf-8")) + 16) * 0.0125, 3)
             time.sleep(sleepAmt)
@@ -169,7 +204,7 @@ class Modem:
                     packet[2] = ret
 
                 # print(self.ack_received)
-            
+
             time.sleep(0.1)
 
             # remove timed out messages and received acks
@@ -225,7 +260,7 @@ class Modem:
         # just after a message (ack of the message)
         ack = ack.replace("@", "")
         ack = int(ack)
-        
+
         # print(ack, self.in_transit, expecting_ack)
         if expecting_ack:
             self.send_ack(ack)
@@ -256,11 +291,14 @@ class Modem:
 def dummy_callback(msg: str):
     print("Received message:", msg)
 
+
 def on_receive_msg_logging(msg: str, log_file: str):
+    self.led.on_recv_msg()
     msg = msg.replace("*", "")
     print("Received message:", msg)
     with open(log_file, "a+") as f:
         f.write(f"[{time.time()}]{msg}\n")
+
 
 def manual_coms():
     modem = Modem()
