@@ -299,7 +299,7 @@ def on_receive_msg_logging(msg: str, log_file: str):
     msg = msg.replace("*", "")
     print("Received message:", msg)
     with open(log_file, "a+") as f:
-        f.write(f"[{time.time()}]{msg}\n")
+        f.write(f"[{time.time()}][recv] {msg}\n")
 
 
 def manual_coms():

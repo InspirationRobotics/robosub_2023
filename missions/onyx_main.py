@@ -23,6 +23,7 @@ fail_modem = False
 
 try:
     modem = Modem(on_receive_msg=on_receive_msg_logging)
+    modem.send_msg("onyx handshake")
 except:
     fail_modem = True
     print("Failed to start modem, sleeping 15 seconds")
