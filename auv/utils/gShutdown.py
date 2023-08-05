@@ -49,5 +49,5 @@ while loop:
             GPIO.setmode(GPIO.BOARD)
             GPIO.setup(killPin, GPIO.IN)
             state = False
-    #print(GPIO.input(killPin))
+    print(GPIO.input(killPin))
     time.sleep(0.1)
