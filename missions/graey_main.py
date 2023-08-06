@@ -26,7 +26,7 @@ except:
 
 def onExit(signum, frame):
     try:
-        print("\Closing Cameras and exiting...")
+        print("\Closing and exiting...")
 
         # cleanup modems and LED
         modems_api.led.clean()

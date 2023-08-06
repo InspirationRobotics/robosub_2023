@@ -4,18 +4,15 @@ import signal
 from auv.mission import cointoss_mission, buoy_mission, gate_mission, style_mission, dhd_approach_mission, surfacing_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
-from auv.device.modems.modems_api import Modem, on_receive_msg_logging
+from auv.device.modems import modems_api
 import rospy
-
-
-
 
 target = "abydos"
 #dock_heading = 100 #chnage
 gate_heading = 221 #change
 dhdDir = 1 #change (1 is plus 20 which is clockwise)
 
-rospy.init_node("missions", anonymous=True)
+myNode = rospy.init_node("missions", anonymous=True)
 #time.sleep(30)
 
 # load sub config
@@ -40,7 +37,7 @@ def onExit(signum, frame):
         if not fail_modem:
             modem.stop()
 
-        my_node.stop()
+        myNode.stop()
         time.sleep(3)
         rospy.signal_shutdown("Rospy Exited")
         while not rospy.is_shutdown():

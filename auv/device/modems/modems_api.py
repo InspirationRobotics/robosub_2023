@@ -24,23 +24,21 @@ class LED:
         GPIO.setup(self.t_pin, GPIO.OUT)
         GPIO.output(self.t_pin, GPIO.HIGH)
         time.sleep(0.1)
-        GPIO.output(self.t_pin, GPIO.LOW)
-        GPIO.cleanup()
+        self.clean()
 
     def on_recv_msg(self):
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.r_pin, GPIO.OUT)
         GPIO.output(self.r_pin, GPIO.HIGH)
         time.sleep(0.1)
-        GPIO.output(self.r_pin, GPIO.LOW)
-        GPIO.cleanup()
+        self.clean()
 
     def clean(self):
         # set to low to turn off
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.t_pin, GPIO.OUT)
-        GPIO.output(self.t_pin, GPIO.LOW)
         GPIO.setup(self.r_pin, GPIO.OUT)
+        GPIO.output(self.t_pin, GPIO.LOW)
         GPIO.output(self.r_pin, GPIO.LOW)
         GPIO.cleanup()
 
@@ -64,8 +62,6 @@ class Modem:
         self.voltage = None
 
         self.connected = False
-        th = threading.Thread(target=self.try_connect)
-        th.start()
 
         self.receive_active = True
         self.sending_active = True
@@ -73,22 +69,8 @@ class Modem:
         self.thread_recv = threading.Thread(target=self._receive_loop)
         self.thread_send = threading.Thread(target=self._send_loop)
 
-    def try_connect(self):
-        self.connected = False
-        while not self.connected:
-            try:
-                if variables.get("sub") == "graey":
-                    self.query_status()
-                self.connected = True
-                print("Modem connected")
-
-            except KeyboardInterrupt:
-                raise Exception
-            except:
-                print("failed connect")
-                time.sleep(1)
-                pass
-        self.start()
+        if auto_start:
+            self.start()
 
     def _send_to_modem(self, data):
         buffer = f'${data}\r\n'
@@ -221,7 +203,7 @@ class Modem:
 
                 # print(self.ack_received)
 
-            time.sleep(0.1)
+            time.sleep(0.5)
 
             # remove timed out messages and received acks
             self.in_transit = [packet for it, packet in enumerate(self.in_transit) if it not in to_remove and packet[3] not in self.ack_received]
@@ -287,6 +269,7 @@ class Modem:
         for i, packet in enumerate(self.in_transit):
             if packet[3] == ack:
                 self.ack_received.append(ack)
+                on_receive_msg_logging(f"[ACK {packet[3]}]{packet[0]}", "underwater_coms_recv.log")
                 return
 
         print(f'[WARNING] Received ack: "{ack}" but no corresponding message found, maybe timed out?')
@@ -361,6 +344,8 @@ def handshake_start(self: Modem):
 if __name__ == "__main__":
     modem = Modem(on_receive_msg=on_receive_msg_logging)
     modem.send_msg("this is a test")
+    modem.send_msg("blabla")
+    modem.send_msg("omg this is insane !!!")
 
     # led.on_send_msg()
     # led.on_recv_msg()
