@@ -23,12 +23,12 @@ class RobotControl:
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
-        # dvl sensor setup (both subs)
-        if enable_dvl:
-            self.dvl = dvl.DVL()
-            self.dvl.start()
-        else:
-            self.dvl = None
+        # # dvl sensor setup (both subs)
+        # if enable_dvl:
+        #     self.dvl = dvl.DVL()
+        #     self.dvl.start()
+        # else:
+        self.dvl = None
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
