@@ -31,7 +31,7 @@ class CV:
 
         self.viz_frame = None
         self.error_buffer = []
-        self.timeout = 15
+        self.timeout = 30
         self.start_timeout = None
 
         print("[INFO] Surfacing CV init")
@@ -106,7 +106,7 @@ class CV:
         return (x_error, y_error)
 
     def run_graey(self, frame, target, detections):
-        frame = self.equalize(frame)
+        # frame = self.equalize(frame)
         self.viz_frame = frame
 
         (x_center, y_center) = self.get_octogon_center_color(frame, viz=True)
@@ -126,7 +126,7 @@ class CV:
         if avg_error < 0.2 and len(self.error_buffer) == 30:
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
-        if self.start_timeout and self.start_timeout + self.timeout > time.time():
+        if self.start_timeout and self.start_timeout + self.timeout < time.time():
             print("surfacing timeout")
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     # Create a CV object with arguments
     cv = CV()
 
-    cap = cv2.VideoCapture("testing_data\\octogon.mp4")
+    cap = cv2.VideoCapture("testing_data\\octagon_bottom_graey2.mp4")
 
     while True:
         ret, img = cap.read()
