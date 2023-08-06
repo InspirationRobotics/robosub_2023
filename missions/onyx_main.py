@@ -10,10 +10,11 @@ import os
 
 target = "abydos"
 #dock_heading = 100 #chnage
-gate_heading = 62 #change
+gate_heading = 221 #change
+dhdDir = 1 #change (1 is plus 20 which is clockwise)
 
 rospy.init_node("missions", anonymous=True)
-time.sleep(30)
+#time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
@@ -22,6 +23,7 @@ rc = robot_control.RobotControl()
 fail_modem = False
 
 try:
+    #fail_modem = True
     modem = Modem(on_receive_msg=on_receive_msg_logging)
     modem.send_msg("onyx handshake")
 except:
@@ -66,9 +68,9 @@ if not fail_modem:
     modem.send_msg("buoy")
 
 # Run buoy approach
-rc.forwardDist(1.5, 2)
+#rc.forwardDist(1.5, 2)
 rc.set_depth(1)
-time.sleep(4)
+#time.sleep(4)
 buoyMission = buoy_mission.BuoyMission(target)
 buoyMission.run()
 buoyMission.cleanup()
@@ -81,11 +83,11 @@ if not fail_modem:
 time.sleep(2)
 rc.set_depth(1)
 time.sleep(4)
-rc.set_depth(0.65) #0.5
+rc.set_depth(1.3) #0.5
 time.sleep(2)
 rc.forwardDist(3, 2)
 time.sleep(2)
-rc.setHeadingOld(gate_heading-20) # guesstimating
+rc.setHeadingOld(gate_heading+(dhdDir*20)) # guesstimating
 time.sleep(2)
 
 rc.forwardDist(8, 2)
