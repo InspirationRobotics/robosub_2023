@@ -32,7 +32,14 @@ class CV:
         self.outPrev = False
         self.prevLateral = 0
         self.state = "frame"
+        self.area = 0
         self.flag = [False, False]
+        self.config = config
+        self.current_sub = self.config.get("sub", "graey")
+        if(self.current_sub == "graey"):
+            self.area = 250
+        elif(self.current_sub == "onyx"):
+            self.area = 310
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
 
@@ -195,7 +202,7 @@ class CV:
             if(target_area > 650):
                 message = "TOO CLOSE! GOING BACKWARD"
                 forward = -1
-            elif(target_area<250):
+            elif(target_area<self.area):
                 message = "TOO FAR! GOING FORWARD"
                 forward = 1.5
                 # if(len(detections) == 2):
