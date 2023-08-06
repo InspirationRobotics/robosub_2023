@@ -76,7 +76,7 @@ class Modem:
         buffer = f'${data}\r\n'
         modem_ser.write(buffer.encode())
         out = b""
-        time.sleep(0.1)
+        time.sleep(1) #0.1
         while modem_ser.inWaiting() > 0:
             out += modem_ser.read(1)
         if out != b"":
@@ -86,10 +86,17 @@ class Modem:
     def query_status(self):
         QUERY_COMMAND = "?"
         data = self._send_to_modem(QUERY_COMMAND)
+        if data is None:
+            return
         self.modemAddr = data[2:5]
         self.voltage = round(float(int(data[6:11]) * 15 / 65536), 2)
         print(f"Modem Addr: {self.modemAddr}")
         print(f"Voltage: {str(self.voltage)}")
+
+    def ping_status(self, dest_addr):
+        PING_COMMAND = f"P{dest_addr}"
+        data = self._send_to_modem(PING_COMMAND)
+        return data
 
     def _transmit_data_low_level(self, msg, dest_addr, broadcast):
         length = len(msg.encode("utf-8"))
