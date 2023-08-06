@@ -359,7 +359,7 @@ def handshake_start(self: Modem):
 
 
 if __name__ == "__main__":
-    modem = Modem()
+    modem = Modem(on_receive_msg=on_receive_msg_logging)
     modem.send_msg("this is a test")
 
     # led.on_send_msg()
