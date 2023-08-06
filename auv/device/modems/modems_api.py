@@ -203,6 +203,7 @@ class Modem:
 
                 # print(self.ack_received)
 
+                time.sleep(0.5)
             time.sleep(0.5)
 
             # remove timed out messages and received acks
