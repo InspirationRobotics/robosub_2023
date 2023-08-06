@@ -1,11 +1,13 @@
 import time
+import signal
 
 from auv.mission import cointoss_mission, buoy_mission, gate_mission, style_mission, dhd_approach_mission, surfacing_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
 from auv.device.modems.modems_api import Modem, on_receive_msg_logging
 import rospy
-import os
+
+
 
 
 target = "abydos"
@@ -20,16 +22,35 @@ rospy.init_node("missions", anonymous=True)
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
-fail_modem = False
-
 try:
-    #fail_modem = True
-    modem = Modem(on_receive_msg=on_receive_msg_logging)
-    modem.send_msg("onyx handshake")
+    modem = modems_api.Modem(on_receive_msg=modems_api.on_receive_msg_logging)
+    modem.send_msg("graey handshake")
+    fail_modem = False
 except:
     fail_modem = True
-    print("Failed to start modem, sleeping 15 seconds")
+    print("Failed to start modem, starting directly")
 
+
+def onExit(signum, frame):
+    try:
+        print("\Closing Cameras and exiting...")
+
+        # cleanup modems and LED
+        modems_api.led.clean()
+        if not fail_modem:
+            modem.stop()
+
+        my_node.stop()
+        time.sleep(3)
+        rospy.signal_shutdown("Rospy Exited")
+        while not rospy.is_shutdown():
+            pass
+        print("\n\nCleanly Exited")
+        exit(1)
+    except:
+        pass
+
+signal.signal(signal.SIGINT, onExit)
 arm.arm()
 
 if not fail_modem:
