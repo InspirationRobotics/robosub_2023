@@ -35,7 +35,7 @@ class CV:
         self.area = 0
         self.flag = [False, False]
         self.config = config
-        self.current_sub = self.config.get("sub", "graey")
+        self.current_sub = self.config.get("sub", "onyx")
         if(self.current_sub == "graey"):
             self.area = 250
         elif(self.current_sub == "onyx"):

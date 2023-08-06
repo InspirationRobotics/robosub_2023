@@ -8,8 +8,8 @@ from auv.device.modems import modems_api
 import rospy
 
 myNode = rospy.init_node("missions", anonymous=True)
-octagon_heading = 217
-#time.sleep(30)
+octagon_heading = 350
+time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
@@ -55,7 +55,7 @@ if not fail_modem:
 time.sleep(2)
 rc.forwardDist(3.5, 2)
 target = "earth"
-gateMission = gate_mission.GateMission(target)
+gateMission = gate_mission.GateMission(target, **config)
 gateMission.run()
 gateMission.cleanup()
 
@@ -65,7 +65,7 @@ if not fail_modem:
 
 rc.setHeadingOld(octagon_heading)
 t = 0
-while t < 40:  # need to adjust for finals
+while t < 70:  # need to adjust for finals
     rc.movement(forward=2)
     time.sleep(0.1)
     t += 0.1
