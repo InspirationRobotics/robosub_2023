@@ -246,12 +246,7 @@ class CV:
             lateral = np.clip(lateral * dist * 4.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         elif(self.state == "strafe" and len(detections) == 1):
-            if(target_x == -1):
-                target_x = other_x
-                self.state = "target"
-            elif(other_x == -1):
-                target_x = target_x
-                self.state = "target"
+            self.state = "targetOneDetect"
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"
             if(target_area > other_area):
@@ -287,6 +282,22 @@ class CV:
             if(lateral==0):
                 message = "TARGET IS ALIGNED, GOING FORWARD"
                 self.state = "end"
+        elif(self.state=="targetOneDetect"):
+            if len(detections) == 2:
+                self.state = "strafe"
+                forward=0
+            else:
+                if(target_x == -1):
+                    target_x = other_x
+                elif(other_x == -1):
+                    target_x = target_x
+                message = "ALIGNING WITH TARGET IMAGE"
+                lateral = self.alignTarget(target_x, 5)
+                forward = 0.6
+                if(lateral==0):
+                    forward=0
+                    message = "TARGET IS ALIGNED, GOING FORWARD"
+                    self.state = "end"
 
             cv2.putText(frame, message, (220, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             

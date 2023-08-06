@@ -9,8 +9,8 @@ import rospy
 
 target = "abydos"
 #dock_heading = 100 #chnage
-gate_heading = 221 #change
-dhdDir = 1 #change (1 is plus 20 which is clockwise)
+gate_heading = 60 #change
+dhdDir = -1 #change (1 is plus 20 which is clockwise)
 
 myNode = rospy.init_node("missions", anonymous=True)
 #time.sleep(30)
@@ -30,8 +30,7 @@ except:
 
 def onExit(signum, frame):
     try:
-        print("\Closing Cameras and exiting...")
-
+        print("Exiting...")
         # cleanup modems and LED
         modems_api.led.clean()
         if not fail_modem:
@@ -61,6 +60,8 @@ coin_toss.run(gate_heading)
 coin_toss.cleanup()
 
 rc.forwardDist(5, 2)
+time.sleep(2)
+rc.lateralUni(-2,4)
 time.sleep(1)
 rc.setHeadingOld(gate_heading)
 
@@ -68,16 +69,17 @@ if not fail_modem:
     modem.send_msg("coin toss end")
     modem.send_msg("gate")
 
-gateMission = gate_mission.GateMission(target)
+gateMission = gate_mission.GateMission(target, **config)
 gateMission.run()
 gateMission.cleanup()
+rc.forwardDist(2, 2)
 
 if not fail_modem:
     modem.send_msg("gate end")
     modem.send_msg("style")
 
 styleMission = style_mission.StyleMission()
-styleMission.run(gate_heading)
+styleMission.run(gate_heading-5)
 styleMission.cleanup()
 
 
@@ -86,7 +88,7 @@ if not fail_modem:
     modem.send_msg("buoy")
 
 # Run buoy approach
-#rc.forwardDist(1.5, 2)
+rc.forwardDist(3, 2)
 rc.set_depth(1)
 #time.sleep(4)
 buoyMission = buoy_mission.BuoyMission(target)
@@ -108,7 +110,7 @@ time.sleep(2)
 rc.setHeadingOld(gate_heading+(dhdDir*20)) # guesstimating
 time.sleep(2)
 
-rc.forwardDist(8, 2)
+rc.forwardUni(2, 60)
 
 if not fail_modem:
     modem.send_msg("dhd approach")
