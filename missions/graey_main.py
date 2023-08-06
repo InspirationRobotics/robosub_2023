@@ -1,13 +1,13 @@
 import time
+import signal
 
-from auv.mission import gate_mission, cointoss_mission, surfacing_mission, dhd_approach_mission, gate2_mission
+from auv.mission import gate_mission, cointoss_mission, surfacing_mission, dhd_approach_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
-from auv.device.modems.modems_api import Modem, on_receive_msg_logging
+from auv.device.modems import modems_api
 import rospy
 
-
-rospy.init_node("missions", anonymous=True)
+myNode = rospy.init_node("missions", anonymous=True)
 gate_heading = 217
 # time.sleep(30)
 
@@ -15,18 +15,37 @@ gate_heading = 217
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
-fail_modem = False
-
 try:
-    # fail_modem = True
-    modem = Modem(on_receive_msg=on_receive_msg_logging)
+    modem = modems_api.Modem(on_receive_msg=modems_api.on_receive_msg_logging)
     modem.send_msg("graey handshake")
+    fail_modem = False
 except:
     fail_modem = True
     print("Failed to start modem, starting directly")
 
-arm.arm()
 
+def onExit(signum, frame):
+    try:
+        print("\Closing Cameras and exiting...")
+
+        # cleanup modems and LED
+        modems_api.led.clean()
+        if not fail_modem:
+            modem.stop()
+
+        myNode.stop()
+        time.sleep(3)
+        rospy.signal_shutdown("Rospy Exited")
+        while not rospy.is_shutdown():
+            pass
+        print("\n\nCleanly Exited")
+        exit(1)
+    except:
+        pass
+
+signal.signal(signal.SIGINT, onExit)
+
+arm.arm()
 rc.set_depth(0.75)
 
 if not fail_modem:

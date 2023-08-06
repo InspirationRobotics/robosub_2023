@@ -1,33 +1,56 @@
 import time
+import signal
 
 from auv.mission import cointoss_mission, buoy_mission, gate_mission, style_mission, dhd_approach_mission, surfacing_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
 from auv.device.modems.modems_api import Modem, on_receive_msg_logging
 import rospy
-import os
+
+
 
 
 target = "abydos"
 #dock_heading = 100 #chnage
-gate_heading = 62 #change
+gate_heading = 221 #change
+dhdDir = 1 #change (1 is plus 20 which is clockwise)
 
 rospy.init_node("missions", anonymous=True)
-time.sleep(30)
+#time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
-fail_modem = False
-
 try:
-    modem = Modem(on_receive_msg=on_receive_msg_logging)
-    modem.send_msg("onyx handshake")
+    modem = modems_api.Modem(on_receive_msg=modems_api.on_receive_msg_logging)
+    modem.send_msg("graey handshake")
+    fail_modem = False
 except:
     fail_modem = True
-    print("Failed to start modem, sleeping 15 seconds")
+    print("Failed to start modem, starting directly")
 
+
+def onExit(signum, frame):
+    try:
+        print("\Closing Cameras and exiting...")
+
+        # cleanup modems and LED
+        modems_api.led.clean()
+        if not fail_modem:
+            modem.stop()
+
+        my_node.stop()
+        time.sleep(3)
+        rospy.signal_shutdown("Rospy Exited")
+        while not rospy.is_shutdown():
+            pass
+        print("\n\nCleanly Exited")
+        exit(1)
+    except:
+        pass
+
+signal.signal(signal.SIGINT, onExit)
 arm.arm()
 
 if not fail_modem:
@@ -66,9 +89,9 @@ if not fail_modem:
     modem.send_msg("buoy")
 
 # Run buoy approach
-rc.forwardDist(1.5, 2)
+#rc.forwardDist(1.5, 2)
 rc.set_depth(1)
-time.sleep(4)
+#time.sleep(4)
 buoyMission = buoy_mission.BuoyMission(target)
 buoyMission.run()
 buoyMission.cleanup()
@@ -81,11 +104,11 @@ if not fail_modem:
 time.sleep(2)
 rc.set_depth(1)
 time.sleep(4)
-rc.set_depth(0.65) #0.5
+rc.set_depth(1.3) #0.5
 time.sleep(2)
 rc.forwardDist(3, 2)
 time.sleep(2)
-rc.setHeadingOld(gate_heading-20) # guesstimating
+rc.setHeadingOld(gate_heading+(dhdDir*20)) # guesstimating
 time.sleep(2)
 
 rc.forwardDist(8, 2)

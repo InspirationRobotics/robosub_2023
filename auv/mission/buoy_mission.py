@@ -29,8 +29,8 @@ class BuoyMission:
         self.received = False
         self.target = target
         self.side = None
-        self.baseDepth = 2.8# 2.3 (bottom of buoy)
-        self.upDepth = 2.3 #1.8 (top of buoy)
+        self.baseDepth = 3# 2.3 (bottom of buoy)
+        self.upDepth = 2.4 #1.8 (top of buoy)
             
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
