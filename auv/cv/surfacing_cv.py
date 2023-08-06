@@ -3,6 +3,7 @@ Description: CV class for surfacing
 Author: Maxime Ellerbach
 """
 
+import time
 import cv2
 import numpy as np
 from circle_fit import taubinSVD
@@ -51,8 +52,8 @@ class CV:
         """
         # filters what is white
         gray = cv2.inRange(frame, (200, 200, 200), (255, 255, 255))
-        if viz:
-            self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
+        # if viz:
+        # self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
 
         # get biggest contour
         contours, _ = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)

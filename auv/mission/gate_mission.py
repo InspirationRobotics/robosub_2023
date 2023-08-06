@@ -80,8 +80,7 @@ class GateMission:
             # direcly feed the cv output to the robot control
             if end:
                 print("Ending...")
-                self.robot_control.movement(lateral=-0.3)
-                self.robot_control.forwardDist(8, 2)
+                self.robot_control.forwardDist(6, 2)
                 self.robot_control.movement(lateral=0, yaw=0, forward=0)
                 break
             else:

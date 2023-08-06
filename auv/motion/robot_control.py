@@ -395,6 +395,8 @@ class RobotControl:
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
         pwm.channels[4] = int(forwardPower)
+        if config.get("sub", "onyx") == "graey":
+            pwm.channels[5] = 1500-int(power*7)
         startTime = time.time()
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)

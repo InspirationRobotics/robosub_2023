@@ -8,6 +8,7 @@ import rospy
 
 
 rospy.init_node("missions", anonymous=True)
+gate_heading = 217
 # time.sleep(30)
 
 # load sub config
@@ -17,6 +18,7 @@ rc = robot_control.RobotControl()
 fail_modem = False
 
 try:
+    # fail_modem = True
     modem = Modem(on_receive_msg=on_receive_msg_logging)
     modem.send_msg("graey handshake")
 except:
@@ -32,7 +34,7 @@ if not fail_modem:
     modem.send_msg("set heading")
 
 time.sleep(2)
-rc.forwardDist(3, 2)
+rc.forwardDist(2, 2)
 target = "earth"
 gateMission = gate_mission.GateMission(target)
 gateMission.run()
@@ -42,6 +44,7 @@ if not fail_modem:
     modem.send_msg("set heading end")
     modem.send_msg("traveling")
 
+rc.setHeadingOld(gate_heading-20)
 t = 0
 while t < 40:  # 50 seconds in transdec
     rc.movement(forward=2)

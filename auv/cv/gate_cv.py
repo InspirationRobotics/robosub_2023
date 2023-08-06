@@ -195,7 +195,7 @@ class CV:
             if(target_area > 650):
                 message = "TOO CLOSE! GOING BACKWARD"
                 forward = -1
-            elif(target_area<310):
+            elif(target_area<250):
                 message = "TOO FAR! GOING FORWARD"
                 forward = 1.5
                 # if(len(detections) == 2):
@@ -238,6 +238,13 @@ class CV:
 
             lateral = np.clip(lateral * dist * 4.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+        elif(self.state == "strafe" and len(detections) == 1):
+            if(target_x == -1):
+                target_x = other_x
+                self.state = "target"
+            elif(other_x == -1):
+                target_x = target_x
+                self.state = "target"
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"
             if(target_area > other_area):
