@@ -3,7 +3,7 @@ import time
 import serial
 import threading
 import math
-from ...utils.deviceHelper import dataFromConfig
+from ...utils.deviceHelper import dataFromConfig, variables
 
 port = dataFromConfig("modem")
 modem_ser = serial.Serial(
@@ -32,6 +32,15 @@ class LED:
         GPIO.setup(self.r_pin, GPIO.OUT)
         GPIO.output(self.r_pin, GPIO.HIGH)
         time.sleep(0.1)
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.cleanup()
+
+    def clean(self):
+        # set to low to turn off
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.t_pin, GPIO.OUT)
+        GPIO.output(self.t_pin, GPIO.LOW)
+        GPIO.setup(self.r_pin, GPIO.OUT)
         GPIO.output(self.r_pin, GPIO.LOW)
         GPIO.cleanup()
 
@@ -68,7 +77,8 @@ class Modem:
         self.connected = False
         while not self.connected:
             try:
-                self.query_status()
+                if variables.get("sub") == "graey":
+                    self.query_status()
                 self.connected = True
                 print("Modem connected")
 
@@ -188,6 +198,9 @@ class Modem:
             self.ack_received = []
 
             for it, packet in enumerate(self.in_transit):
+                if self.sending_active is False:
+                    return
+
                 msg, time_sent, time_last_sent, ack, dest_addr, priority = packet
 
                 if msg is None:
