@@ -3,7 +3,7 @@ import time
 from auv.mission import gate_mission, cointoss_mission, surfacing_mission, dhd_approach_mission, gate2_mission
 from auv.utils import arm, disarm, deviceHelper
 from auv.motion import robot_control
-from auv.device.modems.modems_api import Modem, on_receive_msg_logging
+from auv.device.modems.modems_api import Modem
 import rospy
 
 rospy.init_node("coms_mission", anonymous=True)
@@ -16,7 +16,7 @@ rc = robot_control.RobotControl()
 fail_modem = False
 
 try:
-    modem = Modem(on_receive_msg=on_receive_msg_logging)
+    modem = Modem()
     modem.send_msg("graey handshake")
 except:
     fail_modem = True

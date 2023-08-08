@@ -20,7 +20,7 @@ config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
 try:
-    modem = modems_api.Modem(on_receive_msg=modems_api.on_receive_msg_logging)
+    modem = modems_api.Modem()
     modem.send_msg("graey handshake")
     fail_modem = False
 except:
