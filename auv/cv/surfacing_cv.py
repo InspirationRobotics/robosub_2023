@@ -3,6 +3,7 @@ Description: CV class for surfacing
 Author: Maxime Ellerbach
 """
 
+import time
 import cv2
 import numpy as np
 from circle_fit import taubinSVD
@@ -16,7 +17,7 @@ class CV:
         self.config = config
         self.current_sub = self.config.get("sub", "graey")
         if self.current_sub == "graey":
-            self.camera = "/auv/camera/videoUSBRaw1"
+            self.camera = "/auv/camera/videoUSBRaw0"
             self.model = "raw"
             self.run = self.run_graey
         elif self.current_sub == "onyx":
@@ -30,6 +31,8 @@ class CV:
 
         self.viz_frame = None
         self.error_buffer = []
+        self.timeout = 30
+        self.start_timeout = None
 
         print("[INFO] Surfacing CV init")
 
@@ -49,8 +52,8 @@ class CV:
         """
         # filters what is white
         gray = cv2.inRange(frame, (200, 200, 200), (255, 255, 255))
-        if viz:
-            self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
+        # if viz:
+        # self.viz_frame = np.concatenate((self.viz_frame, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)), axis=1)
 
         # get biggest contour
         contours, _ = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -103,7 +106,7 @@ class CV:
         return (x_error, y_error)
 
     def run_graey(self, frame, target, detections):
-        frame = self.equalize(frame)
+        # frame = self.equalize(frame)
         self.viz_frame = frame
 
         (x_center, y_center) = self.get_octogon_center_color(frame, viz=True)
@@ -116,9 +119,15 @@ class CV:
         self.error_buffer.append((x_error, y_error))
         if len(self.error_buffer) > 30:
             self.error_buffer.pop(0)
+            if self.start_timeout is None:
+                self.start_timeout = time.time()
 
         avg_error = np.mean(np.linalg.norm(self.error_buffer, axis=1))
         if avg_error < 0.2 and len(self.error_buffer) == 30:
+            return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
+
+        if self.start_timeout and self.start_timeout + self.timeout < time.time():
+            print("surfacing timeout")
             return {"lateral": 0, "forward": 0, "end": True}, self.viz_frame
 
         # apply a gain and clip the values
@@ -162,7 +171,7 @@ if __name__ == "__main__":
     # Create a CV object with arguments
     cv = CV()
 
-    cap = cv2.VideoCapture("testing_data\\octogon.mp4")
+    cap = cv2.VideoCapture("testing_data\\octagon_bottom_graey2.mp4")
 
     while True:
         ret, img = cap.read()

@@ -17,7 +17,7 @@ import time
 class BuoyMission:
     cv_files = ["buoy_cv"]
 
-    def __init__(self, target="abydos2", **config):
+    def __init__(self, target="earth1", **config):
         """
         Init of the class,
         setup here everything that will be needed for the run fonction
@@ -29,6 +29,8 @@ class BuoyMission:
         self.received = False
         self.target = target
         self.side = None
+        self.baseDepth = 3# 2.3 (bottom of buoy)
+        self.upDepth = 2.4 #1.8 (top of buoy)
             
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cvHandler.CVHandler(**self.config)
@@ -55,7 +57,7 @@ class BuoyMission:
         This could be a loop, a finite state machine, etc.
         """
 
-        self.robot_control.set_depth(2.5)
+        self.robot_control.set_depth(self.baseDepth)
         time.sleep(4)
 
         while not rospy.is_shutdown():
@@ -76,28 +78,33 @@ class BuoyMission:
             if self.data["buoy_cv"].get("end", False):
                 # TODO: go up and forward
                 print("Ended")
-                self.robot_control.set_depth(1)
-                time.sleep(2)
-                self.robot_control.set_depth(0.5)
-                self.robot_control.forwardDist(1, 1.2)
+                # self.robot_control.set_depth(1)
+                # time.sleep(2)
+                # self.robot_control.set_depth(0.5)
+                # time.sleep(2)
+                # self.robot_control.forwardDist(1, 1.2)
                 break
             
             if self.data["buoy_cv"].get("finished", False) and self.target != "board":
                 print("Doing bump procedure")
                 # TODO: go forward, bump, back, up, opposite diagnol, bump, back
-                self.robot_control.forwardDist(2, 2)
-                self.robot_control.forwardDist(2.2, -2)
+                self.robot_control.forwardDist(3.2, 2) #1.6
+                print("Finished forward, going back")
+                self.robot_control.forwardDist(3.2, -2)
                 print("Bump 1 complete")
                 if self.side != None:
-                    self.robot_control.set_depth(1.8)
-                    time.sleep(2)
+                    self.robot_control.set_depth(self.upDepth)
+                    time.sleep(4)
                     if self.side == 0: # 0 is left and 1 is right (for og target)
-                        self.robot_control.lateralUni(1.5,4)
+                        print("Going to right side")
+                        self.robot_control.lateralUni(1.5,5)
                     else:
-                        self.robot_control.lateralUni(-1.5,4)
-                    self.robot_control.forwardDist(2.2, 2) # bump it
+                        print("Going to left side")
+                        self.robot_control.lateralUni(-1.5,5)
+                    print("Now going forward")
+                    self.robot_control.forwardDist(4.4, 2) # bump it 4.4
                     print("Bumped other side")
-                    self.robot_control.forwardDist(2, -2) # go back
+                    self.robot_control.forwardDist(4, -2) # go back
                 print("Done bumping, aligning with board")
                 self.target = "board" # realign to board
 
@@ -106,15 +113,14 @@ class BuoyMission:
             yaw = self.data["buoy_cv"].get("yaw", None)
             forward = self.data["buoy_cv"].get("forward", None)
             vertical = self.data["buoy_cv"].get("vertical", None)
-            #print(self.data["buoy_cv"].get("targetSide", None))
             if self.data["buoy_cv"].get("targetSide", None) != None:
-                self.side = self.data["buoy_cv"].get("targetSide", None)
+                self.side = self.data["buoy_cv"].get("targetSide")
                 #print(f"Got side:{self.side}")
 
             if any(i == None for i in (lateral, forward)):
                 continue
             self.robot_control.movement(lateral=lateral, forward=forward, yaw=yaw, vertical=0)
-            print(forward, lateral, yaw, vertical)
+            #print(forward, lateral, yaw, vertical)
 
         print("[INFO] Buoy mission run")
 
@@ -144,9 +150,9 @@ if __name__ == "__main__":
     # rospy.init_node("buoy_mission", anonymous=True)
     # rc = robot_control.RobotControl()
     # time.sleep(2)
-    # rc.forwardDist(1.5, 2) #dist power
-    # time.sleep(1)
-    # rc.lateralUni(1.2,4) #power time
+    # rc.forwardDist(1.5, -2) #dist power
+    # # time.sleep(1)
+    # # rc.lateralUni(1.2,4) #power time
     # print("Finished forward")
 
     rospy.init_node("buoy_mission", anonymous=True)

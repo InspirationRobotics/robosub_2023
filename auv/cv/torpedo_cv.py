@@ -25,12 +25,8 @@ class CV:
 
         self.reference_image_c = cv2.imread(f"{file_dir}/samples/torpedo_closed.png")
         self.reference_image_o = cv2.imread(f"{file_dir}/samples/torpedo_opened.png")
-        self.reference_image_top_opened = cv2.imread(
-            f"{file_dir}/samples/torpedo_top_opened.png"
-        )
-        self.reference_image_top_closed = cv2.imread(
-            f"{file_dir}/samples/torpedo_top_closed.png"
-        )
+        self.reference_image_top_opened = cv2.imread(f"{file_dir}/samples/torpedo_top_opened.png")
+        self.reference_image_top_closed = cv2.imread(f"{file_dir}/samples/torpedo_top_closed.png")
         assert self.reference_image_c is not None
         assert self.reference_image_o is not None
         assert self.reference_image_top_opened is not None
@@ -41,12 +37,8 @@ class CV:
         self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
-        self.kp1_c, self.des1_c = self.sift.detectAndCompute(
-            self.reference_image_c, None
-        )
-        self.kp1_o, self.des1_o = self.sift.detectAndCompute(
-            self.reference_image_o, None
-        )
+        self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
+        self.kp1_o, self.des1_o = self.sift.detectAndCompute(self.reference_image_o, None)
 
         self.kp1, self.des1 = None, None  # will be calculated later on
         self.reference_image = None  # will be determined later on
@@ -60,7 +52,7 @@ class CV:
         self.on_top = None
 
         # absolute, normalized
-        self.offset_center = 0
+        self.offset_center = 0.5
         self.target_coords = (0.0, 0.0)
         self.yaw_threshold = 4
         self.x_threshold = 0.1
@@ -144,6 +136,19 @@ class CV:
             center = [(center[0] - 320) / 320, (center[1] - 240) / 240]
         return center
 
+    def projection(self, H, src_shape, points_normalized):
+        """
+        Get projection of a given homography H
+        Points are normalized between -1 and 1
+        """
+        h, w, _ = src_shape
+        points = np.array(points_normalized)
+        points[:, 0] = points[:, 0] * w // 2 + w // 2
+        points[:, 1] = points[:, 1] * h // 2 + h // 2
+        points = points.reshape(-1, 1, 2).astype(np.float32)
+        points = cv2.perspectiveTransform(points, H).astype(np.int32).reshape(-1, 2)
+        return points
+        
     def get_orientation(self, H, src_shape):
         h, w, _ = src_shape
         pts = (
@@ -163,7 +168,7 @@ class CV:
         # get an estimation of the Y axis rotation
         left_h_dist = np.linalg.norm(pts[0] - pts[3])
         right_h_dist = np.linalg.norm(pts[1] - pts[2])
-        width = np.linalg.norm(pts[0] - pts[1])
+        width = w / np.linalg.norm(pts[0] - pts[1])
 
         yaw = math.atan((left_h_dist - right_h_dist) / (left_h_dist + right_h_dist))
         yaw = math.degrees(yaw)
@@ -299,9 +304,7 @@ class CV:
 
         # Find setup (closed or opened on top)
         if self.step == 0:
-            center_c, center_o = self.init_find_both_centers(
-                frame, window_viz="centers"
-            )
+            center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
                 return {}, frame
@@ -321,16 +324,13 @@ class CV:
                     self.offset_center = 0.8
                 else:
                     # opened is on top
-                    self.on_top = "opened"
+                    self.on_top = "open"
                     self.reference_image = self.reference_image_top_opened
                     self.offset_center = -0.8
 
 
                 # compute kp1 des1 for the desired ref image
-                self.kp1, self.des1 = self.sift.detectAndCompute(
-                    self.reference_image, None
-                )
-                message = f"[INFO] {self.on_top} is on top"
+                self.kp1, self.des1 = self.sift.detectAndCompute(self.reference_image, None)
                 print(f"[INFO] {self.on_top} is on top")
                 cv2.destroyAllWindows()
                 self.step = 1
@@ -434,6 +434,29 @@ class CV:
 
             # Adding message to screen:
 
+            # center = self.get_center(H, self.reference_image.shape, norm=True)
+            # projected_targets = self.projection(
+            #     H,
+            #     self.reference_image.shape,
+            #     [
+            #         [0, self.offset_center],
+            #         [0, -self.offset_center],
+            #     ],
+            # )
+
+            # if self.on_top == "open":
+            #     if self.fired1:
+            #         target = projected_targets[0]
+            #     else:
+            #         target = projected_targets[1]
+            # if self.on_top == "closed":
+            #     if self.fired1:
+            #         target = projected_targets[1]
+            #     else:
+            #         target = projected_targets[0]
+
+            # # REVIEW: doesn't work like that, you have to project the offset if you want to get the position of the offset
+            
             cv2.circle(
                 frame,
                 center=(target[0], target[1]),

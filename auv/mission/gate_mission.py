@@ -58,7 +58,7 @@ class GateMission:
             if not self.received:
                 continue
             
-            self.robot_control.set_depth(0.5)
+            self.robot_control.set_depth(0.8)
             for key in self.next_data.keys():
                 if key in self.data.keys():
                     self.data[key].update(self.next_data[key])
@@ -80,8 +80,7 @@ class GateMission:
             # direcly feed the cv output to the robot control
             if end:
                 print("Ending...")
-                self.robot_control.movement(lateral=-0.3)
-                self.robot_control.forwardDist(8, 2)
+                self.robot_control.forwardDist(6, 2)
                 self.robot_control.movement(lateral=0, yaw=0, forward=0)
                 break
             else:

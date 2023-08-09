@@ -29,31 +29,18 @@ class StyleMission:
         print("[INFO] style_mission init")
 
     def run(self, heading):
-        while not rospy.is_shutdown():
-            if not self.received:
-                continue
-
-            for key in self.next_data.keys():
-                if key in self.data.keys():
-                    self.data[key].update(self.next_data[key])
-                else:
-                    self.data[key] = self.next_data[key]
-            self.received = False
-            self.next_data = {}
 
         print("[INFO] Style mission run")
+        
+        rotations = 2
+        startTime = time.time()
+        while time.time()-startTime<rotations*12:
+            self.robot_control.movement(yaw=-1.5)
+            time.sleep(0.05)
 
-        t = 0
-        while t < 8:
-            self.robot_control.movement(yaw=1.5)
-            time.sleep(0.1)
-            t += 0.1
-
-        t = 0
-        while t < 1:
+        for i in range(10):
             self.robot_control.movement(yaw=0)
-            time.sleep(0.1)
-            t += 0.1
+            time.sleep(0.05)
 
         self.robot_control.setHeadingOld(heading)
 

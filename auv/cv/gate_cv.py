@@ -16,7 +16,7 @@ class CV:
     """Template CV class, don't change the name of the class"""
 
     camera = "/auv/camera/videoOAKdRawForward"
-    model = "gate"
+    model = "gate3"
 
     def __init__(self, **config):
         """
@@ -32,7 +32,14 @@ class CV:
         self.outPrev = False
         self.prevLateral = 0
         self.state = "frame"
+        self.area = 0
         self.flag = [False, False]
+        self.config = config
+        self.current_sub = self.config.get("sub", "onyx")
+        if(self.current_sub == "graey"):
+            self.area = 250
+        elif(self.current_sub == "onyx"):
+            self.area = 310
         self.CENTER_FRAME_X = 320
         print("[INFO] Gate CV init")
 
@@ -195,9 +202,9 @@ class CV:
             if(target_area > 650):
                 message = "TOO CLOSE! GOING BACKWARD"
                 forward = -1
-            elif(target_area<310):
+            elif(target_area<self.area):
                 message = "TOO FAR! GOING FORWARD"
-                forward = 1
+                forward = 1.5
                 # if(len(detections) == 2):
                 #     midpoint = (target_x + other_x)/2
                 #     dist = abs(midpoint - 320) / 320
@@ -220,7 +227,7 @@ class CV:
             dist = abs(midpoint - 320) / 320
 
             cv2.putText(frame, "ALIGNING STRAFE", (220, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
-            lateral = self.alignMidpoint(midpoint, 20)
+            lateral = self.alignMidpoint(midpoint, 50)
             if(lateral == 0):
                 message = "FINISHED STRAFE"
                 self.state = "yaw"
@@ -236,8 +243,10 @@ class CV:
                 cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 self.outPrev = False
 
-            lateral = np.clip(lateral * dist * 5.5, -1, 1)
+            lateral = np.clip(lateral * dist * 4.5, -1, 1)
             cv2.putText(frame, message, (220, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+        elif(self.state == "strafe" and len(detections) == 1):
+            self.state = "targetOneDetect"
         elif(self.state=="yaw" and len(detections) == 2):
             message = "ALIGNING YAW"
             if(target_area > other_area):
@@ -273,6 +282,22 @@ class CV:
             if(lateral==0):
                 message = "TARGET IS ALIGNED, GOING FORWARD"
                 self.state = "end"
+        elif(self.state=="targetOneDetect"):
+            if len(detections) == 2:
+                self.state = "strafe"
+                forward=0
+            else:
+                if(target_x == -1):
+                    target_x = other_x
+                elif(other_x == -1):
+                    target_x = target_x
+                message = "ALIGNING WITH TARGET IMAGE"
+                lateral = self.alignTarget(target_x, 5)
+                forward = 0.6
+                if(lateral==0):
+                    forward=0
+                    message = "TARGET IS ALIGNED, GOING FORWARD"
+                    self.state = "end"
 
             cv2.putText(frame, message, (220, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             

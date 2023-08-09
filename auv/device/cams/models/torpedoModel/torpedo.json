@@ -1,0 +1,29 @@
+{
+    "model": {
+        "xml": "torpedo.xml",
+        "bin": "torpedo.bin"
+    },
+    "nn_config": {
+        "output_format": "detection",
+        "NN_family": "YOLO",
+        "input_size": "640x480",
+        "NN_specific_metadata": {
+            "classes": 5,
+            "coordinates": 4,
+            "anchors": [],
+            "anchor_masks": {},
+            "iou_threshold": 0.5,
+            "confidence_threshold": 0.5
+        }
+    },
+    "mappings": {
+        "labels": [
+            "board",
+            "l",
+            "liris",
+            "s",
+            "siris"
+        ]
+    },
+    "version": 1
+}

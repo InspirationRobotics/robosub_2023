@@ -23,12 +23,12 @@ class RobotControl:
         self.depth = self.config.get("INIT_DEPTH", 0.0)
         self.compass = None
 
-        # dvl sensor setup (both subs)
-        if enable_dvl:
-            self.dvl = dvl.DVL()
-            self.dvl.start()
-        else:
-            self.dvl = None
+        # # dvl sensor setup (both subs)
+        # if enable_dvl:
+        #     self.dvl = dvl.DVL()
+        #     self.dvl.start()
+        # else:
+        self.dvl = None
 
         # establishing thrusters and depth publishers
         self.sub_compass = rospy.Subscriber("/auv/devices/compass", Float64, self.get_callback_compass())
@@ -395,6 +395,8 @@ class RobotControl:
         pwm = mavros_msgs.msg.OverrideRCIn()
         pwm.channels = [1500] * 18
         pwm.channels[4] = int(forwardPower)
+        if config.get("sub", "onyx") == "graey":
+            pwm.channels[5] = 1500-int(power*7)
         startTime = time.time()
         while time.time() - startTime < t:
             self.pub_thrusters.publish(pwm)
@@ -442,14 +444,13 @@ class RobotControl:
     def forwardDist(self, dist, power):
         inches = 39.37 * dist
         print(power, inches)
-        eqPower = round(power)
+        eqPower = abs(round(power))
         time = 0
         if eqPower >= 3:
             inches = inches - 9.843
             time = (inches + 18.7) / 32.1
         elif eqPower == 2:
             time = (inches - 0.01) / 21
-            self.forwardUni(power, time)
         elif eqPower == 1:
             time = (inches - 3.4) / 7.8
         self.forwardUni(power, time)

@@ -11,10 +11,12 @@ from ..motion.servo import Servo
 
 rospy.init_node("Keyboard", anonymous=True)
 
-arm.arm()
+
 rc = RobotControl()
 data = input(f"current depth {rc.depth}, Enter absolute depth\n")
 rc.set_depth(float(data))
+
+arm.arm()
 
 sub = deviceHelper.variables.get("sub")
 if sub == "onyx":
