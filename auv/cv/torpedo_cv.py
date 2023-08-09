@@ -60,16 +60,16 @@ class CV:
         self.on_top = None
 
         # absolute, normalized
-        self.offset_center = 0.8
+        self.offset_center = 0
         self.target_coords = (0.0, 0.0)
-        self.threshold = 4
+        self.yaw_threshold = 4
         self.x_threshold = 0.1
         self.y_threshold = 0.1
-        self.depth = 0.35
 
         self.counter = 0
         self.aligned = True
         self.firing_range = 950
+        self.near_range = 750
         self.fired1 = False
         self.fired2 = False
 
@@ -207,6 +207,77 @@ class CV:
             # cv2.imshow(window_viz, img)
 
         return center_c, center_o
+    
+
+    def align_yaw(self, H, ref_shape):
+
+        yaw, dist = self.get_orientation(H, ref_shape)
+        yaw_required = (self.yaw_threshold < yaw < -self.yaw_threshold)
+        if yaw_required:
+            yaw = np.clip(yaw * 1, -1, 1)
+        else:
+            # 2 step verification to eliminate one off outlier values
+            yaw = 0
+            if self.aligned:
+                self.step = 2
+                self.aligned = False
+            else:
+                self.aligned = True
+        return yaw_required, yaw, dist
+    
+    def align_lateral(self, target):
+        lateral = np.clip(target[0] * 3.5, -1, 1)
+        lateral_required = (self.x_threshold < lateral < -self.x_threshold)
+        if not lateral_required:
+            lateral = 0
+            # 2 step verification to eliminate one off outlier values
+            if self.aligned:
+                self.step = 3
+                self.aligned = False
+            else:
+                self.aligned = True
+        return lateral_required, lateral
+    
+    def align_depth(self, target):
+        vertical = np.clip(target[1] * 2, -0.2, 0.2)
+        vertical_required = (self.y_threshold < vertical < -self.y_threshold)
+        if not vertical_required:
+            vertical = 0
+            # 2 step verification to eliminate one off outlier values
+            if self.aligned:
+                self.step = 4
+                self.aligned = False
+            else:
+                self.aligned = True
+        return vertical_required, vertical
+    
+    
+    def move_forward(self, H, ref_shape, target):
+        yaw_required, yaw, dist = self.align_yaw(H, self.reference_image.shape)
+        lateral_required, lateral = self.align_lateral(target)
+        vertical_required, vertical = self.align_depth(target)
+
+        # Control loop for moving forward
+        if not(yaw_required or lateral_required or vertical_required):
+            if dist < self.firing_range:
+                forward = 1
+            elif dist > self.firing_range + 200:
+                # Too far, move back
+                forward = -1
+            return 0, 0, 0, forward
+
+
+        else:
+            if yaw_required:
+                return yaw, 0, 0, 0
+            elif lateral_required:
+                return 0, lateral, 0, 0
+            elif vertical_required:
+                return 0, 0, vertical, 0
+            if yaw_required:
+                return yaw, 0, 0, 0
+                
+
 
     def run(self, frame, target, detections):
         """
@@ -219,8 +290,12 @@ class CV:
 
         forward = 0
         lateral = 0
+        vertical = 0
         yaw = 0
         end = False
+        
+        message = "Looking"
+        target = "Open"
 
         # Find setup (closed or opened on top)
         if self.step == 0:
@@ -230,39 +305,60 @@ class CV:
             if center_c is None or center_o is None:
                 # skip (maybe go forward a bit)
                 return {}, frame
-
+            
             # calculate mean of the centers
+            print("Here")
             if len(self.center_c) > 10 and len(self.center_o) > 10:
                 mean_c = np.mean(self.center_c, axis=0)
                 mean_o = np.mean(self.center_o, axis=0)
+                print("Marco")
 
                 # determine which one is on top
                 if mean_c[1] < mean_o[1]:
                     # closed is on top
                     self.on_top = "closed"
                     self.reference_image = self.reference_image_top_closed
+                    self.offset_center = 0.8
                 else:
                     # opened is on top
                     self.on_top = "opened"
                     self.reference_image = self.reference_image_top_opened
+                    self.offset_center = -0.8
+
 
                 # compute kp1 des1 for the desired ref image
                 self.kp1, self.des1 = self.sift.detectAndCompute(
                     self.reference_image, None
                 )
+                message = f"[INFO] {self.on_top} is on top"
                 print(f"[INFO] {self.on_top} is on top")
                 cv2.destroyAllWindows()
                 self.step = 1
 
             else:
+                print("else")
                 self.center_c.append(center_c)
                 self.center_o.append(center_o)
+                print("final")
 
-        # Yaw and lateral to align with the torpedo
-        elif self.step == 1:
-            self.aligned = True
-            forward = 0
-            lateral = 0
+            # Modifications
+            
+            """
+                Step One: Yaw to align angle
+                Step Two: Strafe to align lateral 
+                Step Three: Dive to align vertical 
+                Step Four: Drive forward and maintain Yaw, Strafe, and Depth
+                    Most likely case is that when we drive forward, the target will adjust lower and need to dive more.  Yaw and lateral shouldn't change much
+            
+            """
+        else:
+            print("Here2")
+            center = self.get_center(H, self.reference_image.shape, norm=True)
+            if (self.on_top == open):
+                center[1] += self.offset_center
+            else:
+                center[1] -= self.offset_center
+           
 
             H = self.process_sift(
                 self.reference_image,
@@ -272,27 +368,72 @@ class CV:
                 threshold=0.65,
                 window_viz="H",
             )
-            if H is None:
-                # skip (maybe go forward a bit)
+
+            if center is None:
                 return {}, frame
+            target = [center[0], int((center[1] - self.offset_center) * 240 + 240)]
+            #target = [center[0], center[1]]
 
-            center = self.get_center(H, self.reference_image.shape, norm=True)
+            # Step 1: Align yaw
+            if self.step == 1:
+                message = "ALIGNING YAW"
+                if H or self.reference_image is None:
+                    return {}, frame
+                yaw_required, yaw, dist = self.align_yaw(H, self.reference_image.shape)
 
-            cent = self.get_center(H, self.reference_image.shape)
+            # Step 2: Align lateral strafe
+            elif self.step == 2:
+                message = "ALIGNING LATERAL"
+                lateral_required, lateral = self.align_lateral(center)
+            
+            # Align vertical componet
+            elif self.step == 3:
+                message = "ALIGNING VERTICAL"
+                vertical_required, vertical = self.align_depth(center)
+                
+            # Move forward and maintain depth with target, and maybe yaw or lateral.
+            elif self.step == 4:
+                message = "MOVING FORWARD"
+                yaw, lateral, vertical, forward = self.move_forward(H, self.reference_image.shape, center)
 
-            # Draw a visual target
-            if self.on_top == "open":
-                if self.fired1:
-                    self.offset_center = 0.8
-                elif not self.fired1:
-                    self.offset_center = -0.8
-            if self.on_top == "closed":
-                if self.fired1:
-                    self.offset_center = -0.8
-                elif not self.fired1:
-                    self.offset_center = 0.8
+            # Fire torpedo 1, and adjust vertical to align for next shot
+            elif self.step == 5:
+                message = "FIRE TORPEDO 1"
+                if(self.fired1):
+                    time.sleep(2)
+                    if(self.on_top == "closed"):
+                        self.offset_center = -0.8
+                    else:
+                        self.offset_center = 0.8
+                    self.step = 6
+                else:
+                    self.fired1 = True
+                    target = "Closed"
 
-            target = [cent[0], int((center[1] - self.offset_center) * 240 + 240)]
+            # Sleep then fire torpedo 2
+            elif self.step == 6:
+                vertical_required, vertical = self.align_depth(center)
+                message = "ALIGNING VERTICAL FOR SECOND TORPEDO"
+                if not vertical_required:
+                    if self.aligned == True:
+                        # Fire torpedo 2
+                        message = "FIRE TORPEDO 2"
+                        self.fired2 = True
+                        self.step = 7
+                        
+                    else:
+                        self.aligned = True
+                
+            # End mission  
+            elif self.step == 7:
+                message = "END MISSION"
+                time.sleep(2)
+                end = True
+            
+
+
+            # Adding message to screen:
+
             cv2.circle(
                 frame,
                 center=(target[0], target[1]),
@@ -300,29 +441,6 @@ class CV:
                 color=(0, 0, 255),
                 thickness=3,
             )
-
-            yaw, dist = self.get_orientation(H, self.reference_image.shape)
-
-            if not yaw:
-                print("[WARN] No yaw")
-
-            if -self.threshold <= yaw <= self.threshold:
-                # Aligned enough that we don't need to yaw
-                # We can go forward now
-                yaw = 0
-            elif yaw > self.threshold:
-                print("[INFO] Yaw Left")
-                yaw = 1
-                self.aligned = False
-
-            if yaw < (-1 * self.threshold):
-                print("[INFO] Yaw Right")
-                yaw = -1
-                self.aligned = False
-
-            print(f"[INFO] Centers: {center}")
-            print(f"[INFO] Dist: {dist}")
-
             cv2.circle(
                 frame,
                 center=(320, 240),
@@ -331,84 +449,169 @@ class CV:
                 thickness=3,
             )
 
-            # Define the offset for the different targets
-            if (
-                self.fired1
-                and self.on_top == "open"
-                or not self.fired1
-                and self.on_top == "closed"
-            ):
-                center[1] += self.offset_center
+            cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            return {
+                "lateral": lateral,
+                "forward": forward,
+                "yaw": yaw,
+                "vertical": vertical,
+                "fire1": self.fired1,
+                "fire2": self.fired2,
+                "end": end,
+            }, frame
+        
+            
 
-            elif (
-                self.fired1
-                and self.on_top == "closed"
-                or not self.fired1
-                and self.on_top == "open"
-            ):
-                center[1] -= self.offset_center
 
-            if center is not None:
-                if target[0] > 0 + self.x_threshold:
-                    # Strafe Right
-                    print("[INFO] Right")
-                    lateral = 1
-                    self.aligned = False
 
-                elif target[0] < 0 - self.x_threshold:
-                    # Strafe Left
-                    print("[INFO] Left")
-                    lateral = -1
-                    self.aligned = False
 
-                if target[1] > 0 + self.y_threshold:
-                    # Dive
-                    print("[INFO] Dive")
-                    self.depth += 0.02
-                    self.aligned = False
+        # elif self.step == 1:
+        #     self.aligned = True
+        #     forward = 0
+        #     lateral = 0
 
-                elif target[1] < 0 - self.y_threshold:
-                    # Ascent
-                    print("[INFO] Ascend")
-                    self.depth -= 0.02
-                    self.aligned = False
+            
+        #     if H is None:
+        #         # skip (maybe go forward a bit)
+        #         return {}, frame
 
-            if self.aligned:
-                # Check distance from object
-                # Now can fire or move forward
+        #     center = self.get_center(H, self.reference_image.shape, norm=True)
 
-                if dist > self.firing_range:
-                    # Too far from target
-                    print("[INFO] Aligned, moving forward")
-                    forward = 1
+        #     cent = self.get_center(H, self.reference_image.shape)
 
-                elif dist >= self.firing_range:
-                    # Fire
-                    if not self.fired1:
-                        print("[INFO] Fire torpedo 1")
-                        self.fired1 = True
+        #     # Draw a visual target
+        #     if self.on_top == "open":
+        #         if self.fired1:
+        #             self.offset_center = 0.8
+        #         elif not self.fired1:
+        #             self.offset_center = -0.8
+        #     if self.on_top == "closed":
+        #         if self.fired1:
+        #             self.offset_center = -0.8
+        #         elif not self.fired1:
+        #             self.offset_center = 0.8
 
-                    elif self.fired1 and self.counter > 100:
-                        print("[INFO] Fire torpedo 2")
-                        self.fired2 = True
-                        end = True
-                        print("[INFO] Mission complete")
+        #     cv2.circle(
+        #         frame,
+        #         center=(target[0], target[1]),
+        #         radius=1,
+        #         color=(0, 0, 255),
+        #         thickness=3,
+        #     )
 
-                if self.fired1 and self.counter <= 100:
-                    print("[INFO] Backing up to align with closed target")
-                    forward = -1
-                    self.counter += 1
-                    print("[INFO] Counter: {counter}")
+        #     yaw, dist = self.get_orientation(H, self.reference_image.shape)
 
-        return {
-            "lateral": lateral,
-            "forward": forward,
-            "yaw": yaw,
-            "vertical": self.depth,
-            "fire1": self.fired1,
-            "fire2": self.fired2,
-            "end": end,
-        }, frame
+        #     if not yaw:
+        #         print("[WARN] No yaw")
+            
+        #     # Define the offset for the different targets
+        #     if (
+        #         self.fired1
+        #         and self.on_top == "open"
+        #         or not self.fired1
+        #         and self.on_top == "closed"
+        #     ):
+        #         center[1] += self.offset_center
+
+        #     elif (
+        #         self.fired1
+        #         and self.on_top == "closed"
+        #         or not self.fired1
+        #         and self.on_top == "open"
+        #     ):
+        #         center[1] -= self.offset_center
+
+        #     lateral = np.clip(target[0] * 3.5, -1, 1)
+        #     yaw = np.clip(yaw * 3.5, -1, 1)
+        #     vertical = np.clip(target[1] * 3.5, -0.2, 0.2)
+        #     if abs(lateral) > self.yaw_threshold or abs(yaw) > self.yaw_threshold or abs(vertical) > self.yaw_threshold:
+        #         self.aligned = False
+
+        #     # if -self.threshold <= yaw <= self.threshold:
+        #     #     # Aligned enough that we don't need to yaw
+        #     #     # We can go forward now
+        #     #     yaw = 0
+        #     # elif yaw > self.threshold:
+        #     #     print("[INFO] Yaw Left")
+        #     #     yaw = 1
+        #     #     self.aligned = False
+
+        #     # if yaw < -self.threshold:
+        #     #     print("[INFO] Yaw Right")
+        #     #     yaw = -1
+        #     #     self.aligned = False
+
+        #     print(f"[INFO] Centers: {center}")
+        #     print(f"[INFO] Dist: {dist}")
+
+        #     cv2.circle(
+        #         frame,
+        #         center=(target[0], target[1]),
+        #         radius=1,
+        #         color=(0, 0, 255),
+        #         thickness=3,
+        #     )
+        #     cv2.circle(
+        #         frame,
+        #         center=(320, 240),
+        #         radius=1,
+        #         color=(0, 255, 0),
+        #         thickness=3,
+        #     )
+
+
+        #     # if center is not None:
+        #     #     if target[0] > 0 + self.x_threshold:
+        #     #         # Strafe Right
+        #     #         print("[INFO] Right")
+        #     #         lateral = 1
+        #     #         self.aligned = False
+
+        #     #     elif target[0] < 0 - self.x_threshold:
+        #     #         # Strafe Left
+        #     #         print("[INFO] Left")
+        #     #         lateral = -1
+        #     #         self.aligned = False
+
+        #     #     if target[1] > 0 + self.y_threshold:
+        #     #         # Dive
+        #     #         print("[INFO] Dive")
+        #     #         self.depth += 0.02
+        #     #         self.aligned = False
+
+        #     #     elif target[1] < 0 - self.y_threshold:
+        #     #         # Ascent
+        #     #         print("[INFO] Ascend")
+        #     #         self.depth -= 0.02
+        #     #         self.aligned = False
+
+        #     if self.aligned:
+        #         # Check distance from object
+        #         # Now can fire or move forward
+
+        #         if dist > self.firing_range:
+        #             # Too far from target
+        #             print("[INFO] Aligned, moving forward")
+        #             forward = 1
+
+        #         elif dist >= self.firing_range:
+        #             # Fire
+        #             if not self.fired1:
+        #                 print("[INFO] Fire torpedo 1")
+        #                 self.fired1 = True
+
+        #             elif self.fired1 and self.counter > 100:
+        #                 print("[INFO] Fire torpedo 2")
+        #                 self.fired2 = True
+        #                 end = True
+        #                 print("[INFO] Mission complete")
+
+        #         if self.fired1 and self.counter <= 100:
+        #             print("[INFO] Backing up to align with closed target")
+        #             forward = -1
+        #             self.counter += 1
+        #             print("[INFO] Counter: {counter}")
+
 
 
 if __name__ == "__main__":
@@ -428,7 +631,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        time.sleep(0.02)
+        #time.sleep(0.02)
         # run the cv
         result, img_viz = cv.run(frame, None, None)
         # print(f"[INFO] {result}")
