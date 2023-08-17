@@ -9,6 +9,7 @@ if lsb_release.get_distro_information()["RELEASE"] == "18.04":
 
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
+import importlib
 import json
 import os
 import sys
@@ -40,7 +41,7 @@ class CVHandler:
 
         try:
             # module name is as follows: auv.cv.file_name
-            module = __import__(f"auv.cv.{file_name}", fromlist=["CV"])
+            module = importlib.import_module(f"auv.cv.{file_name}")
         except Exception as e:
             print("[ERROR] [cvHandler] Error while importing CV module from file name")
             print(f"[ERROR] {e}")
