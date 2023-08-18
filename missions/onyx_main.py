@@ -13,7 +13,7 @@ gate_heading = 60 #change
 dhdDir = -1 #change (1 is plus 20 which is clockwise)
 
 myNode = rospy.init_node("missions", anonymous=True)
-#time.sleep(30)
+time.sleep(30)
 
 # load sub config
 config = deviceHelper.variables
@@ -59,7 +59,8 @@ time.sleep(2)
 coin_toss.run(gate_heading)
 coin_toss.cleanup()
 
-rc.forwardDist(5, 2)
+time.sleep(2)
+rc.forwardDist(6, 2)
 time.sleep(2)
 rc.lateralUni(-2,4)
 time.sleep(1)
@@ -79,7 +80,7 @@ if not fail_modem:
     modem.send_msg("style")
 
 styleMission = style_mission.StyleMission()
-styleMission.run(gate_heading-5)
+styleMission.run(gate_heading-8)
 styleMission.cleanup()
 
 
@@ -88,7 +89,7 @@ if not fail_modem:
     modem.send_msg("buoy")
 
 # Run buoy approach
-rc.forwardDist(3, 2)
+rc.forwardDist(5, 2)
 rc.set_depth(1)
 #time.sleep(4)
 buoyMission = buoy_mission.BuoyMission(target)
@@ -107,10 +108,10 @@ rc.set_depth(1.3) #0.5
 time.sleep(2)
 rc.forwardDist(3, 2)
 time.sleep(2)
-rc.setHeadingOld(gate_heading+(dhdDir*20)) # guesstimating
+rc.setHeadingOld(gate_heading+(dhdDir*45)) # guesstimating
 time.sleep(2)
 
-rc.forwardUni(2, 60)
+rc.forwardUni(2, 47)
 
 if not fail_modem:
     modem.send_msg("dhd approach")
