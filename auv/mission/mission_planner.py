@@ -43,7 +43,7 @@ def get_mission_list():
 
 class Node:
     def __init__(self, name, config):
-        self.next_nodes = config.get("next_nodes", None)  # nodes to start after this one
+        self.next_nodes_names = config.get("next_nodes", [])  # nodes to start after this one
         self.timeout = config.get("timeout", None)  # end the node if it hasn't succeeded after a given time
         self.mission_name = config.get("mission_name", None)  # name of the mission to run
 
@@ -60,7 +60,6 @@ class Node:
         self.return_code = -1  # -1 = not started, 0 = success, 1 = failed, 2 = timeout
         self.start_time = 0
         self.active = False
-        self.if_condition = None
 
         self.to_thread = None
         self.run_thread = None
@@ -68,7 +67,8 @@ class Node:
     def init(self):
         try:
             if self.mission_class is None:
-                raise Exception(f"Mission {self.mission_name} does not exist in list: {get_mission_list()}, disabling Node")
+                self.return_code = -1
+                return False
 
             self.mission = self.mission_class(**variables)
             self.active = True
@@ -94,6 +94,7 @@ class Node:
         # check if the mission is initialized
         if self.mission is None:
             if not self.init():
+                self.active = False
                 return False
 
         # start the mission
@@ -118,14 +119,18 @@ class MissionPlanner:
         self.G = nx.DiGraph()
         self.nodes = self.load_mission_plan(mission_path)
 
-    def check_if_condition(self, node: Node):
-        if_condition = getattr(node, "if_condition", None)
+    def check_if_condition(self, node: Node, if_condition=None):
         if if_condition is None:
             return True
 
         # eval the if condition
         # CAREFUL: this is a security risk
-        return eval(if_condition)
+        try:
+            return eval(if_condition)
+        except Exception as e:
+            print(f"Failed to eval if condition {if_condition} for node {node.name}")
+            print(e)
+            return False
 
     def load_mission_plan(self, mission_path):
         # load the yaml config file
@@ -143,55 +148,93 @@ class MissionPlanner:
 
         for node in nodes.values():
             # check if the node has a next node
-            if node.next_nodes is None:
+            if node.next_nodes_names is None or len(node.next_nodes_names) == 0:
                 continue
 
             # check if the next node is a list
-            if not isinstance(node.next_nodes, list):
-                node.next_nodes = [node.next_nodes]
+            if not isinstance(node.next_nodes_names, list):
+                node.next_nodes_names = [node.next_nodes_names]
 
             # check if the next node is a valid node
-            for next_node in node.next_nodes:
+            for next_node in node.next_nodes_names:
                 # check if the next node is an if statement
                 # this statement will be used to determine if the node should be run
+                next_node_name = None
+                if_condition = None
                 if isinstance(next_node, dict):
                     next_node_name = list(next_node.keys())[0]
                     if_condition = list(next_node.values())[0]
-                    nodes[next_node_name].if_condition = if_condition
                 elif isinstance(next_node, str):
                     next_node_name = next_node
-                else:
-                    next_node_name = None
 
                 if next_node_name not in nodes.keys():
                     print(f"Node {node.name}: next Node {next_node_name} is not a valid node, removing it")
-                    node.next_nodes.remove(next_node_name)
+                    node.next_nodes_names.remove(next_node_name)
                 else:
-                    self.G.add_edge(node.name, next_node_name)
+                    # add the edge to the graph and and the if condition as a label for the edge
+                    self.G.add_edge(node.name, next_node_name, if_condition=if_condition)
 
         if not nx.is_directed_acyclic_graph(self.G):
-            print(f"[WARNING] Mission graph contains a loop, this may cause problems")
+            print(f"[WARNING] Mission graph contains a cycle, this may cause problems")
 
         return nodes
 
     def viz_graph(self):
         from matplotlib import pyplot as plt
 
-        nx.draw(self.G, with_labels=True, font_weight="bold")
+        pos = nx.spring_layout(self.G)
+        nx.draw(self.G, pos, with_labels=True)
+
+        edges_labels = nx.get_edge_attributes(self.G, "if_condition")
+        edges_labels = {k: v for k, v in edges_labels.items() if v is not None}
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=edges_labels, font_size=8)
         plt.show()
 
     def get_entry_nodes(self):
         return [node for node_name, node in self.nodes.items() if self.G.in_degree(node_name) == 0]
-    
+
     def run(self):
+        """
+        Runs the mission plan
+        Technically we could run multiple nodes at the same time,
+        but please don't do that as there would be conflicts between the nodes for sure
+        might aswell just ensure one.
+        """
+        self.viz_graph()
+
         entry_nodes = self.get_entry_nodes()
         print(f"Entry nodes: {[node.name for node in entry_nodes]}")
-        
-        # start the entry nodes
-        for node in entry_nodes:
-            if self.check_if_condition(node):
-                if node.start():
-                    node.to_thread.start()
+
+        # run the mission BFS style
+        current_nodes = entry_nodes
+        while len(current_nodes) > 0:
+            print(f"Running nodes: {[node.name for node in current_nodes]}")
+
+            # start the nodes
+            for node in current_nodes:
+                node.start()
+
+            # wait for the nodes to finish
+            while any([node.active for node in current_nodes]):
+                time.sleep(0.1)
+
+            # get the next nodes
+            next_nodes = []
+            for node in current_nodes:
+                for next_node in node.next_nodes_names:
+                    if isinstance(next_node, dict):
+                        # check if the if condition is true
+                        next_node_name = list(next_node.keys())[0]
+                        condition = list(next_node.values())[0]
+                        if not self.check_if_condition(next_node_name, condition):
+                            continue
+                    else:
+                        next_node_name = next_node
+                    next_nodes.append(self.nodes[next_node_name])
+
+            # prepare next iteration and remove duplicates
+            current_nodes = next_nodes
+            current_nodes = list(set(current_nodes))
 
 
 if __name__ == "__main__":
