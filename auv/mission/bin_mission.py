@@ -8,7 +8,7 @@ import json
 
 import rospy
 
-from ..device import cvHandler
+from ..device import cv_handler
 from ..motion import robot_control
 from ..motion.servo import Dropper
 
@@ -28,7 +28,7 @@ class BinMission:
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler(**self.config)
+        self.cv_handler = cv_handler.CVHandler(**self.config)
 
         # init the cv handlers
         # dummys are used to input a video file instead of the camera

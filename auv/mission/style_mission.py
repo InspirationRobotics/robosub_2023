@@ -9,7 +9,7 @@ import json
 import rospy
 from std_msgs.msg import String
 
-from ..device import cvHandler
+from ..device import cv_handler
 from ..motion import robot_control
 
 
