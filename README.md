@@ -133,6 +133,20 @@ mission.run()
 mission.cleanup()
 ```
 
+#### Mission Planner
+
+There exists a mission planner that allows you to load and run missions from a yaml file. This is useful to craft a sequence of missions to run in a competition while avoiding the need to modify the code. It is a graph based planner that allows you to define the sequence of missions and the conditions to run them. On top of that, it does catch exceptions (and thus not leave the sub in an unknown state).
+You can also visualize with the option `-v` the graph and double check that the missions are in the right order.
+
+To run the mission planner, you can use the following command:
+
+```bash
+python3 -m auv.mission.mission_planner -p <path_to_yaml_file> (-v optional for graph visualization)
+```
+
+You can find an example of a yaml file in the `missions/` folder here: [plan_template.yaml](missions/plan_template.yaml).
+To fully understand how to use the mission planner, you can take a look at the [mission_planner.py](auv/mission/mission_planner.py) file.
+
 #### CV
 
 The idea behind the CV classes is that they are run in a separate thread and they publish their results to a ROS topic.

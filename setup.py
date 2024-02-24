@@ -27,9 +27,11 @@ setuptools.setup(
             "pytest",
             "pytest-cov",
             "pytest-mock",
+            "matplotlib",
+            "networkx",
         ],
         "cv": [
             "opencv-python",
-        ]
+        ],
     },
 )

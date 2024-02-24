@@ -1,0 +1,42 @@
+# /!\ This is a template file, it has not been tested and is not meant to be used as is,
+# it is meant to be used as a starting point to create a mission plan for the AUV.
+
+# A plan is a directed graph where each node is a mission and each edge is a condition to go to the next mission
+# The plan is defined in a YAML file and is loaded by the mission planner to create the mission graph
+# The mission planner uses the graph to determine the next mission to execute based on the current state of the AUV.
+
+# An example of how to run this template is:
+# python3 -m auv.mission.mission_planner -p missions/plan_template.yaml
+
+gate:
+  mission_name: gate_mission
+  next_nodes:
+    - buoy # no condition means it will always go to the next mission
+
+buoy:
+  mission_name: buoy_mission
+  timeout: 100 # mission will be timed out after 100 seconds
+  next_nodes:
+    # nodes can have multiple outgoing edges where each edge can have a condition
+    # - next_mission: condition to go to next mission
+    - bins: self.buoy.return_code == 0 # 0 means the buoy mission succeeded
+    - dhd_approach: self.buoy.return_code == 1 # 1 means the buoy mission failed
+    - surfacing: self.buoy.return_code == 2 # 2 means the buoy mission timed out
+
+bins:
+  mission_name: bin_mission
+  next_nodes:
+    - torpedoes
+
+torpedoes:
+  mission_name: torpedo_mission
+  next_nodes:
+    - dhd_approach
+
+dhd_approach:
+  mission_name: dhd_approach_mission
+  next_nodes:
+    - surfacing
+
+surfacing:
+  mission_name: surfacing_mission

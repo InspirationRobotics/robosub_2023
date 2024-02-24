@@ -24,3 +24,6 @@ testing_data/
 
 # pytest
 .pytest_cache
+
+# virtualenv
+venv

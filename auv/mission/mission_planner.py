@@ -25,8 +25,7 @@ def import_mission_by_name(mission_name):
         # get the class element of the mission
         return inspect.getmembers(module, inspect.isclass)[0][1]
     except Exception as e:
-        print(f"Failed to import mission {mission_name}")
-        print(e)
+        print(f"Failed to import mission {mission_name} with error: {e}")
         return None
 
 
@@ -43,9 +42,15 @@ def get_mission_list():
 
 class Node:
     def __init__(self, name, config):
-        self.next_nodes_names = config.get("next_nodes", [])  # nodes to start after this one
-        self.timeout = config.get("timeout", None)  # end the node if it hasn't succeeded after a given time
-        self.mission_name = config.get("mission_name", None)  # name of the mission to run
+        self.next_nodes_names = config.get(
+            "next_nodes", []
+        )  # nodes to start after this one
+        self.timeout = config.get(
+            "timeout", None
+        )  # end the node if it hasn't succeeded after a given time
+        self.mission_name = config.get(
+            "mission_name", None
+        )  # name of the mission to run
 
         if self.mission_name is None:
             print(f"Node {name} has no mission name, disabling node")
@@ -67,23 +72,24 @@ class Node:
     def init(self):
         try:
             if self.mission_class is None:
-                self.return_code = -1
-                return False
+                raise Exception(
+                    "Failed to import mission, check the mission name or syntax error in the mission file"
+                )
 
             self.mission = self.mission_class(**variables)
-            self.active = True
             return True
+
         except Exception as e:
-            print(f"Failed to initialize mission {self.mission_class}, disabling Node", f"{e}", sep="\n")
+            print(f"Failed to initialize mission {self.name}, {e}")
+            self.return_code = -1
             self.active = False
-            self.return_code = 1
             return False
 
     def timeout_check(self):
         if self.timeout is None or self.timeout < 0:
             return
 
-        elif self.start_time + self.timeout < time.time():
+        if self.start_time + self.timeout < time.time():
             print(f"Mission {self.mission_class} timed out")
             self.end(2)
 
@@ -119,16 +125,26 @@ class MissionPlanner:
         self.G = nx.DiGraph()
         self.nodes = self.load_mission_plan(mission_path)
 
-    def check_if_condition(self, node: Node, if_condition=None):
+    def check_if_condition(self, next_node_name: str, if_condition=None):
         if if_condition is None:
             return True
 
-        # eval the if condition
+        # evaluate the if condition
         # CAREFUL: this is a security risk
         try:
-            return eval(if_condition)
+            ret = eval(if_condition)
+            if isinstance(ret, bool) or ret in (0, 1):
+                return ret
+
+            print(
+                f"Failed to eval if condition {if_condition} for next node {next_node_name} got: {ret} instead of a boolean or 0/1"
+            )
+            return False
+
         except Exception as e:
-            print(f"Failed to eval if condition {if_condition} for node {node.name}")
+            print(
+                f"Failed to eval if condition {if_condition} for next node {next_node_name}"
+            )
             print(e)
             return False
 
@@ -142,9 +158,11 @@ class MissionPlanner:
         for name in config.keys():
             # create the node
             node = Node(name, config[name])
-            setattr(self, name, node)
             nodes[name] = node
             self.G.add_node(name)
+
+            # add the node to the mission planner as an attribute
+            setattr(self, name, node)
 
         for node in nodes.values():
             # check if the node has a next node
@@ -168,11 +186,15 @@ class MissionPlanner:
                     next_node_name = next_node
 
                 if next_node_name not in nodes.keys():
-                    print(f"Node {node.name}: next Node {next_node_name} is not a valid node, removing it")
+                    print(
+                        f"Node {node.name}: next Node {next_node_name} is not a valid node, removing it"
+                    )
                     node.next_nodes_names.remove(next_node_name)
                 else:
                     # add the edge to the graph and and the if condition as a label for the edge
-                    self.G.add_edge(node.name, next_node_name, if_condition=if_condition)
+                    self.G.add_edge(
+                        node.name, next_node_name, if_condition=if_condition
+                    )
 
         if not nx.is_directed_acyclic_graph(self.G):
             print(f"[WARNING] Mission graph contains a cycle, this may cause problems")
@@ -191,16 +213,18 @@ class MissionPlanner:
         plt.show()
 
     def get_entry_nodes(self):
-        return [node for node_name, node in self.nodes.items() if self.G.in_degree(node_name) == 0]
+        return [
+            node
+            for node_name, node in self.nodes.items()
+            if self.G.in_degree(node_name) == 0
+        ]
 
     def run(self):
         """
         Runs the mission plan
         Technically we could run multiple nodes at the same time,
-        but please don't do that as there would be conflicts between the nodes for sure
-        might aswell just ensure one.
+        but please don't do that as there would be conflicts between the nodes for sure.
         """
-        self.viz_graph()
 
         entry_nodes = self.get_entry_nodes()
         print(f"Entry nodes: {[node.name for node in entry_nodes]}")
@@ -222,6 +246,7 @@ class MissionPlanner:
             next_nodes = []
             for node in current_nodes:
                 for next_node in node.next_nodes_names:
+                    next_node_name = None
                     if isinstance(next_node, dict):
                         # check if the if condition is true
                         next_node_name = list(next_node.keys())[0]
@@ -230,13 +255,49 @@ class MissionPlanner:
                             continue
                     else:
                         next_node_name = next_node
+
+                    if next_node_name not in self.nodes:
+                        print(
+                            f"Node {node.name}: next Node {next_node_name} is not a valid node, skipping it"
+                        )
+                        continue
+
+                    if next_node_name in [n.name for n in next_nodes]:
+                        print(
+                            f"Node {node.name}: next Node {next_node_name} is already in the next nodes, skipping it"
+                        )
+                        continue
+
                     next_nodes.append(self.nodes[next_node_name])
 
-            # prepare next iteration and remove duplicates
+            # prepare next iteration
             current_nodes = next_nodes
-            current_nodes = list(set(current_nodes))
 
 
 if __name__ == "__main__":
-    missionPlanner = MissionPlanner("missions/mission_plan.yaml")
+    # usage: python3 -m auv.mission.mission_planner -p path_to_mission_plan.yaml -v (optional for visualization)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run the mission planner")
+    parser.add_argument(
+        "-p",
+        "--plan",
+        type=str,
+        required=True,
+        help="Path to the mission plan yaml file",
+    )
+    parser.add_argument(
+        "-v",
+        "--visualize",
+        action="store_true",
+        help="Visualize the mission plan graph",
+        default=False,
+    )
+    args = parser.parse_args()
+
+    missionPlanner = MissionPlanner(args.plan)
+
+    if args.visualize:
+        missionPlanner.viz_graph()
+
     missionPlanner.run()
