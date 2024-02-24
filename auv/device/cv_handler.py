@@ -9,6 +9,7 @@ if lsb_release.get_distro_information()["RELEASE"] == "18.04":
 
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
+import importlib
 import json
 import os
 import sys
@@ -35,21 +36,21 @@ class CVHandler:
     def start_cv(self, file_name, callback, dummy_camera=None):
         """Start a CV script"""
         if file_name in self.active_cv_scripts:
-            print("[ERROR] [cvHandler] Cannot start a script that is already running")
+            print("[ERROR] [cv_handler] Cannot start a script that is already running")
             return
 
         try:
             # module name is as follows: auv.cv.file_name
-            module = __import__(f"auv.cv.{file_name}", fromlist=["CV"])
+            module = importlib.import_module(f"auv.cv.{file_name}")
         except Exception as e:
-            print("[ERROR] [cvHandler] Error while importing CV module from file name")
+            print("[ERROR] [cv_handler] Error while importing CV module from file name")
             print(f"[ERROR] {e}")
             return
 
         # Import the CV class from the module
         cv_class = getattr(module, "CV", None)
         if cv_class is None:
-            print("[ERROR] [cvHandler] No CV class found in file, check the file name and file content")
+            print("[ERROR] [cv_handler] No CV class found in file, check the file name and file content")
             return
 
         if dummy_camera:  # Init dummy cv script handler
@@ -61,7 +62,7 @@ class CVHandler:
     def stop_cv(self, file_name):
         """Stop a CV script"""
         if file_name not in self.active_cv_scripts:
-            print("[ERROR] [cvHandler] Cannot stop a script that is not running")
+            print("[ERROR] [cv_handler] Cannot stop a script that is not running")
             return
 
         self.active_cv_scripts[file_name].stop()
@@ -72,15 +73,15 @@ class CVHandler:
 
     def switch_oakd_model(self, file_name, model_name):
         if file_name not in self.active_cv_scripts:
-            print("[ERROR] [cvHandler] Cannot change model of a script that is not running")
+            print("[ERROR] [cv_handler] Cannot change model of a script that is not running")
             return
 
         if not self.active_cv_scripts[file_name].is_oakd:
-            print("[ERROR] [cvHandler] Cannot change model of a script that is not running on an OAK-D camera")
+            print("[ERROR] [cv_handler] Cannot change model of a script that is not running on an OAK-D camera")
             return
 
         if not isinstance(model_name, str):
-            print("[ERROR] [cvHandler] Model name must be a string")
+            print("[ERROR] [cv_handler] Model name must be a string")
             return
 
         self.active_cv_scripts[file_name].pub_oakd_model.publish(model_name)
@@ -88,7 +89,7 @@ class CVHandler:
 
     def set_target(self, file_name, target):
         if file_name not in self.active_cv_scripts:
-            print("[ERROR] [cvHandler] Cannot change target of a script that is not running")
+            print("[ERROR] [cv_handler] Cannot change target of a script that is not running")
             return
 
         self.active_cv_scripts[file_name].target = target
@@ -126,7 +127,7 @@ class _ScriptHandler:
             self.pub_oakd_model = None
             self.sub_oakd_data = None
         time.sleep(1.5)  # wait for the ros publisher / subscriber to be ready
-        
+
         self.initCameraStream()  # sends json to camsVersatile for which camera to start and with model or not
 
         self.target = "main"
@@ -146,7 +147,7 @@ class _ScriptHandler:
             self.next_frame = self.br.imgmsg_to_cv2(msg)
             self.last_received = time.time()
         except Exception as e:
-            print("[ERROR] [cvHandler] Error while converting image to cv2")
+            print("[ERROR] [cv_handler] Error while converting image to cv2")
             print(f"[ERROR] {e}")
 
     def callback_oakd_data(self, msg):
@@ -158,7 +159,7 @@ class _ScriptHandler:
                 dataList.append(Detection(detections))
             self.oakd_data = dataList
         except Exception as e:
-            print("[ERROR] [cvHandler] Error while converting oakd data to json")
+            print("[ERROR] [cv_handler] Error while converting oakd data to json")
             print(f"[ERROR] {e}")
             return
 
@@ -210,7 +211,7 @@ class _ScriptHandler:
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
             except Exception as e:
-                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name} {e}")
+                print(f"[ERROR] [cv_handler] Error while running CV {self.file_name} {e}")
                 print(e)
                 continue
 
@@ -220,7 +221,7 @@ class _ScriptHandler:
                 result = ret
                 viz_img = None
             else:
-                print("[ERROR] [cvHandler] CV returned invalid type")
+                print("[ERROR] [cv_handler] CV returned invalid type")
                 continue
 
             # Publish the result
@@ -261,7 +262,7 @@ class _DummyScriptHandler:
         self.dummy_video = dummy
         self.cap = cv2.VideoCapture(self.dummy_video)
         if not self.cap.isOpened():
-            print("[ERROR] [cvHandler] Error while opening dummy video")
+            print("[ERROR] [cv_handler] Error while opening dummy video")
             return
 
         # run the video in a thread, loop when it ends
@@ -274,7 +275,7 @@ class _DummyScriptHandler:
     def run(self):
         self.running = True
 
-        while self.running:
+        while self.running and not rospy.is_shutdown():
             ret, frame = self.cap.read()
 
             # loop if video ends
@@ -285,9 +286,12 @@ class _DummyScriptHandler:
             # Run the CV
             try:
                 ret = self.cv_object.run(frame, self.target, self.oakd_data)
+            except KeyboardInterrupt:
+                rospy.signal_shutdown("KeyboardInterrupt")
+                raise KeyboardInterrupt
             except Exception as e:
                 traceback.print_exception()
-                print(f"[ERROR] [cvHandler] Error while running CV {self.file_name}")
+                print(f"[ERROR] [cv_handler] Error while running CV {self.file_name}")
                 continue
 
             if isinstance(ret, tuple) and len(ret) == 2:
@@ -296,7 +300,7 @@ class _DummyScriptHandler:
                 result = ret
                 viz_img = None
             else:
-                print("[ERROR] [cvHandler] CV returned invalid type")
+                print("[ERROR] [cv_handler] CV returned invalid type")
                 continue
 
             # Publish the result

@@ -8,7 +8,7 @@ import os
 import rospy
 from std_msgs.msg import String
 
-from ..device import cvHandler
+from ..device import cv_handler
 from ..motion import robot_control
 from ..utils import disarm
 
@@ -28,7 +28,7 @@ class PathMission:
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
-        self.cv_handler = cvHandler.CVHandler(**self.config)
+        self.cv_handler = cv_handler.CVHandler(**self.config)
 
         # init the cv handlers
         for file_name in self.cv_files:

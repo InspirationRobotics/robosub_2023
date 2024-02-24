@@ -1,4 +1,3 @@
-import Jetson.GPIO as GPIO
 import time
 import serial
 import threading
@@ -9,10 +8,20 @@ port = dataFromConfig("modem")
 
 class LED:
     def __init__(self):
+        try:
+            import Jetson.GPIO as GPIO
+            self.enabled = True
+        except ImportError:
+            print("Jetson.GPIO not found, disabling LED")
+            self.enabled = False
+
         self.t_pin = 31
         self.r_pin = 32
 
     def on_send_msg(self):
+        if not self.enabled:
+            return
+        
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.t_pin, GPIO.OUT)
         GPIO.output(self.t_pin, GPIO.HIGH)
@@ -20,6 +29,9 @@ class LED:
         self.clean()
 
     def on_recv_msg(self):
+        if not self.enabled:
+            return
+        
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.r_pin, GPIO.OUT)
         GPIO.output(self.r_pin, GPIO.HIGH)
@@ -27,6 +39,9 @@ class LED:
         self.clean()
 
     def clean(self):
+        if not self.enabled:
+            return
+        
         # set to low to turn off
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.t_pin, GPIO.OUT)
