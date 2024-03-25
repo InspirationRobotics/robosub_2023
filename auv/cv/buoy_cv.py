@@ -1,16 +1,13 @@
 """
-Description: Buoy CV
-Author: Eesh Vij
+CV processing for the Buoy mission
 """
 
-# import what you need from within the package
-
-import time
-import cv2
-import numpy as np
-from shapely.geometry import LineString
-import math
-from copy import deepcopy
+import time 
+import cv2 # OpenCV library for CV (computer vision) functionalities
+import numpy as np # For numerical operations
+from shapely.geometry import LineString # Operations with geometry (in this case straight lines)
+import math # For arithmetic operations
+from copy import deepcopy # For duplicating nested data structures, so that all instances of objects are duplicated
 
 class CV:
     """Buoy CV class, don't change the name of the class"""
@@ -20,19 +17,18 @@ class CV:
 
     def __init__(self, **config):
         """
-        Init of the class,
-        setup here everything that will be needed for the run fonction
-        config is a dictionnary containing the config of the sub
+        Init of the class - sets up everything that will be needed for the run function
+        Config is a dictionary containing the configuration of the sub
         """
-        self.midX = 320
-        self.midY = 240
-        self.prevYaw=0.6
-        self.prevStrafe = 1
-        self.prevRatio=1
-        self.step=0
-        self.finished=False
-        self.target = None
-        self.targetSide = None
+        self.midX = 320 # Midpoint of X-axis
+        self.midY = 240 # Midpoint of Y-axis
+        self.prevYaw=0.6 # Initialize previous Yaw
+        self.prevStrafe = 1 # Initialize previous strafe
+        self.prevRatio=1 # Initialize previous ratio
+        self.step = 0 # Initialize step count
+        self.finished=False # Flag for whether mission is finished or not
+        self.target = None # Initialize target
+        self.targetSide = None # Initialize the target side (which side of the Buoy to move towards)
         print("[INFO] Buoy CV init")
 
 
@@ -65,75 +61,118 @@ class CV:
         return
 
     class point:
+        """
+        Multi-purpose class for doing things with points
+        """
         def __init__(self, x, y):
             self.x = x
             self.y = y
             self.visited = [(self.x, self.y)]
-        def visit(self, point):
+
+        def visit(self, point): 
+            """
+            Check if the sub has visited this point
+
+            Args:
+                point (float): Current position of the sub
+            """
             if((point.x, point.y) in self.visited):
                 return False
-            self.visited.append((point.x, point.y))
+            self.visited.append((point.x, point.y)) # Add this point to the list of visited points
             return True
-        def getPoint(self):
+        
+        def getPoint(self): # Get the current point
             return (self.x, self.y)
-        def getPointInt(self):
+        
+        def getPointInt(self): # Get the current point where x and y are integers
             return [int(self.x), int(self.y)]
         
     class line:
         def __init__(self, point1, point2):
-            self.slope = abs((point2.y - point1.y) / ((point2.x/point1.x)+0.0001)) # so we dont divide by 0
-            self.midpoint = ((point2.x + point1.x)/2, (point2.y + point1.y)/2)
-            self.length = math.hypot(point1.x - point2.x, point1.y - point2.y)
+            """
+            Initializes a line object between two points
+
+            Args:
+                point1: First endpoint of the line
+                point2: Second endpoint of the line
+            """
+            self.slope = abs((point2.y - point1.y) / ((point2.x/point1.x)+0.0001)) # Slope of the line; taking precautions to not divide by 0
+            self.midpoint = ((point2.x + point1.x)/2, (point2.y + point1.y)/2) # Calculate midpoint
+            self.length = math.hypot(point1.x - point2.x, point1.y - point2.y) # Calculate length of the line using (Euclidean) distance formula
             self.point1 = point1
             self.point2 = point2
 
         def intersects(self, lineToCheck):
+            """
+            Checks if this line intersects with another line
+
+            Args:
+                linetoCheck (lineString): The line to check for intersection
+            """
             line1 = LineString([self.point1.getPoint(), self.point2.getPoint()])
             line2 = LineString([lineToCheck.point1.getPoint(), lineToCheck.point2.getPoint()])
-            int_pt = line1.intersection(line2)
+            int_pt = line1.intersection(line2) # Find the intersection
             if int_pt == None:
                 return None
             point_of_intersection = (int_pt.x, int_pt.y)
             return point_of_intersection
 
     def calculate_data(self, frame, target, detections):
-        toReturn = {}
-        correctRatios = {"abydos1": 1.1154, "abydos2": 0.2881, "earth1": 1.186, "earth2": 1.5476, "board": 1.0149} # based off sample footage with sub looking straight at them
-        correctSizes = {"abydos1": 9000, "abydos2": 3700, "earth1": 6308, "earth2": 8200, "board": 31255, "dist": 3} #each one has its own pixel size at a set distance. # dist is in meters
-        validDetections = {}
-        detectedLabels = {}
-        avgOffset = avgDist = c = 0
-        targetCenter=boardCenter=boardDetect=side=None
-        # first parse for valid dections and ignore duplicates/reflections
+        """
+        Calculates data about the buoy from frame and detections
+
+        Args:
+            frame (numpy.ndarray): Frame from the camera
+            target: The target (information to look for)
+            detections: The list of the detections
+        """
+
+        toReturn = {} # Initialize dictionary to store data
+        # Define a dictionary containing correct ratios (length/width) for different labels(characters)
+        correctRatios = {"abydos1": 1.1154, "abydos2": 0.2881, "earth1": 1.186, "earth2": 1.5476, "board": 1.0149} # Based of sample footage from head-on look
+        # Correct sizes for different characters
+        correctSizes = {"abydos1": 9000, "abydos2": 3700, "earth1": 6308, "earth2": 8200, "board": 31255, "dist": 3} # Each character has it's own size at different distances (distance in meters).
+        validDetections = {} # Dict for storing valid detections without duplicates
+        detectedLabels = {} # Stores detected characters with their center points
+        avgOffset = avgDist = c = 0 # Initialize variables for averaging offset and distance
+        targetCenter=boardCenter=boardDetect=side=None # Initialize variables for target and board center points
+        
+        # First parse for valid detections, ignores duplicates/reflections
         for detection in detections:
-            if detection.label in validDetections.keys():
-                if detection.ymin<validDetections[detection.label].ymin:
-                    continue #ignore reflection of same label, otherwise overwrite
+            if detection.label in validDetections.keys(): # If the detection label is already in validDetections
+                if detection.ymin < validDetections[detection.label].ymin: 
+                    continue # Ignore reflection of same label, otherwise overwrite
             validDetections[detection.label] = detection
-        # now parse all the valid detections
-        #print("Reached 1")
+        
+        # Now parse all the valid detections
         for detection in validDetections.values():
             label = detection.label
+            # Calculate the length and width of the detection
             x_length = abs(detection.xmax-detection.xmin)
             y_length = abs(detection.ymax-detection.ymin)
+            # Find the midpoint of the detection (also known as the center)
             xMid = detection.xmin+x_length/2
             yMid = detection.ymin+y_length/2
+
+            # If the label is not board (so Abydos or Earth)
             if label != "board": 
-                detectedLabels[label] = self.point(xMid, yMid) # x y is center of detection
-                cv2.circle(frame, detectedLabels[label].getPointInt(), 5, (0,0,255),-1)
+                detectedLabels[label] = self.point(xMid, yMid) # Since label is valid, append it to the detectedLabels list: (x, y) is the center of detection
+                cv2.circle(frame, detectedLabels[label].getPointInt(), 5, (0,0,255),-1) # Draw a circle around the detection
             else: 
                 boardDetect = [xMid, yMid]
                 cv2.circle(frame, (int(boardDetect[0]), int(boardDetect[1])), 5, (0,0,255),-1)
+            
             if(not (detection.xmax>=630 or detection.xmin<=10 or detection.ymax>=470 or detection.ymin<=10)):
-                # if not on edge of frame do area and ratio calculation
+                # If not on edge of the frame, then do the area and ratio calculation 
                 area = x_length*y_length
-                dist = (correctSizes["dist"]*correctSizes[label])/area
-                avgDist+=dist
+                dist = (correctSizes["dist"]*correctSizes[label])/area # Normalize distance
+                avgDist+=dist # Add normalized distance to average distance
                 xy_ratio = x_length/y_length
                 cv2.putText(frame, str(round(xy_ratio,4)), (int(xMid) + 10, int(yMid) + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                 avgOffset+= (correctRatios[label]/xy_ratio) #based off the idea that xy_ratio * z = correct_ratio and we average z for all detections
-                c+=1 #counter for averaging
-        #print("Reached 2")
+                c+=1 # Increment counter for averaging
+        
+        ### ***TODO Documentation
         if c>0:
             avgOffset = avgOffset/c
             avgDist = avgDist/c
