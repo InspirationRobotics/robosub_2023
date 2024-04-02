@@ -1,34 +1,50 @@
-import os
-import sys
-import platform
-from dotenv import dotenv_values
+"""
+To do something 
+"""
+
+import os # For interacting with the operating system
+import sys # For system-specific variables and functionalities
+import platform # For platform-specific functionalities
+from dotenv import dotenv_values # To load environment variables
 import json
 
 def load_json(path):
+    """Load JSON data from a file and return it, given its file path"""
+    # Open the file, load the file
     with open(path, "r") as f:
         data = json.load(f)
     return data
 
-file_dir = os.path.dirname(os.path.abspath(__file__))
+file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file directory path of the current script
 
+# If "nx" is in the platform node name, Onyx is the sub, else Graey (Onyx runs on an Nvidia NX)
+# Load the configuration of Onyx/Graey
 if "nx" in platform.node():
-    onyx = True
+    onyx = True 
     variables = load_json(f"{file_dir}/../../config/onyx.json")
 else:
     onyx = False
     variables = load_json(f"{file_dir}/../../config/graey.json")
 
 def findFromId(ids):
-    bash = os.popen("bash /home/inspiration/auv/auv/utils/usbLink.sh").read()
-    bashSplit = bash.split("\n")
+    """Finding devices based on their IDs"""
+    bash = os.popen("bash /home/inspiration/auv/auv/utils/usbLink.sh").read() # Read usbLink.sh
+    bashSplit = bash.split("\n") # Split output into lines at "\n"
     result = []
+
+    # Iterating over the IDs along w/ their indices
     for id in enumerate(ids):
         result.append("")
+        # Iterating over each line in the splitted output
         for line in bashSplit:
-            if "/dev/tty" in line:
-                line = line.split(" - ")
-                if id[1] in line[1]:
-                    result[id[0]] = line[0]
+            if "/dev/tty" in line: # If the line is written to /dev/tty (controlling terminal associated with the current process)
+                line = line.split(" - ") # Look at usbLink.sh to fully understand (line 24)
+                # If the ID path corresponds, append the device name of the device to results
+                if id[1] in line[1]: 
+                    result[id[0]] = line[0] 
+
+    # Remove any empty spots in results, if no devices avaliable, print the USB list from usbLink.sh
+    # If there are results, print the device name
     for i in reversed(result):
         if i == "":
             result.remove(i)
@@ -39,20 +55,30 @@ def findFromId(ids):
 
 
 def findCam(ids):
+    """To find cameras based on their IDs"""
+    # Read the list of USB devices, split into lines at "\n"
     bash = os.popen("bash /home/inspiration/auv/auv/utils/usbLink.sh").read()
     bash = bash.split("\n")
     result = []
+    # For each ID, go over each line, and if the device is written to "dev/video", which means it's a camera,
+    # then split the line at the "-".
     for id in enumerate(ids):
         result.append("")
         minVal = 100
         for line in bash:
             if "/dev/video" in line:
                 line = line.split(" - ")
+                # If the ID paths correspond
                 if id[1] == line[1]:
+                    # Extract the numerical value from the device path
                     val = int(line[0][10:])
+                    # If the value is less than the current minimum value, then set the name of the device to the device name
+                    # This is important to make sure we get the camera with the lowest numerical value (default) 
                     if val < minVal:
                         minVal = val
                         result[id[0]] = line[0]
+
+    # Remove any empty strings
     for i in reversed(result):
         if i == "":
             result.remove(i)
@@ -60,6 +86,8 @@ def findCam(ids):
 
 
 def dataFromConfig(name):
+    """Obtain the configurations of a device based on the name of the device"""
+    # Look at configs of Graey and Onyx for a full picture
     data = None
     usbID = None
     if name == "forwardOak":
@@ -94,6 +122,10 @@ def dataFromConfig(name):
 
 
 if __name__ == "__main__":
+    """
+    When running the script directly, get the configuration of the device 
+    using a command line argument that is the name of the device
+    """
     if len(sys.argv) > 1:
         print(dataFromConfig(sys.argv[1]))
     else:

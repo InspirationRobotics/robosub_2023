@@ -1,10 +1,19 @@
-import lsb_release
+"""
+Handles the MAVROS link between Pixhawk and software
+"""
+
+# To obtain information about the Linux distribution
+import lsb_release 
 
 if lsb_release.get_distro_information()["RELEASE"] == "18.04":
     import ctypes
 
     libgcc_s = ctypes.CDLL("libgcc_s.so.1")
 
+"""
+Importing necessary modules for platform information, signal handling, threading,
+time, statistical analysis, converting between python values and C structs (struct)
+"""
 import platform
 import signal
 import threading
@@ -12,20 +21,27 @@ import time
 from statistics import mean
 from struct import pack, unpack
 
+# Importing various message types for ROS
 import geographic_msgs.msg
 import geometry_msgs.msg
 import mavros_msgs.msg
 import mavros_msgs.srv
-import numpy as np
-import rospy
 import sensor_msgs.msg
 import std_msgs.msg
+
+# Importing ROS, Numpy, PID controller
+import numpy as np
+import rospy
 from simple_pid import PID
 
+# For turning a status LED (based on a state) on and getting the configuration of a specified device, respectively
 from ..utils import statusLed, deviceHelper
+
+# For handling ROS topics
 from ..utils.rospyHandler import RosHandler
 from ..utils.topicService import TopicService
 
+# Different modes/states of travel
 MODE_MANUAL = "MANUAL"
 MODE_STABILIZE = "STABILIZE"
 MODE_ALTHOLD = "ALT_HOLD"
@@ -33,33 +49,48 @@ MODE_LOITER = "LOITER"
 MODE_AUTO = "AUTO"
 MODE_GUIDED = "GUIDED"
 
+# Configuration of devices from either Graey or Onyx (depending)
 config = deviceHelper.variables
 
 
 class AUV(RosHandler):
+    """
+    Creates a class for the sub, inheriting from ROSHandler (all of the functions from RosHandler are now in AUV)
+    """
     def __init__(self):
+        # Accessing the device configurations
         self.config = config
 
+        # Initiating construction of the RosHandler superclass
         super().__init__()
+
+        # Attributes relating to status
         self.do_publish_thrusters = True
         self.do_get_sensors = True
         self.armed = False
         self.guided = False
         self.mode = ""
 
-        # depth hold
+        # Hold the depth
+
+        # Create neutral channels
         self.channels = [1500] * 18
-        self.thrustTime = time.time()  # timeout for no new thruster
+
+        self.thrustTime = time.time()  # Reference timestamp for timeout for no new thruster commands
+        
+        # Depth status/values
         self.depth = None
         self.do_hold_depth = False
         self.depth_pwm = 0
         self.depth_calib = 0
-        self.depth_pid_params = config.get("depth_pid_params", [0.5, 0.1, 0.1])
-        self.depth_pid_offset = config.get("depth_pid_offset", 1500)
-        self.depth_pid = PID(*self.depth_pid_params, setpoint=0.5)
-        self.depth_pid.output_limits = (-self.depth_pid_params[0], self.depth_pid_params[0])
+        self.depth_pid_params = config.get("depth_pid_params", [0.5, 0.1, 0.1]) # Get PID controller parameters from config, if not found use default values (second arg)
+        self.depth_pid_offset = config.get("depth_pid_offset", 1500) # Get PID offset from key, if not found set PWM value to default neutral (1500)
+        
+        # Initialize the depth PID controller
+        self.depth_pid = PID(*self.depth_pid_params, setpoint=0.5) # Go to depth at 0.5 m
+        self.depth_pid.output_limits = (-self.depth_pid_params[0], self.depth_pid_params[0]) # Output limits of PID controller
 
-        # init topics
+        # Initialize topics from Pixhawk (through MAVROS)
         self.TOPIC_STATE = TopicService("/mavros/state", mavros_msgs.msg.State)
         self.SERVICE_ARM = TopicService("/mavros/cmd/arming", mavros_msgs.srv.CommandBool)
         self.SERVICE_SET_MODE = TopicService("/mavros/set_mode", mavros_msgs.srv.SetMode)

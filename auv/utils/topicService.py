@@ -1,3 +1,7 @@
+"""
+Various simple and tedious functions for getting data from ROS topics (used a lot in pix_standalone.py)
+"""
+
 class TopicService:
     def __init__(self, name: str, classType):
         self.__name = name
