@@ -1,5 +1,5 @@
 """
-To do something 
+To get the configuration of the devices connected to the sub(thrusters, cameras, etc.)
 """
 
 import os # For interacting with the operating system
