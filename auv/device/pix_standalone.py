@@ -97,12 +97,11 @@ class AUV(RosHandler):
         self.SERVICE_SET_PARAM = TopicService("/mavros/param/set", mavros_msgs.srv.ParamSet)
         self.SERVICE_GET_PARAM = TopicService("/mavros/param/get", mavros_msgs.srv.ParamGet)
 
-        # movement
-        # only works in auto/guided mode
+        # Movement topics, only works/is applicable in autonomous mode
         self.TOPIC_SET_VELOCITY = TopicService("/mavros/setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist)
         self.TOPIC_SET_RC_OVR = TopicService("/mavros/rc/override", mavros_msgs.msg.OverrideRCIn)
 
-        # sensory
+        # Sensory data (IMU, compass, remote control input, input from flight controller, battery state)
         self.TOPIC_GET_IMU_DATA = TopicService("/mavros/imu/data", sensor_msgs.msg.Imu)
         self.TOPIC_GET_CMP_HDG = TopicService("/mavros/global_position/compass_hdg", std_msgs.msg.Float64)
         self.TOPIC_GET_RC = TopicService("/mavros/rc/in", mavros_msgs.msg.RCIn)
@@ -110,7 +109,7 @@ class AUV(RosHandler):
         # https://discuss.bluerobotics.com/t/ros-support-for-bluerov2/1550/24
         self.TOPIC_GET_BATTERY = TopicService("/mavros/battery", sensor_msgs.msg.BatteryState)
 
-        # custom topics
+        # Custom ROS topics
         self.AUV_COMPASS = TopicService("/auv/devices/compass", std_msgs.msg.Float64)
         self.AUV_IMU = TopicService("/auv/devices/imu", sensor_msgs.msg.Imu)
         self.AUV_BARO = TopicService("/auv/devices/baro", std_msgs.msg.Float32MultiArray)
@@ -121,56 +120,112 @@ class AUV(RosHandler):
         self.AUV_GET_MODE = TopicService("/auv/status/mode", std_msgs.msg.String)
 
     def arm(self, status: bool):
+        """
+        Arms the sub
+
+        Args:
+            status (bool): Whether the sub will be armed or not
+
+        Returns:
+            result.success (bool): Whether the sub was able to be armed
+            result.result (str): Containing extra information about the result of the arming operation
+        """
+        # Turning the red status LED on if sub is armed
         if status:
             statusLed.red(True)
         else:
             statusLed.red(False)
+        # Creating a CommandBoolRequest message to arm/disarm the sub
         data = mavros_msgs.srv.CommandBoolRequest()
         data.value = status
+        # Set the data of the arming topic
         self.SERVICE_ARM.set_data(data)
+        # Call the ROS service to arm the sub
         result = self.service_caller(self.SERVICE_ARM, timeout=30)
         return result.success, result.result
 
     def get_param(self, param: str):
+        """
+        To get a parameter value from the AUV
+
+        Args:
+            param (str): The parameter to get the value from
+
+        Returns:
+            result.success(bool) : Whether the parameter was able to be retrieved
+            result.value.integer (int): The integer value of the parameter value
+            result.value.real (float): The floating-point(real) value of the parameter value
+        """
+        # Create a ParamGetRequest message to retrieve the parameter value
         data = mavros_msgs.srv.ParamGetRequest()
         data.param_id = param
+        # Setting the data for parameter retrieval service
         self.SERVICE_GET_PARAM.set_data(data)
+        # Call the ROS service to get the value of the parameter
         result = self.service_caller(self.SERVICE_GET_PARAM, timeout=30)
         return result.success, result.value.integer, result.value.real
 
     def set_param(self, param: str, value_integer: int, value_real: float):
+        """
+        To set a given parameter
+
+        Args:
+            param (str): The parameter to be changed/set
+            value_integer (int): The value to set the parameter to
+            value_real (float): The floating-point value to set the parameter to
+        """
+        # Create a ParamSetRequest message to set the parameter
         data = mavros_msgs.srv.ParamSetRequest()
         data.param_id = param
         data.value.integer = value_integer
         data.value.real = value_real
+        # Setting the data for setting the parameter value
         self.SERVICE_SET_PARAM.set_data(data)
+        # Call the ROS service to set the parameter value
         result = self.service_caller(self.SERVICE_SET_PARAM, timeout=30)
         return result.success, result.value.integer, result.value.real
 
     def change_mode(self, mode: str):
-        # ALT_HOLD = stabilize + depth hold
+        """
+        To change the mode of the sub
+
+        Args:
+            mode (str): The mode to change to
+        
+        Returns:
+            result.mode_sent (str): The mode that was sent to autopilot to set the new mode
+        """
+        # Handle althold specially, setting mode to hold depth and to stabalize to be the new modes
         if mode == MODE_ALTHOLD:
             self.do_hold_depth = True
             mode = MODE_STABILIZE
+        # Create a SetModeRequest message to change the mode
         data = mavros_msgs.srv.SetModeRequest()
         data.custom_mode = mode
+        # Setting the data for the ROS service
         self.SERVICE_SET_MODE.set_data(data)
+        # Call the ROS service to set the mode
         result = self.service_caller(self.SERVICE_SET_MODE, timeout=30)
         return result.mode_sent
 
     def calibrate_depth(self, sample_time=3):
+        """
+        To calibrate the depth data
+
+        Args:
+            sample_time (int): The number of seconds taken to calibrate the data        
+        """
         print("\n[depth_calib] Starting Depth Calibration...")
         samples = []
 
-        # wait for depth data
+        # Wait for depth data
         while self.depth == None:
             pass
 
         prevDepth = self.depth
         start_time = time.time()
 
-        # get depth data for sample_time seconds
-        # then take the mean of the data
+        # Collect data for sample_time seconds, then calculate the mean
         while time.time() - start_time < sample_time:
             if self.depth == prevDepth:
                 continue
@@ -182,12 +237,21 @@ class AUV(RosHandler):
         print(f"[depth_calib] Finished. Surface is: {self.depth_calib}")
 
     def depth_hold(self, depth):
+        """
+        Calculate the PWM values necessary to maintain depth
+
+        Args:
+            depth (float): The depth of the sub
+        """
         try:
+            # If the depth of the sub is out of the water or over a 100 meters, then exit
             if depth < -9 or depth > 100:
                 return
+            # Calculate PWM value to maintain the depth
             self.depth_pwm = int(self.depth_pid(depth) * -1 + self.depth_pid_offset)
+            # Print debug information (depth to 4 decimal places, depth_pwm, depth value to be at)
             print(f"[depth_hold] depth: {depth:.4f} depthMotorPower: {self.depth_pwm} Target: {self.depth_pid.setpoint}")
-            # assume motor range is 1200-1800 so +-300
+            # Assume motor range is 1200-1800 so +-300
         except Exception as e:
             print("DepthHold error")
             print(e)
