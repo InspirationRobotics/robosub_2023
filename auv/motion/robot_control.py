@@ -1,13 +1,23 @@
+"""
+To control the robot by setting PWM values for each thruster. The class RobotControl publishes PWM values to the MAVROS topics.
+These MAVROS topics are predefined topics that the pixhawk subscribes to. RobotControl does not handle the interface between the 
+pixhawk flight controller and the software -- that is the job that pixstandalone.py does. 
+"""
+
 import time
 
+# Import the MAVROS message types that are needed
 import mavros_msgs.msg
 import mavros_msgs.srv
 import rospy
 from std_msgs.msg import Float64, Float32MultiArray
+
+# Import the PID controller
 from simple_pid import PID
 
+# Get the mathematical functions that handle various navigation tasks from utils.py
 from .utils import get_distance, get_heading_from_coords, heading_error, rotate_vector, inv_rotate_vector
-from ..utils import deviceHelper
+from ..utils import deviceHelper # Get the configuration of the devices plugged into the sub(thrusters, camera, etc.)
 from ..device.dvl import dvl
 import math
 import numpy as np

@@ -1,10 +1,20 @@
+"""
+Various mathematical functions
+"""
+
 import math
 
 
 def heading_error(heading, target):
     """
-    Calculate heading error
-    handling the case where 359 and 0 are close
+    Calculate heading error between the current and target heading
+
+    Args:
+        heading (float): Current heading in degrees
+        target (float): Target heading in degrees
+
+    Returns:
+        float: Heading error in degrees, handling the case where 359 degrees and 0 degrees are close
     """
     error = target - heading
     if abs(error) > 180:
@@ -14,14 +24,28 @@ def heading_error(heading, target):
 
 def get_norm(x, y):
     """
-    Calculate norm of a vect
+    Calculate Euclidean norm(distance) of a vectior
+
+    Args:
+        x (float): X-component of the vector
+        y (float): Y-component of the vector
+    
+    Returns:
+        float: Euclidean norm of the vector
     """
     norm = math.sqrt(x**2 + y**2)
     return norm
 
 def get_distance(v1, v2):
     """
-    Calculate distance between two points
+    Calculate the Euclidean distance between two points
+
+    Args:
+        v1 (tuple): Coordinates of the first point (x1, y1)
+        v2 (tuple): Coordinates of the second point (x2, y2)
+    
+    Returns:
+        float: Euclidean distance between the two points
     """
     dist = math.sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1])**2)
     return dist
@@ -29,7 +53,15 @@ def get_distance(v1, v2):
 
 def rotate_vector(x, y, heading):
     """
-    Rotate a vector by heading
+    Rotate a vector by a given heading
+
+    Args:
+        x (float): X-component of the vector
+        y (float): Y-component of the vector
+        heading (float): Angle in degrees to rotate the vector by
+    
+    Returns:
+        tuple: Rotated vector components (x_rot, y_rot)
     """
     x_rot = x * math.cos(math.radians(heading)) + y * math.sin(math.radians(heading))
     y_rot = y * math.cos(math.radians(heading)) - x * math.sin(math.radians(heading))
@@ -38,7 +70,15 @@ def rotate_vector(x, y, heading):
 
 def inv_rotate_vector(x, y, heading):
     """
-    Rotate a vector by heading
+    Rotate a vector by given heading, but the opposite direction from rotate_vector()
+
+    Args:
+        x (float): X-component of the vector
+        y (float): Y-component of the vector
+        heading (float): Angle in degrees to rotate the vector by
+    
+    Returns:
+        tuple: Rotated vector components (x_rot, y_rot)
     """
     x_rot = x * math.cos(math.radians(heading)) - y * math.sin(math.radians(heading))
     y_rot = y * math.cos(math.radians(heading)) + x * math.sin(math.radians(heading))
@@ -47,7 +87,14 @@ def inv_rotate_vector(x, y, heading):
 
 def get_heading_from_coords(x, y):
     """
-    Get heading from coordinates
-    Y = north, X = east
+    Get heading (angle) from given coordinates
+    Assumes the Y-axis is North and the X-axis is East
+    
+    Parameters:
+        x (float): X-coordinate
+        y (float): Y-coordinate
+    
+    Returns:
+        float: Heading angle in degrees
     """
     return math.degrees(math.atan2(x, y))
