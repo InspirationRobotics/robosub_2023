@@ -1,3 +1,7 @@
+"""
+Run the Follow the Path mission
+"""
+
 import os
 import time
 
@@ -7,19 +11,19 @@ from auv.utils import arm, deviceHelper
 import rospy
 rospy.init_node("missions", anonymous=True)
 
-# load sub config
+# Load the configuration of the sub's devices
 config = deviceHelper.variables
 
 # arm.arm()
 
-# create the mission object
+# Create the mission object
 pathMission = path_mission.PathMission(**config)
 
-# run the mission
+# Run the mission
 pathMission.run()
 
-# terminate the mission
+# Terminate the mission
 pathMission.cleanup()
 
-# end
+# End
 print("[INFO] Mission ended")

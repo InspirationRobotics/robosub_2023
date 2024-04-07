@@ -1,3 +1,7 @@
+"""
+Runs the Gate mission
+"""
+
 import os
 import time
 
@@ -7,19 +11,20 @@ from auv.utils import arm, deviceHelper
 import rospy
 rospy.init_node("missions", anonymous=True)
 
-# load sub config
+# Load the configuration of the sub's devices
 config = deviceHelper.variables
 
+# Arm the sub (set mode to autnomous)
 arm.arm()
 
-# create the mission object
+# Create the mission object
 gateMission = gate_mission.GateMission("earth")
 
-# run the mission
+# Run the mission
 gateMission.run()
 
-# terminate the mission
+# Terminate the mission
 gateMission.cleanup()
 
-# end
+# End
 print("[INFO] Mission ended")

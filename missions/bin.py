@@ -1,23 +1,27 @@
+"""
+Run the Bin mission
+"""
+
 from auv.mission import bin_mission
 from auv.utils import arm, deviceHelper
 
 import rospy
 rospy.init_node("missions", anonymous=True)
 
-# load sub config
+# Load the configuration for the sub's devices
 config = deviceHelper.variables
 
-# make sure the sub is armed
+# Arm the sub
 arm.arm() 
 
-# create the mission object
+# Create the mission object
 binMission = bin_mission.BinMission(**config)
 
-# run the mission
+# Run the mission
 binMission.run()
 
-# terminate the mission
+# Terminate the mission
 binMission.cleanup()
 
-# end
+# End
 print("[INFO] Mission ended")

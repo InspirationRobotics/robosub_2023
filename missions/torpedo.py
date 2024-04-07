@@ -1,3 +1,7 @@
+"""
+Runs the torpedo mission
+"""
+
 import os
 import time
 
@@ -7,20 +11,21 @@ from auv.utils import arm, deviceHelper
 import rospy
 rospy.init_node("missions", anonymous=True)
 
-# load sub config
+# Load the configuration of the sub's devices
 config = deviceHelper.variables
 
+# Arms the sub (sets mode to autonomous)
 arm.arm()
 time.sleep(5)
 
-# create the mission object
+# Create the mission object
 torpedoMission = torpedo_mission.TorpedoMission(**config)
 
-# run the mission
+# Run the mission
 torpedoMission.run()
 
-# terminate the mission
+# =Terminate the mission
 torpedoMission.cleanup()
 
-# end
+# End
 print("[INFO] Mission ended")
