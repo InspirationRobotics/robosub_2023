@@ -1,3 +1,10 @@
+"""
+Creates a ROS Bag file that records the data from the custom ROS subscribers that detail data from the compass, IMU, barometer,
+thrusters, depth, arm, and mode of the sub
+
+This allows for saving data and playing back data synchronously (since a ROS Bag file saves the timestamps of when the data was published)
+"""
+
 #!/usr/bin/env python
 import os
 import signal
@@ -28,7 +35,7 @@ class rosBags:
         self.bag = rosbag.Bag(self.name, "w")
         print(f"Successfully made bag file: {self.name}")
 
-        # Subscribe to the desired topics and save messages to the bag
+        # Subscribe to the desired topics and save messages to the bag.
         rospy.Subscriber("/auv/devices/compass", std_msgs.msg.Float64, self.bag_write_callback, callback_args=("/auv/devices/compass"))
         rospy.Subscriber("/auv/devices/imu", Imu, self.bag_write_callback, callback_args=("/auv/devices/imu"))
         rospy.Subscriber("/auv/devices/baro", std_msgs.msg.Float32MultiArray, self.bag_write_callback, callback_args=("/auv/devices/baro"))

@@ -1,4 +1,8 @@
-"""This script is used to navigate Onyx with the dvl using the keyboard."""
+"""
+Using the DVL to navigate with Onyx. Takes command line arguments in the form of (x, y, z, h (optional)), where 
+x is the number of meters to move laterally, y is the number of meters to move forward, z is the number of meters 
+to move either up or down (relative perspective, i.e 3 m up or 3 m down), and h is the target heading (in degrees). 
+"""
 
 import os
 import time
