@@ -1,3 +1,8 @@
+"""
+Handles the V4L2 (Video4Linux Version 2) functionalities -- the V4L2 is a kernel API (an interface provided by the kernel, or the core part of 
+an operating system, so the software can interact with lower-level processes) that handles video devices. 
+"""
+
 import ctypes
 
 
