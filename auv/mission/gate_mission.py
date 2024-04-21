@@ -1,8 +1,6 @@
 """
-Template file to create a mission class
+Handles the running of the Gate mission
 """
-
-# import what you need from within the package
 
 import json
 import time
@@ -10,19 +8,24 @@ import time
 import rospy
 from std_msgs.msg import String
 
-from ..device import cv_handler
-from ..motion import robot_control
-from ..utils import disarm
+from ..device import cv_handler # For running CV scripts
+from ..motion import robot_control # For moving the sub
+from ..utils import disarm # For disarming the sub
 
 
 class GateMission:
+    """
+    Class to handle the Gate mission
+    """
     cv_files = ["gate_cv"]
 
     def __init__(self, target="abydos", **config):
         """
-        Init of the class,
-        setup here everything that will be needed for the run fonction
-        config is a dict containing the settings you give to the mission
+        Initializes the GateMission class
+
+        Args:
+            target: the side of the gate to pass through (either Earth or Abydos)
+            config: 
         """
         self.config = config
         self.data = {}  # dict to store the data from the cv handlers

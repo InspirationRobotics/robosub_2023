@@ -1,6 +1,6 @@
 """
-COINTOSS MISSION:
-turns to the desired heading
+Runs the cointoss mission.
+Turns to the desired heading.
 """
 
 import time
@@ -9,18 +9,22 @@ import json
 import rospy
 from std_msgs.msg import String
 
-from ..device import cv_handler
-from ..motion import robot_control
+from ..device import cv_handler # For running mission-specific CV scripts
+from ..motion import robot_control # For controlling the thrusters of the sub
 
 
 class CoinTossMission:
+    """
+    Class to run the Cointoss mission
+    """
     cv_files = []
 
     def __init__(self, **config):
         """
-        Init of the class,
-        setup here everything that will be needed for the run fonction
-        config is a dict containing the settings you give to the mission
+        Initialize the CoinTossMission class
+
+        Args:
+            config (dict): Configuration settings to run the mission
         """
         self.config = config
 
@@ -29,20 +33,24 @@ class CoinTossMission:
         print("[INFO] Coin Toss mission init")
 
     def run(self, heading):
-        # the coin toss mission takes two parameters: heading and depth, which it will set accordingly
+        """
+        Run the cointoss mission.
+
+        Args:
+            heading: the desired heading to turn the sub to.
+        """
 
         print("[INFO] Coin Toss")
         time.sleep(1)
-        self.robot_control.set_depth(0.65)  # setting depth, robot decends
+        self.robot_control.set_depth(0.65)  # Robot descends to specified depth (0.65 m)
         self.robot_control.setHeadingOld(heading)
 
     def cleanup(self):
         """
-        Here should be all the code required after the run fonction.
-        This could be cleanup, saving data, closing files, etc.
+        Clean up the cointoss mission. Idles the sub.
         """
 
-        # idle the robot
+        # Idle the robot
         self.robot_control.movement()
         print("[INFO] Template mission terminate")
 

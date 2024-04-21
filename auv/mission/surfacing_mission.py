@@ -1,5 +1,6 @@
 """
-Surfacing mission class
+Class for running the surface mission.
+Moves to the correct position inside each chevron, and surfaces "in" each.
 """
 
 import json
@@ -11,8 +12,8 @@ import numpy as np
 import rospy
 from std_msgs.msg import String
 
-from ..device import cv_handler
-from ..motion import robot_control
+from ..device import cv_handler # For running mission-specific CV scripts
+from ..motion import robot_control # For controling the thrusters on the sub (to move it)
 from ..utils import disarm
 
 
@@ -21,28 +22,35 @@ class SurfacingMission:
 
     def __init__(self, **config):
         """
-        Init of the class,
-        setup here everything that will be needed for the run fonction
-        config is a dict containing the settings you give to the mission
+        Initialize the Surfacing Mission class. 
+
+        Args:
+            config (dict): Configuration settings to run the mission
         """
         self.config = config
-        self.data = {}  # dict to store the data from the cv handlers
-        self.next_data = {}  # dict to store the data from the cv handlers
+        self.data = {}  # Dictionary to store the data from the CV handler
+        self.next_data = {}  # Dictionary to store the most updated data from the CV handler
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cv_handler.CVHandler(**self.config)
 
-        # init the cv handlers
+        # Initialize the CV script
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
         print("[INFO] Surfacing mission init")
 
     def callback(self, msg):
-        """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
-        file_name = msg._connection_header["topic"].split("/")[-1]
-        data = json.loads(msg.data)
+        """
+        Callback function for obtaining output from the CV handler. Multiple callback functions can be used for multiple CV handlers. Converts the 
+        message data to JSON format.
+
+        Args:
+            msg: Output from the CV handler. This will be a dictionary of motion values, possible the visualized frame, and potentially servo commands
+        """
+        file_name = msg._connection_header["topic"].split("/")[-1] # Get the CV file name from the topic name
+        data = json.loads(msg.data) # Load the JSON data
         self.next_data[file_name] = data
         self.received = True
 
@@ -50,11 +58,10 @@ class SurfacingMission:
 
     def run(self):
         """
-        Here should be all the code required to run the mission.
-        This could be a loop, a finite state machine, etc.
+        Run the surfacing mission.
         """
 
-        # move the sub up
+        # Move the sub up
         self.robot_control.set_depth(0.65)
 
         while not rospy.is_shutdown():
@@ -62,23 +69,25 @@ class SurfacingMission:
                 if not self.received:
                     continue
 
+                # Merge self.next_data, which contains the updated CV handler output, with self.data, which contains the previous CV handler output.
+                # self.next_data will be wiped so that it can be updated with the new CV handler output.
                 for key in self.next_data.keys():
                     if key in self.data.keys():
-                        self.data[key].update(self.next_data[key])
+                        self.data[key].update(self.next_data[key]) # Merge the data
                     else:
-                        self.data[key] = self.next_data[key]
+                        self.data[key] = self.next_data[key] # Update the keys if necessary
                 self.received = False
-                self.next_data = {}
+                self.next_data = {} # Wipe self.next_data
 
                 if not "surfacing_cv" in self.data.keys():
                     continue
 
                 if self.data["surfacing_cv"].get("end", None):
-                    # idle the robot
+                    # Idle the robot if the surfacing CV script says to end
                     self.robot_control.movement()
                     break
 
-                # get the lateral and forward values from the cv (if they exist)
+                # Get the lateral and forward values from the CV script (if they exist)
                 lateral = self.data["surfacing_cv"].get("lateral", 0)
                 forward = self.data["surfacing_cv"].get("forward", 0)
                 
@@ -87,22 +96,21 @@ class SurfacingMission:
 
             except Exception as e:
                 print(f"[ERROR] {e}")
-                # idle the robot (just in case something went wrong)
+                # Idle the robot (just in case something went wrong)
                 self.robot_control.movement()
                 break
 
-        print("[INFO] Template mission finished")
+        print("[INFO] Template mission finished") # From copied code
         # disarm.disarm()
 
     def cleanup(self):
         """
-        Here should be all the code required after the run fonction.
-        This could be cleanup, saving data, closing files, etc.
+        Clean up after the surfacing mission. Stops the CV script, and idles the robot.
         """
         for file_name in self.cv_files:
-            self.cv_handler.stop_cv(file_name)
+            self.cv_handler.stop_cv(file_name) # Stop the CV script
 
-        # idle the robot (just in case something went wrong)
+        # Idle the robot (just in case something went wrong)
         self.robot_control.movement()
         print("[INFO] Template mission terminate")
 
@@ -110,7 +118,7 @@ class SurfacingMission:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.mission.surfacing_mission"
+    # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
 
     from auv.utils import deviceHelper
@@ -133,5 +141,5 @@ if __name__ == "__main__":
     # Run the mission
     mission.run()
 
-    # cleanup
+    # Clean up the mission
     mission.cleanup()
