@@ -1,5 +1,6 @@
 """
 Handles the running of the Gate mission
+Picks a side, either Abydos or Earth, to move through
 """
 
 import json
@@ -17,33 +18,40 @@ class GateMission:
     """
     Class to handle the Gate mission
     """
-    cv_files = ["gate_cv"]
+    cv_files = ["gate_cv"] # CV script to run
 
     def __init__(self, target="abydos", **config):
         """
         Initializes the GateMission class
 
         Args:
-            target: the side of the gate to pass through (either Earth or Abydos)
-            config: 
+            target (str): the side of the gate to pass through (either Earth or Abydos), defaults to abydos
+            config: Mission-specific parameters to run the mission
         """
         self.config = config
-        self.data = {}  # dict to store the data from the cv handlers
-        self.next_data = {}  # dict to store the data from the cv handlers
+        self.data = {}  # Dictionary to store the data from the CV handler(s)
+        self.next_data = {}  # Dictionary to store the most updated data from the CV handler(s). This will later be merged with self.data.
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cv_handler.CVHandler(**self.config)
-        # init the cv handlers
+
+        # Initialize the CV handler
         for file_name in self.cv_files:
             self.cv_handler.start_cv(file_name, self.callback)
 
-        # set target for gate
+        # Set the target for the gate (either Earth or Abydos)
         self.cv_handler.set_target("gate_cv", target)
         print("[INFO] Gate mission init")
 
     def callback(self, msg):
-        """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
+        """
+        Callback for the cv_handler output. Converts the output to JSON format and puts it in self.next_data, the list that holds 
+        the most updated CV output data.
+
+        Args:
+            msg: Data from the CV handler
+        """
         file_name = msg._connection_header["topic"].split("/")[-1]
         data = json.loads(msg.data)
         self.next_data[file_name] = data
@@ -53,34 +61,39 @@ class GateMission:
 
     def run(self):
         """
-        Here should be all the code required to run the mission.
-        This could be a loop, a finite state machine, etc.
+        Run the gate mission.
         """
 
         while not rospy.is_shutdown():
             if not self.received:
                 continue
             
-            self.robot_control.set_depth(0.8)
+            self.robot_control.set_depth(0.8) # Set the depth to 0.8 m
+
+            # Merge the data from self.next_data with self.data, and wipe self.next_data so it can take the new, more updated data from
+            # the CV handler.
             for key in self.next_data.keys():
                 if key in self.data.keys():
-                    self.data[key].update(self.next_data[key])
+                    self.data[key].update(self.next_data[key]) # If the key is already present, just merge the data with the corresponding key
                 else:
-                    self.data[key] = self.next_data[key]
-            self.received = False
+                    self.data[key] = self.next_data[key] # Create a new key and merge the data
+            self.received = False 
             self.next_data = {}
 
             if not "gate_cv" in self.data.keys():
                 continue
 
-            # get the lateral and forward values from the cv (if they exist)
+            # Get the lateral and forward values from the CV handler output (if they exist)
             lateral = self.data["gate_cv"].get("lateral", None)
             forward = self.data["gate_cv"].get("forward", None)
             yaw = self.data["gate_cv"].get("yaw", None)
             end = self.data["gate_cv"].get("end", False)
+
             #if any(i == None for i in (lateral, forward, yaw)):
             #    continue
             # direcly feed the cv output to the robot control
+
+            # After the mission, move a little more forward to ensure we actually pass the gate
             if end:
                 print("Ending...")
                 self.robot_control.forwardDist(6, 2)
@@ -109,6 +122,7 @@ if __name__ == "__main__":
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
+
     import time
     from auv.utils import deviceHelper
 

@@ -7,7 +7,7 @@ import serial
 import threading
 from ...utils.deviceHelper import dataFromConfig, variables # Configuration of the various devices attached to a sub (either Graey or Onyx)
 
-port = dataFromConfig("modem")
+port = dataFromConfig("modem") # Get the modem port ID from the JSON config file of the sub
 
 
 class LED:
@@ -127,7 +127,7 @@ class Modem:
         self.sending_active = True
         self.received_handshake = False
 
-        # Start the receive and sending threads
+        # The receive and sending threads
         self.thread_recv = threading.Thread(target=self._receive_loop)
         self.thread_send = threading.Thread(target=self._send_loop)
 
@@ -350,34 +350,42 @@ class Modem:
         if msg_type not in self.recv_callbacks.keys():
             return
 
-        # parse msg
+        # Parse the message by message type
         src_addr, msg, ack, distance = self.parse_msg[msg_type](packet)
 
-        # determine if message is complete or not
-        # NOTE: issue if we receive different messages from diff modems at the same time
+        # Determine if the message is complete or not (if the message ends without an asterisk, that means it is incomplete)
+        # NOTE: there will be an issue if we receive different messages from different modems at the same time
         if msg is not None and msg[-1] != "*":
-            self.data_buffer += msg
+            self.data_buffer += msg # Store the first part of the message
             return
 
-        # end of message
+        # If we are at this position in the loop, that means the message was incomplete; get the end of the message by concatenation and wipe
+        # self.data_buffer so it can be used for the next incomplete message
         if msg is not None:
             msg = self.data_buffer + msg
             self.data_buffer = ""
 
-        # dispatch to callbacks
+        # Dispatch message to the received messsage callbacks
         for callback in self.recv_callbacks[msg_type]:
             callback(src_addr, msg, ack, distance)
 
     def _receive_loop(self):
+        """
+        Loop for receiving messages
+        """
         while self.receive_active:
-            # read a whole line
+            # Read a line of data from the serial connection
             raw_packet = self.ser.readline()
+
+            # If the byte was empty, continue
             if raw_packet == b"":
                 pass
 
             try:
-                # TODO: handle large messages
+                # TODO: Handle large messages
+                # Decode the byte into a UTF-8 encoded string
                 packet = raw_packet.decode("utf-8")
+                # Dispatch the packet to be handled by callback functions
                 self._dispatch(packet)
 
             except KeyboardInterrupt:
@@ -557,35 +565,55 @@ class Modem:
         print(f'[WARNING] Received ack: "{ack}" but no corresponding message found, maybe timed out?')
 
     def on_send_msg_logging(self, dst_addr: str, msg: str, ack: int):
-        """Logs the message into a file"""
+        """
+        Log the sent message in the log file
+
+        Args:
+            dst_addr (str): Address of where the message is being sent
+            msg (str): Message payload
+            ack (int): Acknowledgment number
+        """
         with open("underwater_coms_send.log", "a+") as f:
+            # Include the message if there is an actual message
             if msg is None:
                 f.write(f"[{time.time()}][SEND][dst:{dst_addr}][ACK:{ack}]\n")
             else:
                 f.write(f"[{time.time()}][SEND][dst:{dst_addr}][ack:{ack}] {msg}\n")
 
     def on_receive_handshake(self, msg: str):
+        """
+        Callback for receiving the handshake
+
+        Args:
+            msg (str): Message received
+        """
         if msg == "handshake":
             print("Handshake received")
             self.received_handshake = True
 
     def handshake_start(self):
-        """waits for a handshake to continue"""
+        """
+        Initiates a handshake by sending a handshake and waiting for an acknowledgment
 
+        Returns:
+            bool: Whether there was a handshake or not
+        """
         self.received_handshake = False
+        # Append the on_receive_handshake to the received message callback function list
         if self.on_receive_handshake not in self.recv_callbacks:
             self.recv_callbacks.append(self.on_receive_handshake)
 
-        # sending handshake (30s timeout)
+        # Sending handshake (30s timeout)
         msg = "handshake"
-        self.send_msg(msg, ack=42, priority=0)
+        self.send_msg(msg, ack=42, priority=0) # Priority 0 means the message will timeout in 30 seconds
         print("Waiting for handshake...")
+
+        # Loop continues until 30 seconds have elapsed or all other messages in the queue have been sent out
         while not self.received_handshake:
             if len(self.in_transit) == 0:
                 break
             time.sleep(0.1)
 
-        # check if timeout
         if self.received_handshake:
             print("Handshake successful")
         else:
@@ -597,12 +625,14 @@ class Modem:
         pass
 
     def start(self):
+        """Start the receiving and sending threads"""
         self.receive_active = True
         self.sending_active = True
         self.thread_recv.start()
         self.thread_send.start()
 
     def stop(self):
+        """Stop the receiving and sending threads"""
         self.receive_active = False
         self.sending_active = False
         self.thread_recv.join()
@@ -610,11 +640,15 @@ class Modem:
 
 
 def manual_coms():
+    """
+    Creates a modem object to enter messages manually typed in by the user
+    """
     modem = Modem()
     while True:
         msg = input("Enter message: ")
         modem.send_msg(msg, priority=1)
 
+# For testing purposes
 if __name__ == "__main__":
     modem = Modem()
     modem.send_msg("this is a test")

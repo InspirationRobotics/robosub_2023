@@ -1,3 +1,7 @@
+"""
+Establishes a modem between Graey and Onyx
+"""
+
 import time
 
 from auv.mission import gate_mission, cointoss_mission, surfacing_mission, dhd_approach_mission, gate2_mission
@@ -9,7 +13,7 @@ import rospy
 rospy.init_node("coms_mission", anonymous=True)
 time.sleep(30)
 
-# load sub config
+# Load the sub configuration
 config = deviceHelper.variables
 rc = robot_control.RobotControl()
 
@@ -17,15 +21,15 @@ fail_modem = False
 
 try:
     modem = Modem()
-    modem.send_msg("graey handshake")
+    modem.send_msg("graey handshake") # Send a modem message
 except:
     fail_modem = True
     print("Failed to start modem, starting directly")
 
 arm.arm()
 
-rc.set_depth(0.75)
+rc.set_depth(0.75) # Set the depth to 0.75 m
 
 time.sleep(90)
 
-disarm.disarm()
+disarm.disarm() # Disarm the sub (just in case)

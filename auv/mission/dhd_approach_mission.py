@@ -1,37 +1,37 @@
 """
-Template file to create a mission class
+Class in order to complete the DHD Approach mission.
+Approach the DHD (the center of the Octagon) using a perception loop.
 """
-
-# import what you need from within the package
 
 import json
 
 import rospy
 from std_msgs.msg import String
 
-from ..device import cv_handler
-from ..motion import robot_control
+from ..device import cv_handler # For running mission-specific CV scripts
+from ..motion import robot_control # For controlling the motion of the robot
 
 
 class DHDApproachMission:
-    cv_files = ["dhd_approach_cv"]
+    cv_files = ["dhd_approach_cv"] # CV file to run
 
     def __init__(self, **config):
         """
-        Init of the class,
-        setup here everything that will be needed for the run fonction
-        config is a dict containing the settings you give to the mission
+        Initialize the DHD approach mission
+
+        Args:
+            config: Mission-specific parameters to run the mission
         """
         self.config = config
-        self.data = {}  # dict to store the data from the cv handlers
-        self.next_data = {}  # dict to store the data from the cv handlers
+        self.data = {}  # Dictionary to store the data from the CV handlers
+        self.next_data = {}  # Dictionary to store the newest data from the CV handlers -- this will be merged with self.data
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
         self.cv_handler = cv_handler.CVHandler(**self.config)
 
-        # init the cv handlers
-        # dummys are used to input a video file instead of the camera
+        # Initialize the CV handlers
+        # Dummy streams are used to input a video file for the CV script to run on rather than a true camera stream
         dummys = self.config.get("cv_dummy", [None] * len(self.cv_files))
         for file_name, dummy in zip(self.cv_files, dummys):
             self.cv_handler.start_cv(file_name, self.callback, dummy_camera=dummy)
@@ -39,7 +39,13 @@ class DHDApproachMission:
         print("[INFO] dvl approach mission init")
 
     def callback(self, msg):
-        """Callback for the cv_handler output, you can have multiple callback for multiple cv_handler"""
+        """
+        Callback for the cv_handler output. Converts the output to JSON format and puts it in self.next_data, the list that holds 
+        the most updated CV output data.
+
+        Args:
+            msg: Data from the CV handler
+        """
         file_name = msg._connection_header["topic"].split("/")[-1]
         data = json.loads(msg.data)
         self.next_data[file_name] = data
@@ -47,22 +53,24 @@ class DHDApproachMission:
 
     def run(self):
         """
-        Here should be all the code required to run the mission.
-        This could be a loop, a finite state machine, etc.
+        Running the DHD approach mission.
         """
 
         while not rospy.is_shutdown():
             if not self.received:
                 continue
 
+            # Merge the data from self.next_data with self.data, and wipe self.next_data so it can take the new, more updated data from
+            # the CV handler.
             for key in self.next_data.keys():
                 if key in self.data.keys():
-                    self.data[key].update(self.next_data[key])
+                    self.data[key].update(self.next_data[key]) # Merge the data with the corresponding keys
                 else:
-                    self.data[key] = self.next_data[key]
+                    self.data[key] = self.next_data[key] # Create the new key and merge the data
             self.received = False
             self.next_data = {}
 
+            # Continuously get the motion values from the CV handler output
             yaw = self.data["dhd_approach_cv"].get("yaw", 0)
             forward = self.data["dhd_approach_cv"].get("forward", 0)
             end = self.data["dhd_approach_cv"].get("end", False)
@@ -78,13 +86,12 @@ class DHDApproachMission:
 
     def cleanup(self):
         """
-        Here should be all the code required after the run fonction.
-        This could be cleanup, saving data, closing files, etc.
+        Clean up the DHD approach mission
         """
         for file_name in self.cv_files:
-            self.cv_handler.stop_cv(file_name)
+            self.cv_handler.stop_cv(file_name) # Stop the CV script
 
-        # idle the robot
+        # Idle the robot
         self.robot_control.movement()
         print("[INFO] DHD Approach mission terminate")
 
@@ -94,6 +101,7 @@ if __name__ == "__main__":
     # It is here for testing purposes
     # you can run this file independently using: "python -m auv.mission.template_mission"
     # You can also import it in a mission file outside of the package
+    
     import time
     from auv.utils import deviceHelper
 

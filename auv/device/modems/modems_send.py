@@ -1,12 +1,16 @@
+"""
+Allows the user to send and receive responses through the modem. Essentially acts as a simple terminal for the modem.
+"""
+
 import time
-import serial
+import serial # Serial connection
 import platform
-from ...utils.deviceHelper import dataFromConfig
+from ...utils.deviceHelper import dataFromConfig # Configuration of the devices (in this case the modem)
 
 modemsPort = dataFromConfig("modem")
 print(modemsPort)
 
-# configure the serial connections
+# Configure the serial connections
 ser = serial.Serial(port=modemsPort, baudrate=9600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS)
 
 ser.isOpen()
