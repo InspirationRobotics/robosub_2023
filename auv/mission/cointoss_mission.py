@@ -58,7 +58,7 @@ class CoinTossMission:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.mission.template_mission"
+    # you can run this file independently using: "python -m auv.mission.cointoss_mission"
     # You can also import it in a mission file outside of the package
 
     rospy.init_node("coin_toss", anonymous=True)

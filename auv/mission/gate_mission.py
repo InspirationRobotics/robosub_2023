@@ -107,8 +107,7 @@ class GateMission:
 
     def cleanup(self):
         """
-        Here should be all the code required after the run fonction.
-        This could be cleanup, saving data, closing files, etc.
+        Clean up the gate mission by stopping the mission-specific CV scripts and idling the sub
         """
         for file_name in self.cv_files:
             self.cv_handler.stop_cv(file_name)
@@ -120,7 +119,7 @@ class GateMission:
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
     # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.mission.template_mission"
+    # you can run this file independently using: "python -m auv.mission.gate_mission"
     # You can also import it in a mission file outside of the package
 
     import time
