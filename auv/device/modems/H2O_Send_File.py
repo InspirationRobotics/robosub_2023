@@ -1,3 +1,26 @@
+"""
+This is the client code to send a file to an H2O tablet. 
+
+The payload capacity is 64 bytes:
+    - First byte of the payload is the packet sequencing number
+    - Sequence number 0 is a special packet that carries metadata
+    - Metadata packets must be acknowledged by the receiver.
+    - Metadata format is: 
+        <PacketType(I|EOF)>,<comma-separated parameters>
+    
+    - Format for the Init packet:
+        I, FILE_NAME, TOTAL_CHUNKS, ACK_INTERVAL
+    - Format for the End Of File Packet:
+        EOF, LAST_PACKET_SEQUENCE_NUMBER
+
+    * EOF represents "End-Of-File", used as part of the metadata format to signal the end of transmission.
+
+Notes on syntax:
+    - Client code is an application/system that initiates contact with an outside device, known as a server. In a client system, the client sends requests to the server and receives responses.
+    - 
+"""
+
+
 # This is the client code to send file to H2O tablet
 # payload capacity is 64 bytes
 # first byte of the payload is used for packet sequency number

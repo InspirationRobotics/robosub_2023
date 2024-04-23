@@ -27,7 +27,7 @@ class BinMission:
         """
         self.config = config
         self.data = {}  # Dictionary to store the data from the CV handlers.
-        self.next_data = {}  # Dictionary to store the new data from the CV handlers. This data will be merged with the self.data. 
+        self.next_data = {}  # Dictionary to store the new data from the CV handlers. This data will be merged with self.data. 
         self.received = False
 
         self.robot_control = robot_control.RobotControl()
