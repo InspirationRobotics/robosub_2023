@@ -418,10 +418,11 @@ class CV:
             toReturn["targetCenter"] = targetCenter
             toReturn["boardCenter"] = boardCenter
 
-            return {"lateral": lateral, "forward": forward, "yaw": yaw, "vertical": vertical, "targetSide": self.targetSide, "finished": self.finished, "end": end}, result["frame"]
         Returns:
-            dictionary: {lateral motion command, forward motion command, yaw motion command, }, visualized frame
+            dictionary, frame: {lateral motion command, forward motion command, yaw motion command, vertical command, side of the buoy we are on, 
+            status of the mission (finished or not), state of the mission (end or not)}, visualized frame
         """
+
         forward = 0
         lateral = 0
         yaw=0
