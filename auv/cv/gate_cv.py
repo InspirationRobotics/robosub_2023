@@ -10,7 +10,9 @@ import numpy as np
 
 
 class CV:
-
+    """
+    CV class for running the Gate mission. DO NOT change the name of the class; doing so will mess up all of the backend files
+    """
     camera = "/auv/camera/videoOAKdRawForward" # Camera to use
     model = "gate3" # ML model to run
 

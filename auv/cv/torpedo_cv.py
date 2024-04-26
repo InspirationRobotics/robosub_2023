@@ -1,6 +1,5 @@
 """
-Description: CV torpedo using sift class
-Author: Maxime Ellerbach
+CV script for the torpedo mission.
 """
 
 import argparse
@@ -11,47 +10,84 @@ import time
 import cv2
 import numpy as np
 
-
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class CV:
-    camera = "/auv/camera/videoUSBRaw0"
+    """
+    CV script for the torpedo mission. Do NOT change the name of the class, that would mess up all of the backend files.
+    """
+
+    """
+    A histogram is a graphical representation of pixel intensities from 0 (black) to 255 (white). Histograms allow insight into the range and distribution
+    of pixel intensities, which is excellent for understanding image contrast among other things.
+
+    Histogram equalization adjusts the contrast of an image by spreading the pixel intensity throughout the entire range. It basically normalizes the pixel
+    intensities, which allows enhancement of an image's details.
+
+    Keypoints are distinctive features of an image. They are ideally invariant to rotations, changes in scale, etc., and can be edges, blobs, or any
+    other feature of interest. Descriptors are numerical representations of the local neighborhood surrounding the keypoint.
+
+    SIFT (Scale-Invariant-Frame-Transform) is an algorithm used to detect and describe distinct local features in images. It identifies keypoints that are invariant to rotations,
+    changes in scale, and changes in illumination. It then computes descriptors for these keypoints. SIFT is an excellent tool in computer vision (CV) for object recognition and image 
+    stiching because of its robustness.
+
+    CLAHE (Contrast Limited Adaptive Histogram Equalization) is a particular kind of histogram equalization. Unlike a normal histogram equalization, it limits the amplification of the pixel 
+    intensities in areas of high contrast, which decreases the overamplification of noise. This is useful for improving the visibility of images with low contrast and/or varying illumination
+    conditions.
+
+    Brute force matchers are simple algorithms that take two sets of descriptors, each descriptor being associated with a keypoint, as arguments. It exhaustively compares each of the 
+    descriptors in one set to every other descriptor in they other sets, to get the best matches, hence the name "brute force".
+    """
+
+    camera = "/auv/camera/videoUSBRaw0" # Camera to get the camera stream from
 
     def __init__(self, **config):
         """
-        Init of torpedo CV,
+        Initialize the torpedo CV class.
+
+        Args:   
+            config: Mission-specific keyword arguments to run the mission
         """
 
-        self.reference_image_c = cv2.imread(f"{file_dir}/samples/torpedo_closed.png")
-        self.reference_image_o = cv2.imread(f"{file_dir}/samples/torpedo_opened.png")
-        self.reference_image_top_opened = cv2.imread(f"{file_dir}/samples/torpedo_top_opened.png")
-        self.reference_image_top_closed = cv2.imread(f"{file_dir}/samples/torpedo_top_closed.png")
+        # Load the referenced images
+        self.reference_image_c = cv2.imread(f"{file_dir}/samples/torpedo_closed.png") # Closed portal
+        self.reference_image_o = cv2.imread(f"{file_dir}/samples/torpedo_opened.png") # Open portal
+        self.reference_image_top_opened = cv2.imread(f"{file_dir}/samples/torpedo_top_opened.png") # Top portal open, bottom portal closed
+        self.reference_image_top_closed = cv2.imread(f"{file_dir}/samples/torpedo_top_closed.png") # Top portal closed, bottom portal open
+
+        # Assert that the reference images are not None (make sure that they exist)
         assert self.reference_image_c is not None
         assert self.reference_image_o is not None
         assert self.reference_image_top_opened is not None
         assert self.reference_image_top_closed is not None
+
         self.ref_c_shape = self.reference_image_c.shape
         self.ref_o_shape = self.reference_image_o.shape
 
+        # Create CLAHE object
         self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+
+        # Create SIFT detector and Brute Force matcher
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
+
+        # Detect keypoints and descriptors for the opened and closed portal images
         self.kp1_c, self.des1_c = self.sift.detectAndCompute(self.reference_image_c, None)
         self.kp1_o, self.des1_o = self.sift.detectAndCompute(self.reference_image_o, None)
 
-        self.kp1, self.des1 = None, None  # will be calculated later on
-        self.reference_image = None  # will be determined later on
+        self.kp1, self.des1 = None, None  # Will be calculated later on
+        self.reference_image = None  # Will be determined later on
 
-        self.shape = (480, 640, 3)
+        self.shape = (480, 640, 3) # (Height, width, # of color channels)
         self.step = 0
 
-        # keep track of the position of the open / closed torpedo
+        # Keep track of the position of the open/closed portal
         self.center_c = []
         self.center_o = []
         self.on_top = None
 
-        # absolute, normalized
+        # These are absolute, not relative, and are normalized
         self.offset_center = 0.5
         self.target_coords = (0.0, 0.0)
         self.yaw_threshold = 4
@@ -68,7 +104,13 @@ class CV:
         print("[INFO] Torpedo cv Init")
 
     def equalize_clahe(self, image):
-        """Equalize the histogram of the image"""
+        """
+        Equalize the histogram of the image using CLAHE equalization.
+
+        Args:
+            image: Image to equalize.
+        """
+        # Split into B, G, R channels, equalize each of the channels, remerge to create a single image.
         b, g, r = cv2.split(image)
         b = self.clahe.apply(b)
         g = self.clahe.apply(g)
@@ -76,7 +118,13 @@ class CV:
         return cv2.merge((b, g, r))
 
     def equilize(img):
-        """Equilize the histogram of the image"""
+        """
+        Equalize the histogram of the image using regular histogram equalization.
+
+        Args:
+            image: Image to equalize.
+        """
+        # Split into B, G, R channels, equalize each of the channels, remerge to create a single image.
         b, g, r = cv2.split(img)
         b = cv2.equalizeHist(b)
         g = cv2.equalizeHist(g)
@@ -482,11 +530,6 @@ class CV:
                 "fire2": self.fired2,
                 "end": end,
             }, frame
-        
-            
-
-
-
 
         # elif self.step == 1:
         #     self.aligned = True
@@ -634,8 +677,6 @@ class CV:
         #             forward = -1
         #             self.counter += 1
         #             print("[INFO] Counter: {counter}")
-
-
 
 if __name__ == "__main__":
     # This is the code that will be executed if you run this file directly
