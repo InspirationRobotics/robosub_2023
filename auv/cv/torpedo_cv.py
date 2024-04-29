@@ -38,6 +38,9 @@ class CV:
 
     Brute force matchers are simple algorithms that take two sets of descriptors, each descriptor being associated with a keypoint, as arguments. It exhaustively compares each of the 
     descriptors in one set to every other descriptor in they other sets, to get the best matches, hence the name "brute force".
+
+    A homography matrix is a 3 x 3 matrix that is used to tranform the reference image into the target image. It is computed by finding the numerical transformation function necessary to 
+    turn the reference image into the target image (since matrices are functions for vectors).
     """
 
     camera = "/auv/camera/videoUSBRaw0" # Camera to get the camera stream from
@@ -143,26 +146,49 @@ class CV:
         window_viz=None,
     ):
         """
-        Sift matching with reference points
-        if kp2 and des2 are not given, it will compute them
+        SIFT matching between a reference and target image, using the keypoints and descriptors of each. If the keypoints and descriptors for 
+        the target image are not given, this method will compute them.
+
+        Args:
+            ref_img: Reference image
+            img: Target image
+            kp1: List of keypoints of the reference image
+            des1: List of descriptors for the keypoints of the reference image
+            kp2: List of keypoints of the target image, defaults to None
+            des2: List of descriptors for the keypoints of the target image, defaults to None
+            threshold: Threshold ration for distance (basically is the error tolerance), defaults to 0.65
+            window_viz: Window to draw the visualized matches in, defaults to None
+
+        Returns:
+            Computed homography matrix that maps reference image to the target image using RANSAC algorithm.
         """
+
+        # Compute the keypoints/descriptors for the target image.
         if kp2 is None or des2 is None:
             kp2, des2 = self.sift.detectAndCompute(img, None)
+
+        # Use BF matcher, using K Nearest Neighbors to find the matching descriptors.
         matches = self.bf.knnMatch(des1, des2, k=2)
+
+        # Find the number of good matches based on the threshold ratio for distance between matches.
         good = []
         for m, n in matches:
             if m.distance < threshold * n.distance:
                 good.append(m)
 
+        # If there are less than four good matches, this means that there is not enough confidence in the image.
         if len(good) < 4:
             return None
 
+        # Find the source points and destination points that correspond
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+        # Find the Homography matrix.
         H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
+        # Draw the matches in the specified window.
         if window_viz is not None:
-            # draw the matches
             img = cv2.drawMatches(
                 ref_img,
                 kp1,
@@ -176,7 +202,17 @@ class CV:
         return H
 
     def get_center(self, H, src_shape, norm=False):
-        """Get center of a given homography H"""
+        """
+        Calculate the center point of a source image after applying a given homography matrix's transformation.
+
+        Args:
+            H (numpy.ndarray): Homography matrix
+            src_shape (tuple): The shape (height, width, channels) of the source image
+            norm (bool, optional): Flag indicating whether to normalize the center point.
+
+        Returns:
+            numpy.ndarray: Center point coordinates after transformation
+        """
         h, w, _ = src_shape
         center = np.array([[w / 2, h / 2]]).reshape(-1, 1, 2)
         center = cv2.perspectiveTransform(center, H).astype(np.int32)[0][0]
@@ -186,19 +222,41 @@ class CV:
 
     def projection(self, H, src_shape, points_normalized):
         """
-        Get projection of a given homography H
-        Points are normalized between -1 and 1
+        Project normalized points onto a destination image after applying a homography transformation.
+
+        Args:
+            H (numpy.ndarray): Homography matrix
+            src_shape (tuple): Source image's shape (height, width, channels)
+            points_normalized: The normalized points to be projected.
+
+        Returns:
+            numpy.ndarray: Projected points on the destination image. 
         """
         h, w, _ = src_shape
         points = np.array(points_normalized)
+
+        # Convert normalized points to image coordinates
         points[:, 0] = points[:, 0] * w // 2 + w // 2
         points[:, 1] = points[:, 1] * h // 2 + h // 2
+
         points = points.reshape(-1, 1, 2).astype(np.float32)
         points = cv2.perspectiveTransform(points, H).astype(np.int32).reshape(-1, 2)
         return points
         
     def get_orientation(self, H, src_shape):
+        """
+        Estimate the yaw angle and width of the image based on the homography transformation.
+
+        Args:
+            H (numpy.ndarray): Homography matrix
+            src_shape (tupe): Shape (height, width, channels) of the source image
+
+        Returns:
+            tuple: Yaw angle estimation in degrees, width of the transformed image
+        """
         h, w, _ = src_shape
+
+        # Get the four corners of the image.
         pts = (
             np.array(
                 [
@@ -211,9 +269,11 @@ class CV:
             .reshape(-1, 1, 2)
             .astype(np.float32)
         )
+
+        # Apply the homography transformation.
         pts = cv2.perspectiveTransform(pts, H).astype(np.int32).reshape(4, 2)
 
-        # get an estimation of the Y axis rotation
+        # Get an estimation of the Y-axis rotation.
         left_h_dist = np.linalg.norm(pts[0] - pts[3])
         right_h_dist = np.linalg.norm(pts[1] - pts[2])
         width = w / np.linalg.norm(pts[0] - pts[1])
@@ -224,7 +284,17 @@ class CV:
         return yaw, width
 
     def init_find_both_centers(self, img, threshold=0.65, window_viz=None):
-        """Get sift for both opened and closed torpedo"""
+        """
+        Find the centers of the opened and closed torpedo reference images, using SIFT.
+
+        Args:
+            img (numpy.ndarray): Input image
+            threshold (float): Threshold ratio between the distances, this is basically the error tolerance for the SIFT matching.
+            window_viz: Path to window designated to show the visualized matches between keypoints, defaults to None.
+
+        Returns:
+            tuple: Center of the closed torpedo, center of the open torpedo image.
+        """
         kp2, des2 = self.sift.detectAndCompute(img, None)
         H_c = self.process_sift(
             self.reference_image_c,
@@ -254,7 +324,7 @@ class CV:
         center_o = self.get_center(H_o, self.ref_o_shape)
 
         if window_viz is not None:
-            # draw the center
+            # Show the centers of the images
             cv2.circle(img, (int(center_c[0]), int(center_c[1])), 5, (0, 255, 0), -1)
             cv2.circle(img, (int(center_o[0]), int(center_o[1])), 5, (0, 255, 0), -1)
             # cv2.imshow(window_viz, img)
@@ -263,7 +333,9 @@ class CV:
     
 
     def align_yaw(self, H, ref_shape):
-
+        """
+        
+        """
         yaw, dist = self.get_orientation(H, ref_shape)
         yaw_required = (self.yaw_threshold < yaw < -self.yaw_threshold)
         if yaw_required:
