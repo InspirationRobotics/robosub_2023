@@ -225,8 +225,8 @@ class CV:
         Project normalized points onto a destination image after applying a homography transformation.
 
         Args:
-            H (numpy.ndarray): Homography matrix
-            src_shape (tuple): Source image's shape (height, width, channels)
+            H (numpy.ndarray): Homography matrix.
+            src_shape (tuple): Source image's shape (height, width, channels).
             points_normalized: The normalized points to be projected.
 
         Returns:
@@ -252,7 +252,7 @@ class CV:
             src_shape (tupe): Shape (height, width, channels) of the source image
 
         Returns:
-            tuple: Yaw angle estimation in degrees, width of the transformed image
+            tuple: Yaw angle estimation in degrees, width of the transformed image.
         """
         h, w, _ = src_shape
 
@@ -334,14 +334,21 @@ class CV:
 
     def align_yaw(self, H, ref_shape):
         """
-        
+        Estimate the yaw angle necessary to align with the target.
+
+        Args:
+            H (numpy.ndarray): Homography matrix.
+            ref_shape (tuple): Shape of the reference image (height, width, channels).
+
+        Returns: 
+            tuple: Flag indicating whether yaw is necessary, yaw command, width of the transformed image (the distance from the sub to the target essentially).
         """
         yaw, dist = self.get_orientation(H, ref_shape)
         yaw_required = (self.yaw_threshold < yaw < -self.yaw_threshold)
         if yaw_required:
             yaw = np.clip(yaw * 1, -1, 1)
         else:
-            # 2 step verification to eliminate one off outlier values
+            # Two-step verification to eliminate one-off outlier values.
             yaw = 0
             if self.aligned:
                 self.step = 2
@@ -351,11 +358,20 @@ class CV:
         return yaw_required, yaw, dist
     
     def align_lateral(self, target):
+        """
+        Align with the target by moving laterally.
+
+        Args:
+            target (list): Target coordinates.
+
+        Returns:
+            tuple: Flag indicating whether lateral movement is necessary, lateral movement command.
+        """
         lateral = np.clip(target[0] * 3.5, -1, 1)
         lateral_required = (self.x_threshold < lateral < -self.x_threshold)
         if not lateral_required:
             lateral = 0
-            # 2 step verification to eliminate one off outlier values
+            # Two-step verification to eliminate one-off outlier values.
             if self.aligned:
                 self.step = 3
                 self.aligned = False
@@ -364,11 +380,20 @@ class CV:
         return lateral_required, lateral
     
     def align_depth(self, target):
+        """
+        Align the depth of the sub with the target.
+
+        Args:
+            target (list): The target's coordinates.
+
+        Returns:
+            tuple: Flag indicating whether vertical adjustment is needed, vertical movement command.
+        """
         vertical = np.clip(target[1] * 2, -0.2, 0.2)
         vertical_required = (self.y_threshold < vertical < -self.y_threshold)
         if not vertical_required:
             vertical = 0
-            # 2 step verification to eliminate one off outlier values
+            # Two-step verification to eliminate one-off outlier values.
             if self.aligned:
                 self.step = 4
                 self.aligned = False
@@ -378,16 +403,27 @@ class CV:
     
     
     def move_forward(self, H, ref_shape, target):
+        """
+        Move forward after checking whether we are aligned perfectly with the target.
+
+        Args:
+            H (numpy.ndarray): Homography matrix.
+            ref_shape (tuple): Shape of the reference image (height, width, channels).
+            target (list): Target coordinates.
+
+        Returns:
+            tuple: (0, 0, 0, forward movement command) -- the three "0"s indicate that the yaw, lateral, and vertical movements are not necessary.
+        """
         yaw_required, yaw, dist = self.align_yaw(H, self.reference_image.shape)
         lateral_required, lateral = self.align_lateral(target)
         vertical_required, vertical = self.align_depth(target)
 
-        # Control loop for moving forward
+        # Control loop for moving forward.
         if not(yaw_required or lateral_required or vertical_required):
             if dist < self.firing_range:
                 forward = 1
             elif dist > self.firing_range + 200:
-                # Too far, move back
+                # Too far, move backwards.
                 forward = -1
             return 0, 0, 0, forward
 
@@ -406,8 +442,16 @@ class CV:
 
     def run(self, frame, target, detections):
         """
-        Here should be all the code required to run the CV.
-        This could be a loop, grabing frames using ROS, etc.
+        Run the torpedo CV logic.
+
+        Args:
+            frame: Frame from the camera feed.
+            target: Target of the mission.
+            detections: Only applicable of OAK-Ds, this is the list of outputted detections from the ML model. In this case it is unused because there is no ML model being run.
+
+        Returns:
+            dictionary, numpy.ndarray: {lateral movement command, forward movement command, yaw movement command, vertical movement command, fire torpedo 1 flag, fire torpedo 2 flag,
+            flag indicating the end of mission or not}, visualized frame
         """
         print("~~~~~~~~~~~~~~~~~~")
 
@@ -422,34 +466,34 @@ class CV:
         message = "Looking"
         target = "Open"
 
-        # Find setup (closed or opened on top)
+        # Step 0: Find the setup of the torpedoes (opened portal on top or closed portal on top).
         if self.step == 0:
             center_c, center_o = self.init_find_both_centers(frame, window_viz="centers")
             if center_c is None or center_o is None:
-                # skip (maybe go forward a bit)
+                # Skip; possibly move forward.
                 return {}, frame
             
-            # calculate mean of the centers
+            # Average the lists to get the centers of the opened and closed torpedoes.
             print("Here")
             if len(self.center_c) > 10 and len(self.center_o) > 10:
                 mean_c = np.mean(self.center_c, axis=0)
                 mean_o = np.mean(self.center_o, axis=0)
                 print("Marco")
 
-                # determine which one is on top
+                # Determine which torpedo portal is on top.
                 if mean_c[1] < mean_o[1]:
-                    # closed is on top
+                    # Closed portal is on top.
                     self.on_top = "closed"
                     self.reference_image = self.reference_image_top_closed
                     self.offset_center = 0.8
                 else:
-                    # opened is on top
+                    # Opened portal is on top.
                     self.on_top = "open"
                     self.reference_image = self.reference_image_top_opened
                     self.offset_center = -0.8
 
 
-                # compute kp1 des1 for the desired ref image
+                # Compute the keypoints and descriptors for the desired reference image.
                 self.kp1, self.des1 = self.sift.detectAndCompute(self.reference_image, None)
                 print(f"[INFO] {self.on_top} is on top")
                 cv2.destroyAllWindows()
@@ -460,26 +504,29 @@ class CV:
                 self.center_c.append(center_c)
                 self.center_o.append(center_o)
                 print("final")
+        
+        # Step 1: Yaw to align the rotational plane.
+        # Step 2: Strafe (move laterally) to align the lateral plane.
+        # Step 3: Move upwards or downwards (dive) to align the vertical plane.
+        # Step 4: Move forward and maintain the alignment.
+        # Step 5: Fire the first portal.
+        # Step 6: Fire at the second portal.
 
-            # Modifications
-            
-            """
-                Step One: Yaw to align angle
-                Step Two: Strafe to align lateral 
-                Step Three: Dive to align vertical 
-                Step Four: Drive forward and maintain Yaw, Strafe, and Depth
-                    Most likely case is that when we drive forward, the target will adjust lower and need to dive more.  Yaw and lateral shouldn't change much
-            
-            """
+        # NOTE: We fire at the open portal first, then the closed portal.
+        # NOTE: Most likely the case will be that when moving forward, the target will adjust lower, so the vertical will need to move lower (dive lower). Yaw and lateral should 
+        # not change much, if at all.
+
         else:
             print("Here2")
             center = self.get_center(H, self.reference_image.shape, norm=True)
+
+            # We fire at the open torpedo first, then the closed torpedo (center[1] is the closed torpedo, center[0] is the first torpedo).
             if (self.on_top == open):
                 center[1] += self.offset_center
             else:
                 center[1] -= self.offset_center
            
-
+            # Get the Homography matrix.
             H = self.process_sift(
                 self.reference_image,
                 frame,
@@ -489,34 +536,35 @@ class CV:
                 window_viz="H",
             )
 
+            # Get the target coordinates.
             if center is None:
                 return {}, frame
             target = [center[0], int((center[1] - self.offset_center) * 240 + 240)]
-            #target = [center[0], center[1]]
+            # target = [center[0], center[1]]
 
-            # Step 1: Align yaw
+            # Step 1: Align yaw.
             if self.step == 1:
                 message = "ALIGNING YAW"
                 if H or self.reference_image is None:
                     return {}, frame
                 yaw_required, yaw, dist = self.align_yaw(H, self.reference_image.shape)
 
-            # Step 2: Align lateral strafe
+            # Step 2: Align lateral.
             elif self.step == 2:
                 message = "ALIGNING LATERAL"
                 lateral_required, lateral = self.align_lateral(center)
             
-            # Align vertical componet
+            # Step 3: Align vertical.
             elif self.step == 3:
                 message = "ALIGNING VERTICAL"
                 vertical_required, vertical = self.align_depth(center)
                 
-            # Move forward and maintain depth with target, and maybe yaw or lateral.
+            # Step 4: Move forward while maintaining depth, yaw, and lateral alignment.
             elif self.step == 4:
                 message = "MOVING FORWARD"
                 yaw, lateral, vertical, forward = self.move_forward(H, self.reference_image.shape, center)
 
-            # Fire torpedo 1, and adjust vertical to align for next shot
+            # Fire torpedo 1, and adjust vertical to align for next shot.
             elif self.step == 5:
                 message = "FIRE TORPEDO 1"
                 if(self.fired1):
@@ -530,13 +578,13 @@ class CV:
                     self.fired1 = True
                     target = "Closed"
 
-            # Sleep then fire torpedo 2
+            # Sleep then fire torpedo 2.
             elif self.step == 6:
                 vertical_required, vertical = self.align_depth(center)
                 message = "ALIGNING VERTICAL FOR SECOND TORPEDO"
                 if not vertical_required:
                     if self.aligned == True:
-                        # Fire torpedo 2
+                        # Fire torpedo 2.
                         message = "FIRE TORPEDO 2"
                         self.fired2 = True
                         self.step = 7
@@ -544,7 +592,7 @@ class CV:
                     else:
                         self.aligned = True
                 
-            # End mission  
+            # End mission.
             elif self.step == 7:
                 message = "END MISSION"
                 time.sleep(2)
@@ -577,6 +625,7 @@ class CV:
 
             # # REVIEW: doesn't work like that, you have to project the offset if you want to get the position of the offset
             
+            # Draw a circle around the target.
             cv2.circle(
                 frame,
                 center=(target[0], target[1]),
@@ -584,6 +633,8 @@ class CV:
                 color=(0, 0, 255),
                 thickness=3,
             )
+             
+            # Draw a circle around the center of the frame.
             cv2.circle(
                 frame,
                 center=(320, 240),
@@ -593,6 +644,7 @@ class CV:
             )
 
             cv2.putText(frame, message, (220, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            
             return {
                 "lateral": lateral,
                 "forward": forward,
@@ -751,28 +803,29 @@ class CV:
         #             print("[INFO] Counter: {counter}")
 
 if __name__ == "__main__":
-    # This is the code that will be executed if you run this file directly
-    # It is here for testing purposes
-    # you can run this file independently using: "python -m auv.cv.torpedo_cv"
+    # This is the code that will be executed if you run this file directly.
+    # It is here for testing purposes.
+    # You can run this file independently using: "python -m auv.cv.torpedo_cv".
 
-    # Create a CV object with arguments
+    # Create a CV object with arguments.
     cv = CV()
 
-    # here you can for example initialize your camera, etc
+    # Capture mission data for ML model training.
     cap = cv2.VideoCapture("testing_data/Torpedo4.mp4")
 
     while True:
-        # grab a frame
+        # Grab a frame.
         ret, frame = cap.read()
         if not ret:
             break
 
-        #time.sleep(0.02)
-        # run the cv
+        # time.sleep(0.02)
+
+        # Run the CV script.
         result, img_viz = cv.run(frame, None, None)
         # print(f"[INFO] {result}")
 
-        # show the frame
+        # Show the frame on the screen.
         if img_viz is not None:
             cv2.imshow("viz", img_viz)
         if cv2.waitKey(1) & 0xFF == ord("q"):
