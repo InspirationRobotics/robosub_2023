@@ -1,6 +1,5 @@
 """
-Description: CV class for surfacing
-Author: Maxime Ellerbach
+CV script for the surfacing mission.
 """
 
 import time
@@ -10,6 +9,9 @@ from circle_fit import taubinSVD
 
 
 class CV:
+    """
+    CV class for the surfacing mission.
+    """
     def __init__(self, **config):
         """
         Init of surfacing CV
